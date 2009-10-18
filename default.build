@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<project name="VisitLoggerModule" default="build">
+    <echo message="Project Directory is ${project::get-base-directory()}" />
+    <property name="basename" value="VisitLoggerModule"/>
+
+    <target name="build">
+        <csc target="library" output="../${basename}.dll" warnaserror="False">
+            <sources>
+                <include name="${basename}.cs"/>
+            </sources>
+            <references>
+                <include name="System.dll" />
+                <include name="System.Data.dll" />
+                <include name="System.Xml.dll" />
+                <include name="../log4net.dll" />
+                <include name="../Nini.dll" />
+                <include name="../OpenMetaverse*.dll" />
+                <include name="../OpenSim*.dll" />
+                <include name="../Twitterizer.Framework.dll" />
+            </references>
+        </csc>
+    </target>
+</project>
+

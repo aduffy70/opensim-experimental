@@ -1,0 +1,10 @@
+NAME
+Visit-Logger
+
+DESCRIPTION
+An opensimulator (http://www.opensimulator.org) region module to log visitors and notify the sim owner of visits.
+
+NOTES
+This module uses several libraries that I have not included.  The expectation is that the Visit-Logger/ folder will be placed in the bin/ folder of your OpenSimulator installation.  This will provide access to all required libraries except one.  The Twitterizer library (Twitterizer.FrameWork.dll) must be downloaded separately and placed in the bin/ folder of your OpenSimulator installation. http://twitterizer.googlecode.com/files/Twitterizer.Framework-1.0.1.120.zip
+
+(I think the licenses of OpenSimulator and Twitterizer would allow me to redistribute those libraries along with this module, but I'm new to opensource and do not want to risk doing it incorrectly.)
