@@ -23,6 +23,7 @@
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 using System;
 using System.Collections.Generic;
@@ -41,11 +42,19 @@ using Twitterizer.Framework;
 
 namespace VisitLoggerModule {
     public class VisitLoggerModule : IRegionModule {
+	//Specify a twitter address, password, and URL
 		Twitter twit = new Twitter("YourTwitterLogin", "yourtwitterpassword");
         string twitteraddress = "twitter.com/YourTwitterURL";
+    //If an avatar re-visits within this many seconds, do not tweet.  (This helps prevent abuse and excessive tweets)
+		int blocktime = 3600;
+	//If we get more comments than this in 24 hours assume it is griefing.  (More abuse prevention)
+        int maxcomments = 20;
+    //Channel to listen for comments.  All chat on this channel will be tweeted.
+        int commentchannel = 15;
+        
         Dictionary<string, DateTime> recentvisits = new Dictionary<string, DateTime>();
         int blocktime = 3600; //If an avatar re-visits within this many seconds, do not tweet
-        int maxcomments = 20; //If we get more comments than this in 24 hours it is probably griefing
+        int maxcomments = 20; //If we get more comments than this in 24 hours assume it is griefing
         int commentstoday = 0;
         Timer mytimer = new Timer();
         private Scene m_scene;
@@ -95,7 +104,7 @@ namespace VisitLoggerModule {
         }
 
         void OnChat(Object sender, OSChatMessage chat) {
-            if (chat.Channel != 15)
+            if (chat.Channel != commentchannel)
                 return;
             else if (commentstoday <= maxcomments) {
                 string sendername = m_scene.CommsManager.UserProfileCacheService.GetUserDetails(chat.SenderUUID).UserProfile.Name;
