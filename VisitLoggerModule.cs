@@ -53,8 +53,6 @@ namespace VisitLoggerModule {
         int commentchannel = 15;
         
         Dictionary<string, DateTime> recentvisits = new Dictionary<string, DateTime>();
-        int blocktime = 3600; //If an avatar re-visits within this many seconds, do not tweet
-        int maxcomments = 20; //If we get more comments than this in 24 hours assume it is griefing
         int commentstoday = 0;
         Timer mytimer = new Timer();
         private Scene m_scene;
