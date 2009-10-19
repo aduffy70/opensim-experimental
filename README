@@ -5,7 +5,7 @@ DESCRIPTION
 An OpenSimulator (http://www.opensimulator.org) region module to demonstrate Conway's Game of Life on the surface of a toroid
 
 BUILD NOTES
-This module uses several libraries that I have not included.  The expectation is that the Visit-Logger/ folder will be placed in the bin/ folder of your OpenSimulator installation.  This will provide access to all required libraries except one.  The Twitterizer library (Twitterizer.FrameWork.dll) must be downloaded separately and placed in the bin/ folder of your OpenSimulator installation.
+This module uses several libraries that I have not included.  The expectation is that the ConwaysGOL/ folder will be placed in the bin/ folder of your OpenSimulator installation.  This will provide access to all required libraries.
 
 (I think the license of OpenSimulator would allow me to redistribute those libraries along with this module, but I'm new to opensource and do not want to risk doing it incorrectly.)
 
