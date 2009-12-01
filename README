@@ -1,0 +1,22 @@
+NAME
+Sierpinski-Tree
+
+DESCRIPTION
+An OpenSimulator (http://www.opensimulator.org) region module to generate a 3-dimensional Sierpinski Pyramid with Christmas tree colors.
+
+BUILD NOTES
+This module uses several libraries that I have not included.  The expectation is that the Sierpinski-Tree/ folder will be placed in the bin/ folder of your OpenSimulator installation.  This will provide access to all required libraries.
+
+USAGE NOTES
+This module uses a Sierpinski pyramid.  The module initially creates a single large prim. Chatting '/11 step' will replace that prim with 5 smaller prims, starting the pyramid.  Each time you chat the command, every prim will be replaced by 5 new prims, increasing the complexity of the pyramid.  Eventually you may exceed the limitations of your server hardware, OpenSimulator or your client software.  I don't know what will happen if you exceed those limits... 
+
+TODO
+In no particular order...
+Move configurable settings to an ini file and provide an ini.example.
+Add a command to freeze the pyramid so it cannot be advanced further.
+Add commands to delete or restart the pyramid.
+Make the individual prims pyramid-shaped instead of rectangular.
+Randomize the color of each prim rather than each block of 5 prims.
+Document installation, configuration, and use.
+Pull necessary 3rd party libraries into the project (in a way that is appropriate for their individual licenses).
+Test module on opensim instances with multiple regions per instance and make necessary changes (All my test regions are a single region per opensim instance).
