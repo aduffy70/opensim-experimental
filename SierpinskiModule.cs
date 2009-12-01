@@ -98,7 +98,7 @@ namespace SierpinskiModule {
         		}
         		m_size = new Vector3(m_size.X / 2, m_size.Y / 2, m_size.Z /2);
                 m_prims.Clear();
-                m_log.Info("[SierpinskiModule] Pyramid contains " + m_prims.Count + " prims");
+                m_log.Info("[SierpinskiModule] Pyramid contains " + m_newprims.Count + " prims");
                 m_prims = new List<SceneObjectGroup>(m_newprims);
                 foreach(SceneObjectGroup sog in m_todelete) {
                     m_scene.DeleteSceneObject(sog, false);
