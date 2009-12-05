@@ -1,0 +1,28 @@
+   <Project name="Visit-Logger" frameworkVersion="v3_5" path="addon-modules/Visit-Logger" type="Library">
+     <Configuration name="Debug">
+       <Options>
+         <OutputPath>../../bin/</OutputPath>
+       </Options>
+     </Configuration>
+     <Configuration name="Release">
+       <Options>
+         <OutputPath>../../bin/</OutputPath>
+       </Options>
+     </Configuration>
+
+     <ReferencePath>../../bin/</ReferencePath>
+     <Reference name="System"/>
+     <Reference name="log4net"/>
+     <Reference name="Nini"/>
+     <Reference name="OpenSim.Framework"/>
+     <Reference name="OpenSim.Region.Framework"/>
+     <Reference name="OpenSim.Region.Framework.Interfaces"/>
+     <Reference name="OpenSim.Region.Framework.Scenes"/>
+     <Reference name="OpenMetaverse"/>
+     <Reference name="OpenMetaverseTypes"/>
+     <Reference name="Twitterizer.Framework"/>
+
+     <Files>
+       <Match pattern="*.cs" recurse="true"/>
+     </Files>
+   </Project>
