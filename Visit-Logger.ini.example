@@ -1,0 +1,15 @@
+;Place this file in bin/addon-modules/VisitLogger/config/
+;or copy the contents into your OpenSim.ini file.
+
+[VisitLogger]
+    enabled = true
+    ;The maximum number of comments we will accept in a 24 hour period to prevent abuse.
+    maximum_comments = 20;
+    ;The channel to listen for comments.  All chat on this channel will be tweeted.
+    comment_channel = 15;
+    ;When an avatar revisits within this many seconds, do not log.  This helps prevent misuse and excessive tweeting.
+    block_time = 3600
+    ;Twitter username of the account to be used for logging.
+    your_twitter_username = "YourUserName"
+    ;Twitter account password.
+    your_twitter_password = "password"

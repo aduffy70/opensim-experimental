@@ -5,17 +5,13 @@ DESCRIPTION
 An OpenSimulator (http://www.opensimulator.org) region module to log visitors and notify the sim owner of visits.
 
 BUILD NOTES
-This module uses several libraries that I have not included.  The expectation is that the Visit-Logger/ folder will be placed in the bin/ folder of your OpenSimulator installation.  This will provide access to all required libraries except one.  The Twitterizer library (Twitterizer.FrameWork.dll) must be downloaded separately and placed in the bin/ folder of your OpenSimulator installation. http://twitterizer.googlecode.com/files/Twitterizer.Framework-1.0.1.120.zip
-
-(I think the licenses of OpenSimulator and Twitterizer would allow me to redistribute those libraries along with this module, but I'm new to opensource and do not want to risk doing it incorrectly.)
+This module uses several libraries that I have not included.  The expectation is that the Visit-Logger/ folder will be placed in the addon-modules/ folder of your OpenSimulator installation.  This will provide access to all required libraries except one.  The Twitterizer library (Twitterizer.FrameWork.dll) must be downloaded separately and placed in the bin/ folder of your OpenSimulator installation. http://twitterizer.googlecode.com/files/Twitterizer.Framework-1.0.1.120.zip
 
 USAGE NOTES
 This module uses a Twitter account to log visitors and suggestions.  Do not use your normal Twitter account with this module - all of your followers will be spammed with Tweets everytime you have a visitor.  Set up a new account for this module and then follow the new account with your normal account.
 
 TODO
 In no particular order...
-Move configurable settings to an ini file and provide an ini.example.
-Add date/time to the logged information.
 Add the option to log to a file.
 Add the code for emailed notifications back in and make the choice of logging/notification methods a configurable option.
 Provide tools to summarize visit data.
@@ -23,3 +19,4 @@ Document limitations (how many calls to the Twitter API are allowed in 24 hours?
 Document installation, configuration, and use.
 Pull necessary 3rd party libraries into the project (in a way that is appropriate for their individual licenses).
 Test module on opensim instances with multiple regions per instance and make necessary changes (All my test regions are a single region per opensim instance).
+

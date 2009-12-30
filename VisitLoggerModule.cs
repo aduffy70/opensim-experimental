@@ -9,7 +9,7 @@
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the Parallel Selves Chat Bridge nor the
+ *     * Neither the name of the Visit-Logger Module nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
  *
@@ -42,35 +42,48 @@ using Twitterizer.Framework;
 
 namespace VisitLoggerModule {
     public class VisitLoggerModule : IRegionModule {
-	//Specify a twitter address, password, and URL
-		Twitter twit = new Twitter("YourTwitterUserName", "YourTwitterPassWord");
-    //If an avatar re-visits within this many seconds, do not tweet.  (This helps prevent abuse and excessive tweets)
-		int blocktime = 3600;
-	//If we get more comments than this in 24 hours assume it is griefing.  (More abuse prevention)
-        int maxcomments = 20;
-    //Channel to listen for comments.  All chat on this channel will be tweeted.
-        int commentchannel = 15;
-
-        //Console logging for debug
-        //private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
-        Dictionary<string, DateTime> recentvisits = new Dictionary<string, DateTime>();
-        int commentstoday = 0;
-        Timer mytimer = new Timer();
+        //Module will fail at startup if these are not specified in the VisitLogger.ini file.
+		string m_twitterUserName = "Default";
+        string m_twitterPassword = "password";
+        Twitter m_twit;
+        int m_blockTime = 3600;
+        int m_maxComments = 20;
+        int m_commentChannel = 15;
+        Dictionary<string, DateTime> m_recentVisits = new Dictionary<string, DateTime>();
+        int m_commentsToday = 0;
+        Timer m_timer = new Timer();
         private Scene m_scene;
+        bool m_enabled = false;
 
         #region IRegionModule interface
 
         public void Initialise(Scene scene, IConfigSource config) {
-            m_scene = scene;
+            IConfig visitLoggerConfig = config.Configs["VisitLogger"];
+            if (visitLoggerConfig != null)
+            {
+                m_enabled = visitLoggerConfig.GetBoolean("enabled", false);
+                m_twitterUserName = visitLoggerConfig.GetString("your_twitter_username", "Default");
+                m_twitterPassword = visitLoggerConfig.GetString("your_twitter_password", "password");
+                m_blockTime = visitLoggerConfig.GetInt("block_time", 3600);
+                m_maxComments = visitLoggerConfig.GetInt("maximum_comments", 20);
+                m_commentChannel = visitLoggerConfig.GetInt("comment_channel", 15);
+            }
+            if (m_enabled)
+            {
+                m_scene = scene;
+            }
         }
 
         public void PostInitialise() {
-            m_scene.EventManager.OnMakeRootAgent += new EventManager.OnMakeRootAgentDelegate(OnVisit);
-            m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
-            mytimer.Elapsed += new ElapsedEventHandler(TimerEvent);
-            mytimer.Interval = 86400000;
-            mytimer.Start();
+            if (m_enabled)
+            {
+                m_twit = new Twitter(m_twitterUserName, m_twitterPassword);
+                m_scene.EventManager.OnMakeRootAgent += new EventManager.OnMakeRootAgentDelegate(OnVisit);
+                m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
+                m_timer.Elapsed += new ElapsedEventHandler(TimerEvent);
+                m_timer.Interval = 86400000;
+                m_timer.Start();
+            }
         }
 
         public void Close(){
@@ -87,42 +100,36 @@ namespace VisitLoggerModule {
         #endregion
 
         void OnVisit(ScenePresence presence) {
-            string visitorname = presence.Firstname + "_" + presence.Lastname;
+            string visitorName = presence.Firstname + "_" + presence.Lastname;
             DateTime dt = DateTime.Now;
-            //m_log.Info("[VisitLoggerModule] New Agent " + visitorname + String.Format("{0:f}", dt));
-            if (recentvisits.ContainsKey(visitorname)) {
-                //m_log.Info("[VisitLoggerModule] Repeat visitor");
-                if (DateTime.Now.Subtract(recentvisits[visitorname]).TotalSeconds > blocktime) {
-                    //m_log.Info("[VisitLoggerModule] Long enough since last visit" + DateTime.Now.Subtract(recentvisits[visitorname]).TotalSeconds.ToString());
-                    twit.Status.Update("Repeat visitor: " + presence.Firstname + " " + presence.Lastname + " - " + String.Format("{0:f}", dt));
-                    recentvisits[visitorname] = DateTime.Now;
+            if (m_recentVisits.ContainsKey(visitorName)) {
+                if (DateTime.Now.Subtract(m_recentVisits[visitorName]).TotalSeconds > m_blockTime) {
+                    m_twit.Status.Update("Repeat visitor: " + presence.Firstname + " " + presence.Lastname + " - " + String.Format("{0:f}", dt));
+                    m_recentVisits[visitorName] = DateTime.Now;
                 }
                 else {
-                    //m_log.Info("[VisitLoggerModule] Too soon after last vist" + DateTime.Now.Subtract(recentvisits[visitorname]).TotalSeconds.ToString());
-                    recentvisits[visitorname] = DateTime.Now;
+                    m_recentVisits[visitorName] = DateTime.Now;
                 }
             }
             else {
-                //m_log.Info("[VisitLoggerModule] First time visitor");
-                twit.Status.Update("New Visitor: " + presence.Firstname + " " + presence.Lastname + " - " + String.Format("{0:f}", dt));
-                recentvisits.Add(visitorname, DateTime.Now);
+                m_twit.Status.Update("New Visitor: " + presence.Firstname + " " + presence.Lastname + " - " + String.Format("{0:f}", dt));
+                m_recentVisits.Add(visitorName, DateTime.Now);
             }
         }
 
         void OnChat(Object sender, OSChatMessage chat) {
-            if (chat.Channel != commentchannel)
+            if (chat.Channel != m_commentChannel)
                 return;
-            else if (commentstoday <= maxcomments) {
-                string sendername = m_scene.CommsManager.UserProfileCacheService.GetUserDetails(chat.SenderUUID).UserProfile.Name;
-                //There must be a better way to get the avatar's name, but chat.Name returns null...
-                string firstinitial = sendername.Substring(0,1);
-                string lastinitial = sendername.Split(' ')[1].Substring(0,1);
-                twit.Status.Update(firstinitial + lastinitial + ":" + chat.Message);
+            else if (m_commentsToday <= m_maxComments) {
+                string senderName = m_scene.CommsManager.UserProfileCacheService.GetUserDetails(chat.SenderUUID).UserProfile.Name;
+                string firstInitial = senderName.Substring(0,1);
+                string lastInitial = senderName.Split(' ')[1].Substring(0,1);
+                m_twit.Status.Update(firstInitial + lastInitial + ":" + chat.Message);
                 IDialogModule dialogmod = m_scene.RequestModuleInterface<IDialogModule>();
                 if (dialogmod != null) {
                     dialogmod.SendGeneralAlert("Thanks for the feedback!");
                 }
-                commentstoday++;
+                m_commentsToday++;
             }
             else  {
                 IDialogModule dialogmod = m_scene.RequestModuleInterface<IDialogModule>();
@@ -132,7 +139,7 @@ namespace VisitLoggerModule {
         }
 
         void TimerEvent(object source, ElapsedEventArgs e) {
-            commentstoday = 0;
+            m_commentsToday = 0;
         }
     }
 }
