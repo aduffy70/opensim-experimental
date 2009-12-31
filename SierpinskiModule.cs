@@ -9,7 +9,7 @@
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the Parallel Selves Chat Bridge nor the
+ *     * Neither the name of the Sierpinski-Tree module nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
  *
@@ -45,30 +45,51 @@ namespace SierpinskiModule {
 		List<SceneObjectGroup> m_newprims = new List<SceneObjectGroup>(); //new prims to be added to the scene
         List<SceneObjectGroup> m_todelete = new List<SceneObjectGroup>(); //prims to be removed from the scene
         Random m_random = new Random();
+        bool m_enabled = false;
+        int m_channel = 11;
         private Scene m_scene;
 
-        // Adjust these parameters to control the size and location of the tree
-        Vector3 m_pos = new Vector3(120f, 120f, 45f); //inworld coordinates for the center of the pyramid
+        Vector3 m_pos = new Vector3(128f, 128f, 40f); //inworld coordinates for the center of the pyramid
 		Vector3 m_size = new Vector3(30f, 30f, 40f); //dimensions of the pyramid in meters
 
         #region IRegionModule interface
 
         public void Initialise(Scene scene, IConfigSource config) {
-            m_log.Info("[SierpinskiModule] Initializing...");
-            m_scene = scene;
+            IConfig sierpinskiTreeConfig = config.Configs["SierpinskiTree"];
+            if (sierpinskiTreeConfig != null)
+            {
+                m_enabled = sierpinskiTreeConfig.GetBoolean("enabled", false);
+                m_channel = sierpinskiTreeConfig.GetInt("chat_channel", 11);
+                float xPos = sierpinskiTreeConfig.GetFloat("tree_x_position", 128);
+                float yPos = sierpinskiTreeConfig.GetFloat("tree_y_position", 128);
+                float zPos = sierpinskiTreeConfig.GetFloat("tree_z_position", 50);
+                m_pos = new Vector3(xPos, yPos, zPos);
+                float xSize = sierpinskiTreeConfig.GetFloat("tree_x_size", 30);
+                float ySize = sierpinskiTreeConfig.GetFloat("tree_y_size", 30);
+                float zSize = sierpinskiTreeConfig.GetFloat("tree_z_size", 40);
+                m_size = new Vector3(xSize, ySize, zSize);
+            }
+            if (m_enabled)
+            {
+                m_log.Info("[SierpinskiTreeModule] Initializing...");
+                m_scene = scene;
+            }
         }
 
         public void PostInitialise() {
-            m_scene.EventManager.OnChatFromWorld += new EventManager.ChatFromWorldEvent(OnChat);
-            m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
-			InitializePyramid(m_scene);
+            if (m_enabled)
+            {
+                m_scene.EventManager.OnChatFromWorld += new EventManager.ChatFromWorldEvent(OnChat);
+                m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
+			    InitializePyramid(m_scene);
+            }
         }
 
         public void Close(){
         }
 
         public string Name{
-            get { return "SierpinskiModule"; }
+            get { return "SierpinskiTreeModule"; }
         }
 
         public bool IsSharedModule {
@@ -88,10 +109,10 @@ namespace SierpinskiModule {
         }
 
         void OnChat(Object sender, OSChatMessage chat) {
-        	if ((chat.Channel != 11) || (chat.Message.Length < 4)) {
+        	if (chat.Channel != m_channel) {
                 return;
             }
-			else if (chat.Message.Substring(0,4) == "step") {
+			else if (chat.Message == "step") {
         		m_log.Info("[SierpinskiModule] Updating pyramid...");
         		foreach(SceneObjectGroup sog in m_prims) {
         			DoSierpinski(sog, m_size);

@@ -1,0 +1,12 @@
+[SierpinskiTree]
+    enabled = true
+    ;x, y, and z coordinates of the center of the tree.
+    tree_x_position = 128
+    tree_y_position = 128
+    tree_z_position = 50
+    ;x, y, and z dimensions (in meters) of the tree
+    tree_x_size = 30
+    tree_y_size = 30
+    tree_z_size = 40
+    ;channel for chat commands
+    chat_channel = 11
