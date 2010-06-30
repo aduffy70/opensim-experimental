@@ -121,7 +121,7 @@ namespace VisitLoggerModule {
             if (chat.Channel != m_commentChannel)
                 return;
             else if (m_commentsToday <= m_maxComments) {
-                string senderName = chat.From;
+                string senderName = m_scene.GetUserName(chat.SenderUUID);
                 string firstInitial = senderName.Substring(0,1);
                 string lastInitial = senderName.Split(' ')[1].Substring(0,1);
                 m_twit.Status.Update(firstInitial + lastInitial + ":" + chat.Message);
