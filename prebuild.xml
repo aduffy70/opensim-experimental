@@ -1,4 +1,4 @@
-   <Project name="Coverview" frameworkVersion="v3_5" path="addon-modules/Coverview" type="Library">
+   <Project name="CoverviewModule" frameworkVersion="v3_5" path="addon-modules/Coverview" type="Library">
      <Configuration name="Debug">
        <Options>
          <OutputPath>../../bin/</OutputPath>
