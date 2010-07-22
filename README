@@ -2,7 +2,7 @@ NAME
 Coverview
 
 DESCRIPTION
-An OpenSimulator (http://www.opensimulator.org) generate a bank of slides that can be viewed in sequence or any desired order.
+An OpenSimulator (http://www.opensimulator.org) module to generate a bank of slides that can be viewed in sequence or any desired order.
 
 BUILD NOTES
 This module uses several libraries that I have not included.  The expectation is that the Coverview/ folder will be placed in the addon-modules/ folder of your OpenSimulator installation.  This will provide access to all required libraries.
