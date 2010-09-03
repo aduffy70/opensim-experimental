@@ -152,6 +152,7 @@ namespace ConwaysLifeModule
                     m_cellStatus[counter] = 0;
                     tex.DefaultTexture.RGBA = m_deadColor;
                     sog.RootPart.UpdateTexture(tex);
+                    sog.RootPart.UpdatePrimFlags(false, false, true, false);
                     //Add the cell to the list of managed objects
                     m_prims.Add(sog);
                     vRadians = vRadians + vSpacing;
