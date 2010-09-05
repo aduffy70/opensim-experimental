@@ -39,9 +39,14 @@ using OpenSim.Region.Framework;
 using OpenSim.Region.Framework.Interfaces;
 using OpenSim.Region.Framework.Scenes;
 
+using Mono.Addins;
+
+[assembly: Addin("ConwaysLifeModule", "0.1")]
+[assembly: AddinDependency("OpenSim", "0.5")]
 namespace ConwaysLifeModule
 {
-    public class ConwaysLifeModule : IRegionModule
+    [Extension(Path="/OpenSim/RegionModules",NodeName="RegionModule")]
+    public class ConwaysLifeModule : INonSharedRegionModule
     {
         private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         List<SceneObjectGroup> m_prims = new List<SceneObjectGroup>(); //list of objects managed by this module
@@ -64,10 +69,32 @@ namespace ConwaysLifeModule
         List<int> m_activeCells = new List<int>(); //Indices of cells which could possibly change on the next cycle
 
 
-        #region IRegionModule interface
+        #region INonSharedRegionModule interface
 
-        public void Initialise(Scene scene, IConfigSource config)
+        public void Initialise(IConfigSource config)
         {
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            m_log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+
             IConfig conwayConfig = config.Configs["ConwayGOL"];
             if (conwayConfig != null)
             {
@@ -85,14 +112,14 @@ namespace ConwaysLifeModule
             if (m_enabled)
             {
                 m_log.Info("[ConwaysLifeModule] Initializing...");
-                m_scene = scene;
             }
         }
 
-        public void PostInitialise()
+        public void AddRegion(Scene scene)
         {
             if (m_enabled)
             {
+                m_scene = scene;
                 m_scene.EventManager.OnChatFromWorld += new EventManager.ChatFromWorldEvent(OnChat);
                 m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
                 m_timer.Elapsed += new ElapsedEventHandler(TimerEvent);
@@ -100,6 +127,14 @@ namespace ConwaysLifeModule
                 m_cellStatus = new int[(m_xCells + 1) * (m_yCells + 1)];
                 DoLifeModule(m_scene);
             }
+        }
+
+        public void RemoveRegion(Scene scene)
+        {
+        }
+
+        public void RegionLoaded(Scene scene)
+        {
         }
 
         public void Close()
@@ -114,11 +149,11 @@ namespace ConwaysLifeModule
             }
         }
 
-        public bool IsSharedModule
+        public Type ReplaceableInterface
         {
             get
             {
-                return false;
+                return null;
             }
         }
 

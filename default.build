@@ -16,6 +16,7 @@
                 <include name="../Nini.dll" />
                 <include name="../OpenMetaverse*.dll" />
                 <include name="../OpenSim*.dll" />
+                <include name="../Mono.Addins.dll" />
             </references>
         </csc>
     </target>
