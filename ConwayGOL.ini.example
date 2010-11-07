@@ -16,4 +16,6 @@
     a_radius = 20
     ;Radius of the torus tube
     b_radius = 15
-
+    ;Base url path to the location where starting patterns are stored.
+    ;Without this path, only the hardcoded example pattern is available.
+    pattern_url_path = "http://fernseed.usu.edu/cgol-patterns/"

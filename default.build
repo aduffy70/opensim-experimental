@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<project name="ConwaysLifeModule" default="build">
+<project name="ConwayGOLModule" default="build">
     <echo message="Project Directory is ${project::get-base-directory()}" />
-    <property name="basename" value="ConwaysLifeModule"/>
+    <property name="basename" value="ConwayGOLModule"/>
 
     <target name="build">
         <csc target="library" output="../${basename}.dll" warnaserror="False">

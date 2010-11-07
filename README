@@ -8,11 +8,10 @@ BUILD NOTES
 This module uses several libraries that I have not included.  The expectation is that the ConwaysGOL/ folder will be placed in the addon-modules/ folder of your OpenSimulator installation.  This will provide access to all required libraries.
 
 USAGE NOTES
-
+To start an example pattern, chat /9 example
+To define a custom starting pattern, visit http://fernseed.usu.edu/cgol-pattern-generator
 
 TODO
 In no particular order...
 Document installation, configuration, and use.
-Pull necessary 3rd party libraries into the project (in a way that is appropriate for their individual licenses).
 Test module on opensim instances with multiple regions per instance and make necessary changes (All my test regions are a single region per opensim instance).
-Add commands to allow users to change the starting pattern.
