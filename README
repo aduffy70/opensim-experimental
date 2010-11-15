@@ -1,0 +1,19 @@
+NAME
+vMeadow
+
+DESCRIPTION
+An OpenSimulator (http://www.opensimulator.org) region module to generate a virtual meadow with a community structure that changes over time based on a cellular automata system.  Initially based on the model used in Silvertown et al. 1992. Cellular automaton models of interspecific competition for space-- the effect of pattern on process. Journal of Ecology 80:527-533.
+
+BUILD NOTES
+This module uses several libraries that I have not included.  The expectation is that the vMeadow/ folder will be placed in the addon-modules/ folder of your OpenSimulator installation.  This will provide access to all required libraries.
+
+USAGE NOTES
+To generate a randomized meadow, chat /18 reset.
+To start the cellular automata system, chat /18 start.
+To stop the cellular automata system, chat /18 stop.
+To remove the meadow, chat /18 clear.
+
+TODO
+In no particular order...
+Document installation, configuration, and use.
+Test module on opensim instances with multiple regions per instance and make necessary changes (All my test regions are a single region per opensim instance).

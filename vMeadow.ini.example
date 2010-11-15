@@ -1,0 +1,15 @@
+[vMeadow]
+    enabled = true
+    ;Chat channel to use for commands
+    chat_channel = 18
+    ;Time in seconds between updates
+    cycle_time = 20
+    ;# of columns in the matrix
+    x_cells = 40
+    ;# of rows in the matrix
+    y_cells = 40
+    ;Coordinates for the center of the meadow
+    x_position = 128
+    y_position = 128
+    z_position = 40
+    cell_spacing = 2
