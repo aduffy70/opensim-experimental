@@ -1,15 +1,26 @@
 [vMeadow]
     enabled = true
+
     ;Chat channel to use for commands
     chat_channel = 18
+
     ;Time in seconds between updates
     cycle_time = 20
-    ;# of columns in the matrix
-    x_cells = 40
-    ;# of rows in the matrix
-    y_cells = 40
-    ;Coordinates for the center of the meadow
-    x_position = 128
-    y_position = 128
-    z_position = 40
-    cell_spacing = 2
+
+    ;# of rows and columns in the community matrix
+    ;Must be 50x50 grid to work with the webapp!
+    x_cells = 50
+    y_cells = 50
+
+    ;Coordinates for the 0,0 cell (SW corner) of the community matrix
+    x_position = 2
+    y_position = 2
+
+    ;Distance between matrix cells (average distance between plants)
+    cell_spacing = 5
+
+    ;Place the plants near the matrix coordinates for a more natural appearance, rather than directly on the coordinates.  This does not effect on the simulation outcome - only the appearance.
+    natural_appearance = true;
+
+    ;Url path to community configuration info.
+    config_path = "http://fernseed.usu.edu/vMeadowInfo/"

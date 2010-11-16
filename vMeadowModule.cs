@@ -59,20 +59,27 @@ namespace vMeadowModule
         int m_cycleTime; //Time in milliseconds between cycles
         float m_xPosition; //inworld x coordinate for the 0,0 cell position
         float m_yPosition;  //inworld y coordinate for the 0,0 cell position
-        float m_zPosition = 40; //TODO: Needs to be ground level at the XY coordinates
         int m_xCells;
         int m_yCells;
         float m_cellSpacing; //Space in meters between cell positions
+        bool m_naturalAppearance; //Whether the plants are placed in neat rows or randomized a bit
+        string m_configPath; //Url path to community config settings
 
         SceneObjectGroup[,] m_prims; //list of objects managed by this module
         int[,] m_cellStatus; // plant type for each cell (0-3)
-        string[] m_treeTypes = new string[6] {"None", "Eelgrass", "Fern", "BeachGrass1", "SeaSword", "TropicalBush1"};
-        bool m_running = false; //Keep track of whether the automaton is running
+        string[] m_omvTrees = new string[22] {"None", "Pine1", "Oak", "TropicalBush1", "Palm1", "Dogwood", "TropicalBush2", "Palm2", "Cypress1", "Cypress2", "Pine2", "Plumeria", "WinterPine1", "WinterAspen", "WinterPine2", "Eucalyptus", "Fern", "Eelgrass", "SeaSword", "Kelp1", "BeachGrass1", "Kelp2"};
+
+        int[] m_communityMembers = new int[6] {0, 17, 16, 20, 18, 3};//Default plants to include in the community
+        //int[] m_communityMembers = new int[6] {0, 1, 2, 5, 10, 8};//Forest trees
+
+        bool m_isRunning = false; //Keep track of whether the automaton is running
+        bool m_isSetup = false; //Whether the community matrix has been setup since the last region restart
         Timer m_cycleTimer = new Timer(); //Timer to replace the region heartbeat
         Timer m_pauseTimer = new Timer(); //Timer to delay trying to delete objects before the region has loaded completely
         Scene m_scene;
         Random m_random = new Random(); //A Random Class object to use throughout this module
-        //Replacement Matrix.  The probability of replacement of species y by species x.
+        //Replacement Matrix.  The probability of replacement of one species by a surrounding species.
+        //Example [0,1] is the probability that species 1 will be replace by species 0, if all 8 of species 1's neighbors are species 0.
         //From Thorhallsdottir 1990 as presented by Silvertown et al 1992.
         float[,] m_replacementMatrix = new float[6,6] {{0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 0.00f},
                                                        {0.00f, 0.00f, 0.02f, 0.06f, 0.05f, 0.03f},
@@ -80,7 +87,7 @@ namespace vMeadowModule
                                                        {0.00f, 0.06f, 0.08f, 0.00f, 0.16f, 0.09f},
                                                        {0.00f, 0.44f, 0.06f, 0.06f, 0.00f, 0.11f},
                                                        {0.00f, 0.03f, 0.02f, 0.03f, 0.05f, 0.00f}};
-        //int m_deathCount = 0; //TEMP: track deaths to see if we will have the overflow problem @~16k
+        int[,] m_startingMatrix; //Starting values for the community
 
         #region INonSharedRegionModule interface
 
@@ -96,8 +103,9 @@ namespace vMeadowModule
                 m_yCells = vMeadowConfig.GetInt("y_cells", 36);
                 m_xPosition = vMeadowConfig.GetFloat("x_position", 128);
                 m_yPosition = vMeadowConfig.GetFloat("y_position", 128);
-                m_zPosition = vMeadowConfig.GetFloat("z_position", 40);
                 m_cellSpacing = vMeadowConfig.GetFloat("cell_spacing", 2);
+                m_naturalAppearance = vMeadowConfig.GetBoolean("natural_appearance", true);
+                m_configPath = vMeadowConfig.GetString("config_path", "http://fernseed.usu.edu/vMeadowInfo/");
             }
             if (m_enabled)
             {
@@ -111,16 +119,12 @@ namespace vMeadowModule
             {
                 m_scene = scene;
                 m_dialogmod = m_scene.RequestModuleInterface<IDialogModule>();
-                m_scene.EventManager.OnChatFromWorld += new EventManager.ChatFromWorldEvent(OnChat);
-                m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
-                m_cycleTimer.Elapsed += new ElapsedEventHandler(OnCycleTimer);
-                m_cycleTimer.Interval = m_cycleTime;
                 m_pauseTimer.Elapsed += new ElapsedEventHandler(OnPause);
-                m_pauseTimer.Interval = 60000;
+                m_pauseTimer.Interval = 30000;
                 m_prims = new SceneObjectGroup[m_xCells, m_yCells];
                 m_cellStatus = new int[m_xCells, m_yCells];
-                m_pauseTimer.Start(); //Don't run module til all objects have time to load from datastore
-
+                RandomizeStartMatrix();
+                m_pauseTimer.Start(); //Don't allow users to setup or use module til all objects have time to load from datastore
             }
         }
 
@@ -199,9 +203,91 @@ namespace vMeadowModule
 
         #endregion
 
-        void SetupMatrix()
+        void RandomizeStartMatrix()
         {
-            //Delete any plants already in the region
+            //Generate starting matrix of random plant types
+            m_startingMatrix = new int[m_xCells, m_yCells];
+            for (int x=0; x<m_xCells; x++)
+            {
+                for (int y=0; y<m_yCells; y++)
+                {
+                    m_startingMatrix[x,y] = m_random.Next(1, 6);
+                }
+            }
+        }
+
+        void SetupMatrix(bool hardReset)
+        {
+            if (hardReset)
+            {
+                //Remove any untracked plants that may be present after region restart and create new plants based on the starting matrix
+                EntityBase[] everyObject = m_scene.GetEntities();
+                SceneObjectGroup sog;
+                foreach (EntityBase e in everyObject)
+                {
+                    if (e is SceneObjectGroup)
+                    {
+                        sog = (SceneObjectGroup)e;
+                        if (sog.RootPart.Name == "vMeadowPlant")
+                        {
+                            DeletePlant(sog);
+                        }
+                    }
+                }
+                // Place plants in world based on the starting matrix
+                for (int x=0; x<m_xCells; x++)
+                {
+                    for (int y=0; y<m_yCells; y++)
+                    {
+                        //Generate a random plant
+                        int plantType = m_startingMatrix[x, y];
+                        m_prims[x, y] = CreatePlant(x, y, plantType);
+                        if (m_prims[x, y] != null)
+                        {
+                            m_cellStatus[x, y] = plantType;
+                        }
+                        else
+                        {
+                            //No plant in this cell (probably below sea level)
+                            m_cellStatus[x, y] = 0;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                //Just replace any plants that need to change based on the starting matrix
+                for (int x=0; x<m_xCells; x++)
+                {
+                    for (int y=0; y<m_yCells; y++)
+                    {
+                        //Generate a random plant type
+                        int plantType = m_startingMatrix[x, y];
+                        //Only replace the old one if it will be different than what is already there
+                        if (plantType != m_cellStatus[x, y])
+                        {
+                            if (m_prims[x, y] != null)
+                            {
+                                DeletePlant(m_prims[x, y]);
+                            }
+                            m_prims[x, y] = CreatePlant(x, y, plantType);
+                            if (m_prims[x, y] != null)
+                            {
+                                m_cellStatus[x, y] = plantType;
+                            }
+                            else
+                            {
+                                m_cellStatus[x, y] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        void ClearAllPlants()
+        {
+            //Delete all vMeadow plants in the region
             EntityBase[] everyObject = m_scene.GetEntities();
             SceneObjectGroup sog;
             foreach (EntityBase e in everyObject)
@@ -215,45 +301,35 @@ namespace vMeadowModule
                     }
                 }
             }
-            // Place a randomized grid of plants in world
-            for (int x=0; x<m_xCells; x++)
-            {
-                for (int y=0; y<m_yCells; y++)
-                {
-                    //Generate a random plant
-                    int plantType = m_random.Next(1, 6);
-                    m_prims[x, y] = CreatePlant(x, y, plantType);
-                    if (m_prims[x, y] != null)
-                    {
-                        m_cellStatus[x, y] = plantType;
-                    }
-                    else
-                    {
-                        //No plant in this cell (probably below sea level)
-                        m_cellStatus[x, y] = 0;
-                    }
-                }
-            }
-            //Place the managed objects visibly in the scene
-            foreach (SceneObjectGroup sogr in m_prims)
-            {
-                m_scene.AddNewSceneObject(sogr, false);
-            }
+            m_isSetup = false;
         }
 
         SceneObjectGroup CreatePlant(int xPos, int yPos, int plantTypeIndex)
         {
-            float xRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
-            float yRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
-            Vector3 position = new Vector3(m_xPosition + (xPos * m_cellSpacing) + xRandomOffset, m_yPosition + (yPos * m_cellSpacing) + yRandomOffset, 0.0f);
-            position.Z = GroundLevel(position);
-            //Only add a plant if it is above sea level
-            if (position.Z >= WaterLevel(position))
+            float xRandomOffset = 0;
+            float yRandomOffset = 0;
+            if (m_naturalAppearance)
             {
-                Tree treeType = (Tree) Enum.Parse(typeof(Tree), m_treeTypes[plantTypeIndex]);
-                SceneObjectGroup newPlant = AddTree(UUID.Zero, UUID.Zero, new Vector3(1.0f, 1.0f, 1.0f), Quaternion.Identity, position, treeType, false);
-                newPlant.RootPart.Name = "vMeadowPlant";
-                return newPlant;
+                xRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
+                yRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
+            }
+            Vector3 position = new Vector3(m_xPosition + (xPos * m_cellSpacing) + xRandomOffset, m_yPosition + (yPos * m_cellSpacing) + yRandomOffset, 0.0f);
+            //Only calculate ground level if the x,y position is within the region boundaries
+            if ((position.X >= 0) && (position.X <= 256) && (position.Y >= 0) && (position.Y <=256))
+            {
+                position.Z = GroundLevel(position);
+                //Only add a plant if it is above sea level
+                if (position.Z >= WaterLevel(position))
+                {
+                    Tree treeType = (Tree) Enum.Parse(typeof(Tree), m_omvTrees[m_communityMembers[plantTypeIndex]]);
+                    SceneObjectGroup newPlant = AddTree(UUID.Zero, UUID.Zero, new Vector3(1.0f, 1.0f, 1.0f), Quaternion.Identity, position, treeType, false);
+                    newPlant.RootPart.Name = "vMeadowPlant";
+                    return newPlant;
+                }
+                else
+                {
+                    return null;
+                }
             }
             else
             {
@@ -268,38 +344,10 @@ namespace vMeadowModule
             //m_log.Info("[vMeadow] Death count: " + m_deathCount.ToString());
         }
 
-        void RandomizeAllCells()
-        {
-            //Set each plant to a random plant type
-            m_log.Info("[vMeadow] resetting...");
-            for (int x=0; x<m_xCells; x++)
-            {
-                for (int y=0; y<m_yCells; y++)
-                {
-                    //Generate a random plant type
-                    int plantType = m_random.Next(1, 6);
-                    //Only replace the old one if it will be different than what is already there
-                    if (plantType != m_cellStatus[x, y])
-                    {
-                        DeletePlant(m_prims[x, y]);
-                        m_prims[x, y] = CreatePlant(x, y, plantType);
-                        if (m_prims[x, y] != null)
-                        {
-                            m_cellStatus[x, y] = plantType;
-                        }
-                        else
-                        {
-                            m_cellStatus[x, y] = 0;
-                        }
-                    }
-                }
-            }
-        }
-
         void StopAutomata()
         {
             m_log.Info("[vMeadow] Stopping...");
-            m_running = false;
+            m_isRunning = false;
             m_cycleTimer.Stop();
         }
 
@@ -307,7 +355,7 @@ namespace vMeadowModule
         {
             //Start timer
             m_log.Info("[vMeadow] Starting...");
-            m_running = true;
+            m_isRunning = true;
             m_cycleTimer.Start();
         }
 
@@ -318,40 +366,59 @@ namespace vMeadowModule
                 //Message is not for this module
                 return;
             }
-            else if (chat.Message == "reset")
+            else if (chat.Message.ToLower() == "reset")
             {
-                if (m_running)
+            if (m_dialogmod != null)
                 {
-                    StopAutomata();
+                    m_dialogmod.SendGeneralAlert("vMeadow Module: Resetting community.  Please be patient...");
                 }
-                if (m_dialogmod != null)
+                if (m_isSetup)
                 {
-                    m_dialogmod.SendGeneralAlert("vMeadow Module: Reset...");
-                }
-                RandomizeAllCells();
-            }
-            else if (chat.Message == "start")
-            {
-                if (!m_running)
-                {
-                    if (m_dialogmod != null)
+                    if (m_isRunning)
                     {
-                        m_dialogmod.SendGeneralAlert("vMeadow Module: Start...");
+                        StopAutomata();
                     }
-                    StartAutomata();
+                    SetupMatrix(false);
+                }
+                else
+                {
+                    SetupMatrix(true);
+                    m_isSetup = true;
+                }
+            }
+            else if (chat.Message.ToLower() == "start")
+            {
+                if (m_isSetup)
+                {
+                    if (!m_isRunning)
+                    {
+                        if (m_dialogmod != null)
+                        {
+                            m_dialogmod.SendGeneralAlert("vMeadow Module: Start...");
+                        }
+                        StartAutomata();
+                    }
+                    else
+                    {
+                        if (m_dialogmod != null)
+                        {
+                            m_dialogmod.SendGeneralAlert("vMeadow Module: Already running...");
+                        }
+                        m_log.Info("[vMeadow] Already running...");
+                    }
                 }
                 else
                 {
                     if (m_dialogmod != null)
                     {
-                        m_dialogmod.SendGeneralAlert("vMeadow Module: Already running...");
+                        m_dialogmod.SendGeneralAlert("vMeadow Module: Cannot start.  Please reset the matrix first...");
                     }
-                    m_log.Info("[vMeadow] Already running...");
+                    m_log.Info("[vMeadow] Cannot start.  Matrix not setup...");
                 }
             }
-            else if (chat.Message == "stop")
+            else if (chat.Message.ToLower() == "stop")
             {
-                if (m_running)
+                if (m_isRunning)
                 {
                     if (m_dialogmod != null)
                     {
@@ -368,19 +435,119 @@ namespace vMeadowModule
                     m_log.Info("[vMeadow] Not running...");
                 }
             }
-            else
+            else if (chat.Message.ToLower() == "clear")
             {
-                //invalid command
+                if (m_isRunning)
+                {
+                    StopAutomata();
+                }
                 if (m_dialogmod != null)
                 {
-                    m_dialogmod.SendGeneralAlert("vMeadow Module: Invalid command...");
+                    m_dialogmod.SendGeneralAlert("vMeadow Module: Clearing all plants.  Please be patient..");
                 }
-                m_log.Info("[vMeadow] Invalid command...");
+                m_log.Info("[vMeadow] Clearing all plants...");
+                ClearAllPlants();
+            }
+            else if (chat.Message == "random")
+            {
+            if (m_dialogmod != null)
+                {
+                    m_dialogmod.SendGeneralAlert("vMeadow Module: Randomizing...");
+                }
+                if (m_isRunning)
+                {
+                    StopAutomata();
+                }
+                RandomizeStartMatrix();
+                SetupMatrix(!m_isSetup);
+            }
+            else
+            {
+                //Try to read configuration info from a url
+                m_log.Info("[vMeadow] Loading configuration info...");
+                bool readSuccess = ReadConfigs(System.IO.Path.Combine(m_configPath, chat.Message));
+                if (readSuccess)
+                {
+                    if (m_isRunning)
+                    {
+                        StopAutomata();
+                    }
+                    SetupMatrix(true);
+                    m_isSetup = true;
+                }
+            }
+        }
+
+        bool ReadConfigs(string url)
+        {
+            string[] configInfo = new string[56];
+            WebRequest configUrl = WebRequest.Create(url);
+            try
+            {
+                StreamReader urlData = new StreamReader(configUrl.GetResponse().GetResponseStream());
+                string line;
+                int lineCount = 0;
+                while ((line = urlData.ReadLine()) != null)
+                {
+                    configInfo[lineCount] = line;
+                    lineCount++;
+                }
+                //Parse the data
+                string[] plants = new string[5];
+                plants = configInfo[0].Split(',');
+                for (int i = 1; i<6; i++) //Start at index 1 so index 0 stays "None"
+                {
+                    m_communityMembers[i] = Int32.Parse(plants[i - 1]);
+                }
+                for (int i=1; i<6; i++) //Start at index 1 so the species 0 values stay 0
+                {
+                    string[] probabilities = new string[5];
+                    probabilities = configInfo[i].Split(',');
+                    for(int j=1; j<6; j++) //Start at index 1 so the species 0 values stay 0
+                    {
+                        m_replacementMatrix[i,j] = float.Parse(probabilities[j - 1]);
+                    }
+                }
+                m_startingMatrix = new int[50,50];
+                for (int i=0; i<50; i++)
+                {
+                    string[] startingPlants = new string[50];
+                    startingPlants = configInfo[i + 6].Split(',');
+                    for (int j=0; j<50; j++)
+                    {
+                        if (startingPlants[j] == "0")
+                        {
+                            //Randomly select a plant type
+                            m_startingMatrix[i,j] = m_random.Next(1,6);
+                        }
+                        else
+                        {
+                            m_startingMatrix[i,j] = Int32.Parse(startingPlants[j]);
+                        }
+                    }
+                }
+                if (m_dialogmod != null)
+                {
+                    m_dialogmod.SendGeneralAlert("vMeadow Module: Read parameters from url \"" + url + "\"Clearing all plants and generating a new community.  Please be patient...");
+                }
+                m_log.Info("[vMeadow] Read parameters from url \"" + url + "\"...");
+
+                return true;
+            }
+            catch //failed to get the data for some reason
+            {
+                m_log.Error("[vpgParameters] Error loading parameters from url \"" + url + "\"...");
+                if (m_dialogmod != null)
+                {
+                    m_dialogmod.SendGeneralAlert("vMeadow Module: Error loading parameters from url \"" + url + "\"...");
+                }
+                return false;
             }
         }
 
         void OnCycleTimer(object source, ElapsedEventArgs e)
         {
+            //Advance the cellular automata by a generation
             int[,] oldCellStatus = new int[m_xCells, m_yCells];
             Array.Copy(m_cellStatus, oldCellStatus, m_cellStatus.Length);
             int rowabove;
@@ -468,7 +635,7 @@ namespace vMeadowModule
                     if (newStatus != oldCellStatus[x, y])
                     {
                         DeletePlant(m_prims[x, y]);
-                        m_prims[x, y] = CreatePlant(x, y, m_cellStatus[x, y]);
+                        m_prims[x, y] = CreatePlant(x, y, newStatus);
                         if (m_prims != null)
                         {
                             m_cellStatus[x, y] = newStatus;
@@ -484,8 +651,12 @@ namespace vMeadowModule
 
         void OnPause(object source, ElapsedEventArgs e)
         {
+            //After region has had time to load all objects from database after a restart...
             m_pauseTimer.Stop();
-            SetupMatrix();
+            m_scene.EventManager.OnChatFromWorld += new EventManager.ChatFromWorldEvent(OnChat);
+            m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
+            m_cycleTimer.Elapsed += new ElapsedEventHandler(OnCycleTimer);
+            m_cycleTimer.Interval = m_cycleTime;
         }
 
         float GroundLevel(Vector3 location)
