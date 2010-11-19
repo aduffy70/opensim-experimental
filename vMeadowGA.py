@@ -29,6 +29,13 @@ class MeadowRecordObject(db.Model):
     # X & Y dimensions of the matrix
     x_cells = db.IntegerProperty()
     y_cells = db.IntegerProperty()
+    # X & Y location of the 0,0 cell (southwest corner) of the matrix
+    x_position = db.FloatProperty()
+    y_position = db.FloatProperty()
+    # Spacing between cells
+    spacing = db.FloatProperty()
+    #Crop-like (1) or more natural (0) plant placement
+    natural = db.IntegerProperty()
     # x*y character string with characters representing the plant_code at each position in the matrix (R for random and 0 for none)
     starting_matrix = db.TextProperty()
 
@@ -46,6 +53,13 @@ class ChooseMatrixSizePage(webapp.RequestHandler):
         <p><b>Matrix size:</b> Specify the size of the community matrix in x,y dimensions.<br>
         X size: <input type="text" name="x_size" value="10" maxlength="2" size="3"> &nbsp;&nbsp;
         Y size: <input type="text" name="y_size" value="10" maxlength="2" size="3"><i> (1 - 50)</i></p>
+        <p><b>Matrix location:</b> Specify the region coordinates of the 0,0 (southwest) plant of the matrix.<br>
+        X location: <input type="text" name="x_location" value="128" maxlength="5" size="5"> &nbsp;&nbsp;
+        Y location: <input type="text" name="y_location" value="128" maxlength="5" size="5"><i> (0 - 256.0)</i></p>
+        <p><b>Plant spacing:</b> Specify the distance between adjacent plants in the matrix.<br>
+        Spacing: <input type="text" name="spacing" value="1" maxlength="4" size="4"><i> (0 - 20.0)</i></p>
+        <p><b>Community appearance:</b> Specify whether the community should appear natural (plants randomly placed near the coordinates) or crop-like (plants placed exactly on the matrix coordinates).  This does not effect the simulation results - only the appearance.<br>
+        Natural: <input name="natural" checked="checked" type="checkbox"></p>
         <input type="submit" value="Setup Matrix">
         </form>
         """
@@ -54,9 +68,13 @@ class SetupMatrixPage(webapp.RequestHandler):
     def post(self):
         self.x_size = self.request.get('x_size')
         self.y_size = self.request.get('y_size')
+        self.x_location = self.request.get('x_location')
+        self.y_location = self.request.get('y_location')
+        self.spacing = self.request.get('spacing')
+        self.natural = self.request.get('natural')
         page = HtmlPage()
         self.response.out.write(page.header)
-        if (self.valid_inputs(self.x_size, self.y_size)):
+        if (self.valid_inputs()):
             self.response.out.write(self.generate_form())
         else:
             self.response.out.write("Error - matrix size out of range!")
@@ -157,24 +175,34 @@ class SetupMatrixPage(webapp.RequestHandler):
             for y in range(int(self.y_size)):
                 assembled_form += self.community_matrix_field % (x, y)
             assembled_form += """<br>"""
-        # Pass along the x and y size values
+        # Pass along items from the first form page
         assembled_form += """
             <input type="hidden" name="x_size" value="%s">
             <input type="hidden" name="y_size" value="%s">
-            """ % (self.x_size, self.y_size)
+            <input type="hidden" name="x_location" value="%s">
+            <input type="hidden" name="y_location" value="%s">
+            <input type="hidden" name="spacing" value="%s">
+            <input type="hidden" name="natural" value="%s">
+            """ % (self.x_size, self.y_size, self.x_location, self.y_location, self.spacing, self.natural)
         assembled_form += """</p><input type="submit" value="Submit"></div></form>"""
         return assembled_form
 
-    def valid_inputs(self, x_size, y_size):
+    def valid_inputs(self):
         # Verify that the input values are valid and within limits
-        x=0
-        y=0
+        x_dim = 0
+        y_dim = 0
+        x_loc = 0.0
+        y_loc = 0.0
+        spacing = 0.0
         try:
-            x = int(x_size)
-            y = int(y_size)
+            x_dim = int(self.x_size)
+            y_dim = int(self.y_size)
+            x_loc = float(self.x_location)
+            y_loc = float(self.y_location)
+            spac = float(self.spacing)
         except:
             return False
-        if ((x<1) or (x>50) or (y<1) or (y>50)):
+        if ((x_dim < 1) or (x_dim > 50) or (y_dim < 1) or (y_dim > 50) or (x_loc < 0) or (x_loc > 256) or (y_loc < 0) or (y_loc > 256) or (spac < 0) or (spac > 20)):
             return False
         else:
             return True
@@ -222,6 +250,16 @@ class CreateCommunityRecord(webapp.RequestHandler):
         y_size = int(self.request.get('y_size'))
         record.x_cells = x_size
         record.y_cells = y_size
+        # Store the 0,0 xy location
+        record.x_position = float(self.request.get('x_location'))
+        record.y_position = float(self.request.get('y_location'))
+        # Store the cell spacing and appearance style
+        record.spacing = float(self.request.get('spacing'))
+        appearance = self.request.get('natural')
+        if (appearance == "on"):
+            record.natural = 1
+        else:
+            record.natural = 0
         # Store the plant types
         record.plant_types = '%s,%s,%s,%s,%s' % (self.request.get('plant_code_1'), self.request.get('plant_code_2'), self.request.get('plant_code_3'), self.request.get('plant_code_4'), self.request.get('plant_code_5'))
         # Store the replacement probabilities
@@ -255,7 +293,7 @@ class GetCommunityRecord(webapp.RequestHandler):
     def get(self):
         # Don't write any html header or footer info.  Just serve up the raw data.
         data = db.GqlQuery("SELECT * FROM MeadowRecordObject WHERE id=:1", int(self.request.get('id')))
-        self.response.out.write("%s,%s<br>\n" % (data[0].x_cells, data[0].y_cells))
+        self.response.out.write("%s,%s,%s,%s,%s,%s<br>\n" % (data[0].x_cells, data[0].y_cells, data[0].x_position, data[0].y_position, data[0].spacing, data[0].natural))
         self.response.out.write(data[0].plant_types + '<br>\n')
         self.response.out.write(data[0].replacement_0 + '<br>\n')
         self.response.out.write(data[0].replacement_1 + '<br>\n')
