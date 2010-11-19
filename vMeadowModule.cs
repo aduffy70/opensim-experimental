@@ -510,10 +510,21 @@ namespace vMeadowModule
                     lineCount++;
                 }
                 //Parse the data
-                string[] matrixDimensions = new string[2];
-                matrixDimensions = configInfo[0].Split(',');
-                m_xCells = Int32.Parse(matrixDimensions[0]);
-                m_yCells = Int32.Parse(matrixDimensions[1]);
+                string[] matrixInfo = new string[6];
+                matrixInfo = configInfo[0].Split(',');
+                m_xCells = Int32.Parse(matrixInfo[0]);
+                m_yCells = Int32.Parse(matrixInfo[1]);
+                m_xPosition = float.Parse(matrixInfo[2]);
+                m_yPosition = float.Parse(matrixInfo[3]);
+                m_cellSpacing = float.Parse(matrixInfo[4]);
+                if (matrixInfo[5] == "1")
+                {
+                    m_naturalAppearance = true;
+                }
+                else
+                {
+                    m_naturalAppearance = false;
+                }
                 string[] plants = new string[5];
                 plants = configInfo[1].Split(',');
                 for (int i = 1; i<6; i++) //Start at index 1 so index 0 stays "None"
