@@ -4,19 +4,18 @@
     ;Chat channel to use for commands
     chat_channel = 18
 
-    ;Time in seconds between updates
+    ;Time in seconds between the end of one update and the start of the next
     cycle_time = 30
 
-    ;# of rows and columns in the community matrix
-    ;Must be 50x50 grid to work with the webapp!
+    ;# of rows and columns in the default community matrix
     x_cells = 50
     y_cells = 50
 
-    ;Coordinates for the 0,0 cell (SW corner) of the community matrix
+    ;Coordinates for the 0,0 cell (SW corner) of the default community matrix
     x_position = 2
     y_position = 2
 
-    ;Distance between matrix cells (average distance between plants)
+    ;Default distance between matrix cells (average distance between plants)
     cell_spacing = 5
 
     ;Place the plants near the matrix coordinates for a more natural appearance,
@@ -26,4 +25,4 @@
 
     ;Url path to community configuration info (The vMeadowGA Google AppEngine
     ;tool can be used).
-    config_path = "http://http://localhost:8080/"
+    config_path = "http://vmeadowga.aduffy70.org/"
