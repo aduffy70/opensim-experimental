@@ -1,3 +1,30 @@
+"""
+ * Copyright (c) Contributors http://github.com/aduffy70/vMeadowGA
+ * See CONTRIBUTORS.TXT for a full list of copyright holders.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of the vMeadowGA module nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE DEVELOPERS ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
+
 import cgi
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
@@ -16,7 +43,7 @@ class HtmlPage(): #TODO- Either go all the way with this structure or just drop 
 
 class MeadowRecordObject(db.Model):
     # Timestamp id for this record
-    id = db.IntegerProperty()
+    id = db.StringProperty()
     # CSV integers represeting the OpenMetaverse Tree types for each of the 5 species in the community
     plant_types = db.StringProperty()
     # CSV replacement probabilities for each species
@@ -26,17 +53,8 @@ class MeadowRecordObject(db.Model):
     replacement_3 = db.StringProperty()
     replacement_4 = db.StringProperty()
     replacement_5 = db.StringProperty()
-    # X & Y dimensions of the matrix
-    x_cells = db.IntegerProperty()
-    y_cells = db.IntegerProperty()
-    # X & Y location of the 0,0 cell (southwest corner) of the matrix
-    x_position = db.FloatProperty()
-    y_position = db.FloatProperty()
-    # Spacing between cells
-    spacing = db.FloatProperty()
-    #Crop-like (1) or more natural (0) plant placement
-    natural = db.IntegerProperty()
-    # x*y character string with characters representing the plant_code at each position in the matrix (R for random and 0 for none)
+    # All other info (x_cells, y_cells, x_position, y_position, spacing, natural)
+    other_info = db.StringProperty()
     starting_matrix = db.TextProperty()
 
 
@@ -127,12 +145,13 @@ class SetupMatrixPage(webapp.RequestHandler):
     community_matrix_form = """
     <p><b>Starting Community Matrix</b><br>
     Specify the initial plant type to place at each position of the community matrix.<br>
-    <i>(R = randomly selected, 0 = No plant)</i></p>
+    <i>(R = randomly selected, N = Permanent gap, 0 = Temporary gap)</i></p>
     """
 
     community_matrix_field = """
         <select name="community_%s_%s">
         <option value = "R">R</option>
+        <option value = "N">N</option>
         <option value = "0">0</option>
         <option value = "1">1</option>
         <option value = "2">2</option>
@@ -143,7 +162,7 @@ class SetupMatrixPage(webapp.RequestHandler):
         """
 
     def generate_form(self):
-        page_width = int(self.y_size) * 47
+        page_width = int(self.x_size) * 48
         if (page_width < 750):
             page_width = 750
         assembled_form = """<div style="width:%s">""" % page_width
@@ -171,8 +190,8 @@ class SetupMatrixPage(webapp.RequestHandler):
         assembled_form += """</table></p>"""
         # Community matrix form section
         assembled_form += self.community_matrix_form
-        for x in range(int(self.x_size)):
-            for y in range(int(self.y_size)):
+        for y in range(int(self.y_size) - 1, -1, -1):
+            for x in range(int(self.x_size)):
                 assembled_form += self.community_matrix_field % (x, y)
             assembled_form += """<br>"""
         # Pass along items from the first form page
@@ -220,7 +239,7 @@ class CreateCommunityRecord(webapp.RequestHandler):
         page = HtmlPage()
         self.response.out.write(page.header)
         if (self.valid_input()):
-            self.id = int(time.time())
+            self.id = str(int(time.time()))
             self.store_record()
             self.response.out.write(self.success_output % self.id)
         else:
@@ -245,21 +264,15 @@ class CreateCommunityRecord(webapp.RequestHandler):
         record = MeadowRecordObject()
         # Store a timestamp as the record id
         record.id = self.id
-        # Store the matrix xy sizes
+        # Store the matrix xy sizes, position, spacing, and appearance
         x_size = int(self.request.get('x_size'))
         y_size = int(self.request.get('y_size'))
-        record.x_cells = x_size
-        record.y_cells = y_size
-        # Store the 0,0 xy location
-        record.x_position = float(self.request.get('x_location'))
-        record.y_position = float(self.request.get('y_location'))
-        # Store the cell spacing and appearance style
-        record.spacing = float(self.request.get('spacing'))
         appearance = self.request.get('natural')
         if (appearance == "on"):
-            record.natural = 1
+            appearance = 1
         else:
-            record.natural = 0
+            appearance = 0
+        record.other_info = "%s,%s,%s,%s,%s,%s" % (x_size, y_size, self.request.get('x_location'), self.request.get('y_location'), self.request.get('spacing'), appearance)
         # Store the plant types
         record.plant_types = '%s,%s,%s,%s,%s' % (self.request.get('plant_code_1'), self.request.get('plant_code_2'), self.request.get('plant_code_3'), self.request.get('plant_code_4'), self.request.get('plant_code_5'))
         # Store the replacement probabilities
@@ -282,8 +295,8 @@ class CreateCommunityRecord(webapp.RequestHandler):
         record.replacement_5 = replacement_strings['5']
         # Store the community matrix
         matrix_string = ""
-        for x in range(x_size):
-            for y in range(y_size):
+        for y in range(y_size):
+            for x in range(x_size):
                 matrix_string += self.request.get('community_%s_%s' % (x, y))
         record.starting_matrix = matrix_string
         record.put()
@@ -292,8 +305,8 @@ class CreateCommunityRecord(webapp.RequestHandler):
 class GetCommunityRecord(webapp.RequestHandler):
     def get(self):
         # Don't write any html header or footer info.  Just serve up the raw data.
-        data = db.GqlQuery("SELECT * FROM MeadowRecordObject WHERE id=:1", int(self.request.get('id')))
-        self.response.out.write("%s,%s,%s,%s,%s,%s<br>\n" % (data[0].x_cells, data[0].y_cells, data[0].x_position, data[0].y_position, data[0].spacing, data[0].natural))
+        data = db.GqlQuery("SELECT * FROM MeadowRecordObject WHERE id=:1", self.request.get('id'))
+        self.response.out.write(data[0].other_info + '<br>\n')
         self.response.out.write(data[0].plant_types + '<br>\n')
         self.response.out.write(data[0].replacement_0 + '<br>\n')
         self.response.out.write(data[0].replacement_1 + '<br>\n')
@@ -301,12 +314,12 @@ class GetCommunityRecord(webapp.RequestHandler):
         self.response.out.write(data[0].replacement_3 + '<br>\n')
         self.response.out.write(data[0].replacement_4 + '<br>\n')
         self.response.out.write(data[0].replacement_5 + '<br>\n')
-        x_size = data[0].x_cells
-        y_size = data[0].y_cells
-        for x in range(x_size):
-            output_line = ""
-            for y in range(y_size):
-                output_line += data[0].starting_matrix[x * y_size + y]
+        other_info = data[0].other_info.split(',')
+        x_size = int(other_info[0])
+        y_size = int(other_info[1])
+        for y in range(y_size):
+            line_index = y * x_size
+            output_line = data[0].starting_matrix[line_index:line_index + x_size]
             self.response.out.write(output_line + '<br>\n')
 
 
