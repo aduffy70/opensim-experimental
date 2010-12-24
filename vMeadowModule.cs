@@ -61,31 +61,33 @@ namespace vMeadowModule
         float m_yPosition;  //inworld y coordinate for the 0,0 cell position
         int m_xCells;
         int m_yCells;
+        int m_generations; //Number of generations to simulate
         float m_cellSpacing; //Space in meters between cell positions
         bool m_naturalAppearance; //Whether the plants are placed in neat rows or randomized a bit
         string m_configPath; //Url path to community config settings
 
         SceneObjectGroup[,] m_prims; //list of objects managed by this module
-        int[,] m_cellStatus; // plant type for each cell (0-3)
+        int[,,] m_cellStatus; // plant type for each cell in each generation [gen,x,y]
         string[] m_omvTrees = new string[22] {"None", "Pine1", "Pine2", "WinterPine1", "WinterPine2", "Oak", "TropicalBush1", "TropicalBush2", "Palm1", "Palm2", "Dogwood", "Cypress1", "Cypress2", "Plumeria", "WinterAspen", "Eucalyptus", "Fern", "Eelgrass", "SeaSword", "BeachGrass1", "Kelp1", "Kelp2"};
 
         int[] m_communityMembers = new int[6] {0, 1, 2, 5, 16, 18};//Default plants to include in the community
-        bool m_isRunning = false; //Keep track of whether the automaton is running
-        bool m_isSetup = false; //Whether the community matrix has been setup since the last region restart
+        bool m_isRunning = false; //Keep track of whether the visualization is running
+        bool m_isSimulated = false; //Whether a simulation has been run.
         Timer m_cycleTimer = new Timer(); //Timer to replace the region heartbeat
         Timer m_pauseTimer = new Timer(); //Timer to delay trying to delete objects before the region has loaded completely
         Scene m_scene;
         Random m_random = new Random(); //A Random Class object to use throughout this module
-        //Replacement Matrix.  The probability of replacement of one species by a surrounding species.
-        //Example [0,1] is the probability that species 1 will be replace by species 0, if all 8 of species 1's neighbors are species 0.
-        //From Thorhallsdottir 1990 as presented by Silvertown et al 1992.
+        //Replacement Matrix.  The probability of replacement of one species by a surrounding species.  Example [0,1] is the probability that species 1 will be replace by species 0, if all 8 of species 1's neighbors are species 0.
+        //Values from Thorhallsdottir 1990 as presented by Silvertown et al 1992.
         float[,] m_replacementMatrix = new float[6,6] {{0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 0.00f},
                                                        {0.00f, 0.00f, 0.02f, 0.06f, 0.05f, 0.03f},
                                                        {0.00f, 0.23f, 0.00f, 0.09f, 0.32f, 0.37f},
                                                        {0.00f, 0.06f, 0.08f, 0.00f, 0.16f, 0.09f},
                                                        {0.00f, 0.44f, 0.06f, 0.06f, 0.00f, 0.11f},
                                                        {0.00f, 0.03f, 0.02f, 0.03f, 0.05f, 0.00f}};
-        int[,] m_startingMatrix; //Starting values for the community
+        int m_currentGeneration = 0; //The currently displayed generation
+        bool m_isReverse = false; //Whether we are stepping backward through the simulation
+        int[,] m_displayedPlants; //Tracks the currently displayed plants
 
         #region INonSharedRegionModule interface
 
@@ -104,6 +106,7 @@ namespace vMeadowModule
                 m_cellSpacing = vMeadowConfig.GetFloat("cell_spacing", 2);
                 m_naturalAppearance = vMeadowConfig.GetBoolean("natural_appearance", true);
                 m_configPath = vMeadowConfig.GetString("config_path", "http://fernseed.usu.edu/vMeadowInfo/");
+                m_generations = vMeadowConfig.GetInt("generations", 10000);
             }
             if (m_enabled)
             {
@@ -120,7 +123,7 @@ namespace vMeadowModule
                 m_pauseTimer.Elapsed += new ElapsedEventHandler(OnPause);
                 m_pauseTimer.Interval = 30000;
                 m_prims = new SceneObjectGroup[m_xCells, m_yCells];
-                m_cellStatus = new int[m_xCells, m_yCells];
+                m_cellStatus = new int[m_generations, m_xCells, m_yCells];
                 RandomizeStartMatrix();
                 m_pauseTimer.Start(); //Don't allow users to setup or use module til all objects have time to load from datastore
             }
@@ -204,117 +207,11 @@ namespace vMeadowModule
         void RandomizeStartMatrix()
         {
             //Generate starting matrix of random plant types
-            m_startingMatrix = new int[m_xCells, m_yCells];
             for (int y=0; y<m_yCells; y++)
             {
                 for (int x=0; x<m_xCells; x++)
                 {
-                    if (m_startingMatrix[x,y] != -1)
-                    {
-                        m_startingMatrix[x,y] = m_random.Next(6);
-                    }
-                }
-            }
-        }
-
-        void SetupMatrix(bool hardReset)
-        {
-            if (hardReset)
-            {
-                //Remove any untracked plants that may be present after region restart and create new plants based on the starting matrix
-                EntityBase[] everyObject = m_scene.GetEntities();
-                SceneObjectGroup sog;
-                foreach (EntityBase e in everyObject)
-                {
-                    if (e is SceneObjectGroup)
-                    {
-                        sog = (SceneObjectGroup)e;
-                        if (sog.RootPart.Name == "vMeadowPlant")
-                        {
-                            DeletePlant(sog);
-                        }
-                    }
-                }
-                // Place plants in world based on the starting matrix
-                m_cellStatus = new int[m_xCells, m_yCells];
-                m_prims = new SceneObjectGroup[m_xCells, m_yCells];
-                for (int y=0; y<m_yCells; y++)
-                {
-                    for (int x=0; x<m_xCells; x++)
-                    {
-                        int plantType = m_startingMatrix[x, y];
-                        if (plantType != -1)
-                        {
-                            if (plantType != 0)
-                            {
-                                m_prims[x, y] = CreatePlant(x, y, plantType);
-                                if (m_prims[x, y] != null)
-                                {
-                                    m_cellStatus[x, y] = plantType;
-                                }
-                                else
-                                {
-                                    //No plant in this cell
-                                    m_cellStatus[x, y] = 0;
-                                }
-                            }
-                            else
-                            {
-                                m_prims[x, y] = null;
-                                m_cellStatus[x, y] = 0;
-                            }
-                        }
-                        else
-                        {
-                            m_prims[x, y] = null;
-                            m_cellStatus[x, y] = -1;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                //Just replace any plants that need to change based on the starting matrix
-                for (int y=0; y<m_yCells; y++)
-                {
-                    for (int x=0; x<m_xCells; x++)
-                    {
-                        //Generate a random plant type
-                        int plantType = m_startingMatrix[x, y];
-                        //Only replace the old one if it will be different than what is already there
-                        if (plantType != m_cellStatus[x, y])
-                        {
-                            if (m_prims[x, y] != null)
-                            {
-                                DeletePlant(m_prims[x, y]);
-                            }
-                            if (plantType != -1)
-                            {
-                                if (plantType != 0)
-                                {
-                                    m_prims[x, y] = CreatePlant(x, y, plantType);
-                                    if (m_prims[x, y] != null)
-                                    {
-                                        m_cellStatus[x, y] = plantType;
-                                    }
-                                    else
-                                    {
-                                        m_cellStatus[x, y] = 0;
-                                    }
-                                }
-                                else
-                                {
-                                    m_prims[x, y] = null;
-                                    m_cellStatus[x, y] = 0;
-                                }
-                            }
-                            else
-                            {
-                                m_prims[x, y] = null;
-                                m_cellStatus[x, y] = -1;
-                            }
-                        }
-                    }
+                    m_cellStatus[0, x, y] = m_random.Next(6);
                 }
             }
         }
@@ -335,7 +232,8 @@ namespace vMeadowModule
                     }
                 }
             }
-            m_isSetup = false;
+            m_prims = new SceneObjectGroup[m_xCells, m_yCells];
+            m_displayedPlants = new int[m_xCells, m_yCells];
         }
 
         SceneObjectGroup CreatePlant(int xPos, int yPos, int plantTypeIndex)
@@ -386,18 +284,25 @@ namespace vMeadowModule
             }
         }
 
-        void StopAutomata()
+        void StopVisualization()
         {
+            //Stop stepping through generations in the visualization
             m_log.Info("[vMeadow] Stopping...");
             m_isRunning = false;
             m_cycleTimer.Stop();
         }
 
-        void StartAutomata()
+        void StartVisualization(bool isReverse)
         {
-            //Start timer
-            m_log.Info("[vMeadow] Starting...");
+            //Start stepping forward through generations of the visualization
+            string direction = "forward";
+            if (isReverse)
+            {
+                direction = "backward";
+            }
+            m_log.Info("[vMeadow] Stepping " + direction + "...");
             m_isRunning = true;
+            m_isReverse = isReverse;
             m_cycleTimer.Start();
         }
 
@@ -410,41 +315,39 @@ namespace vMeadowModule
             }
             else if (chat.Message.ToLower() == "reset")
             {
-            if (m_dialogmod != null)
+                if (m_dialogmod != null)
                 {
                     m_dialogmod.SendGeneralAlert("vMeadow Module: Resetting community.  Please be patient...");
                 }
-                if (m_isSetup)
+                if (m_isRunning)
                 {
-                    if (m_isRunning)
-                    {
-                        StopAutomata();
-                    }
-                    SetupMatrix(false);
+                    StopVisualization();
                 }
-                else
-                {
-                    SetupMatrix(true);
-                    m_isSetup = true;
-                }
+                ClearAllPlants();
+                m_log.Info("[vMeadow] Cleared plants...");
+                RunSimulation();
+                m_log.Info("[vMeadow] Ran simulation...");
+                VisualizeGeneration(0);
+                m_log.Info("[vMeadow] Loaded generation 0...");
+                m_dialogmod.SendGeneralAlert("vMeadow Module: Community reset...");
             }
-            else if (chat.Message.ToLower() == "start")
+            else if (chat.Message.ToLower() == "forward")
             {
-                if (m_isSetup)
+                if (m_isSimulated)
                 {
                     if (!m_isRunning)
                     {
                         if (m_dialogmod != null)
                         {
-                            m_dialogmod.SendGeneralAlert("vMeadow Module: Start...");
+                            m_dialogmod.SendGeneralAlert("vMeadow Module: Stepping forward...");
                         }
-                        StartAutomata();
+                        StartVisualization(false);
                     }
                     else
                     {
                         if (m_dialogmod != null)
                         {
-                            m_dialogmod.SendGeneralAlert("vMeadow Module: Already running...");
+                            m_dialogmod.SendGeneralAlert("vMeadow Module: Already running. Stop first to change direction...");
                         }
                         m_log.Info("[vMeadow] Already running...");
                     }
@@ -453,7 +356,37 @@ namespace vMeadowModule
                 {
                     if (m_dialogmod != null)
                     {
-                        m_dialogmod.SendGeneralAlert("vMeadow Module: Cannot start.  Please reset the matrix first...");
+                        m_dialogmod.SendGeneralAlert("vMeadow Module: Cannot start.  Please reset the community first...");
+                    }
+                    m_log.Info("[vMeadow] Cannot start.  Matrix not setup...");
+                }
+            }
+            else if (chat.Message.ToLower() == "reverse")
+            {
+                if (m_isSimulated)
+                {
+                    if (!m_isRunning)
+                    {
+                        if (m_dialogmod != null)
+                        {
+                            m_dialogmod.SendGeneralAlert("vMeadow Module: Stepping backward...");
+                        }
+                        StartVisualization(true);
+                    }
+                    else
+                    {
+                        if (m_dialogmod != null)
+                        {
+                            m_dialogmod.SendGeneralAlert("vMeadow Module: Already running. Stop first to change direction...");
+                        }
+                        m_log.Info("[vMeadow] Already running...");
+                    }
+                }
+                else
+                {
+                    if (m_dialogmod != null)
+                    {
+                        m_dialogmod.SendGeneralAlert("vMeadow Module: Cannot start.  Please reset the community first...");
                     }
                     m_log.Info("[vMeadow] Cannot start.  Matrix not setup...");
                 }
@@ -466,7 +399,7 @@ namespace vMeadowModule
                     {
                         m_dialogmod.SendGeneralAlert("vMeadow Module: Stop...");
                     }
-                    StopAutomata();
+                    StopVisualization();
                 }
                 else
                 {
@@ -481,7 +414,7 @@ namespace vMeadowModule
             {
                 if (m_isRunning)
                 {
-                    StopAutomata();
+                    StopVisualization();
                 }
                 if (m_dialogmod != null)
                 {
@@ -490,32 +423,91 @@ namespace vMeadowModule
                 m_log.Info("[vMeadow] Clearing all plants...");
                 ClearAllPlants();
             }
-            else if (chat.Message == "random")
+            else if (chat.Message.ToLower() == "+")
             {
-            if (m_dialogmod != null)
-                {
-                    m_dialogmod.SendGeneralAlert("vMeadow Module: Randomizing...");
-                }
                 if (m_isRunning)
                 {
-                    StopAutomata();
+                   if (m_dialogmod != null)
+                    {
+                        m_dialogmod.SendGeneralAlert("vMeadow Module: Already running. Stop first to select a specific generation...");
+                    }
+                    m_log.Info("[vMeadow] Already running...");
                 }
-                RandomizeStartMatrix();
-                SetupMatrix(!m_isSetup);
+                else
+                {
+                    if (m_dialogmod != null)
+                    {
+                        m_dialogmod.SendGeneralAlert("vMeadow Module: Advancing one step...");
+                    }
+                    VisualizeGeneration(m_currentGeneration + 1);
+                }
             }
-            else
+            else if (chat.Message.ToLower() == "-")
             {
-                //Try to read configuration info from a url
-                m_log.Info("[vMeadow] Loading configuration info...");
-                bool readSuccess = ReadConfigs(System.IO.Path.Combine(m_configPath, "data?id=" + chat.Message));
-                if (readSuccess)
+                if (m_isRunning)
+                {
+                   if (m_dialogmod != null)
+                    {
+                        m_dialogmod.SendGeneralAlert("vMeadow Module: Already running. Stop first to select a specific generation...");
+                    }
+                    m_log.Info("[vMeadow] Already running...");
+                }
+                else
+                {
+                    if (m_dialogmod != null)
+                    {
+                        m_dialogmod.SendGeneralAlert("vMeadow Module: Backing up one step...");
+                    }
+                    VisualizeGeneration(m_currentGeneration - 1);
+                }
+            }
+            else if (chat.Message.Length > 5)
+            {
+                if (chat.Message.ToLower().Substring(0,4) == "step")
                 {
                     if (m_isRunning)
                     {
-                        StopAutomata();
+                       if (m_dialogmod != null)
+                        {
+                            m_dialogmod.SendGeneralAlert("vMeadow Module: Already running. Stop first to select a specific generation...");
+                        }
+                        m_log.Info("[vMeadow] Already running...");
                     }
-                    SetupMatrix(true);
-                    m_isSetup = true;
+                    else
+                    {
+                        try
+                        {
+                            int generation = Convert.ToInt32(chat.Message.Substring(5));
+                            VisualizeGeneration(generation);
+                            if (m_dialogmod != null)
+                            {
+                                m_dialogmod.SendGeneralAlert("vMeadow Module: Displaying generation " + generation + "...");
+                            }
+                        }
+                        catch
+                        {
+                            if (m_dialogmod != null)
+                            {
+                                m_dialogmod.SendGeneralAlert("vMeadow Module: Invalid generation number...");
+                            }
+                         }
+                    }
+                }
+                else
+                {
+                    //Try to read configuration info from a url
+                    m_log.Info("[vMeadow] Loading configuration info...");
+                    bool readSuccess = ReadConfigs(System.IO.Path.Combine(m_configPath, "data?id=" + chat.Message));
+                    if (readSuccess)
+                    {
+                        if (m_isRunning)
+                        {
+                            StopVisualization();
+                        }
+                        ClearAllPlants();
+                        RunSimulation();
+                        VisualizeGeneration(0);
+                    }
                 }
             }
         }
@@ -571,7 +563,7 @@ namespace vMeadowModule
                         m_replacementMatrix[i,j] = float.Parse(probabilities[j]);
                     }
                 }
-                m_startingMatrix = new int[m_xCells, m_yCells];
+                m_cellStatus = new int[m_generations, m_xCells, m_yCells];
                 for (int y=0; y<m_yCells; y++)
                 {
                     char[] startingPlants = new char[m_xCells];
@@ -581,16 +573,16 @@ namespace vMeadowModule
                         if (startingPlants[x] == 'R')
                         {
                             //Randomly select a plant type
-                            m_startingMatrix[x, y] = m_random.Next(6);
+                            m_cellStatus[0, x, y] = m_random.Next(6);
                         }
                         else if (startingPlants[x] == 'N')
                         {
                             //There will never be a plant here
-                            m_startingMatrix[x, y] = -1;
+                            m_cellStatus[0, x, y] = -1;
                         }
                         else
                         {
-                            m_startingMatrix[x, y] = Int32.Parse(startingPlants[x].ToString());
+                            m_cellStatus[0, x, y] = Int32.Parse(startingPlants[x].ToString());
                         }
                     }
                 }
@@ -616,170 +608,78 @@ namespace vMeadowModule
         {
             //Stop the timer so we won't have problems if this process isn't finished before the timer event is triggered again.
             m_cycleTimer.Stop();
-            //Advance the cellular automata by a generation
-            int[,] oldCellStatus = new int[m_xCells, m_yCells];
-            Array.Copy(m_cellStatus, oldCellStatus, m_cellStatus.Length);
-            int rowabove;
-            int rowbelow;
-            int colleft;
-            int colright;
-            for (int y=0; y<m_yCells; y++)
+            int nextGeneration;
+            //Advance visualization by a generation
+            if (m_isReverse)
             {
-			    rowabove = y + 1;
-				rowbelow = y - 1;
-				for (int x=0; x<m_xCells; x++)
-				{
-				    colright = x + 1;
-				    colleft = x - 1;
-				    int currentSpecies = oldCellStatus[x, y];
-				    if (currentSpecies != -1) //Don't ever try to update a permanent gap
-				    {
-                        float[] replacementProbability = new float[6];
-                        int[] neighborSpeciesCounts = new int[6] {0, 0, 0, 0, 0, 0};
-                        int neighborType;
-                        //Get counts of neighborspecies
-                        //At edges, missing neighborTypes are -1
-                        if (colleft >= 0)
-                        {
-                            neighborType = oldCellStatus[colleft, y];
-                            if (neighborType != -1)
-                            {
-                                neighborSpeciesCounts[neighborType]++;
-                            }
-                            if (rowbelow >= 0)
-                            {
-                                neighborType = oldCellStatus[colleft, rowbelow];
-                                if (neighborType != -1)
-                                {
-                                    neighborSpeciesCounts[neighborType]++;
-                                }
-                            }
-                            if (rowabove < m_yCells)
-                            {
-                                neighborType = oldCellStatus[colleft, rowabove];
-                                if (neighborType != -1)
-                                {
-                                    neighborSpeciesCounts[neighborType]++;
-                                }
-                            }
-                        }
-                        if (colright < m_xCells)
-                        {
-                            neighborType = oldCellStatus[colright, y];
-                            if (neighborType != -1)
-                            {
-                                neighborSpeciesCounts[neighborType]++;
-                            }
-                            if (rowbelow >= 0)
-                            {
-                                neighborType = oldCellStatus[colright, rowbelow];
-                                if (neighborType != -1)
-                                {
-                                    neighborSpeciesCounts[neighborType]++;
-                                }
-                            }
-                            if (rowabove < m_yCells)
-                            {
-                                neighborType = oldCellStatus[colright, rowabove];
-                                if (neighborType != -1)
-                                {
-                                    neighborSpeciesCounts[neighborType]++;
-                                }
-                            }
-                        }
-                        if (rowbelow >= 0)
-                        {
-                            neighborType = oldCellStatus[x, rowbelow];
-                            if (neighborType != -1)
-                            {
-                                neighborSpeciesCounts[neighborType]++;
-                            }
-                        }
-                        if (rowabove < m_yCells)
-                        {
-                            neighborType = oldCellStatus[x, rowabove];
-                            if (neighborType != -1)
-                            {
-                                neighborSpeciesCounts[neighborType]++;
-                            }
-                        }
-                        for (int neighborSpecies=0; neighborSpecies<6; neighborSpecies++)
-                        {
-                            replacementProbability[neighborSpecies] = m_replacementMatrix[neighborSpecies, currentSpecies] * ((float)neighborSpeciesCounts[neighborSpecies] / 8.0f);
-                        }
-                        //Randomly determine the new species based on the replacement probablilities
-                        float randomReplacement = (float)m_random.NextDouble();
-                        int newStatus;
-                        if (randomReplacement <= replacementProbability[0])
-                        {
-                            newStatus = 0;
-                        }
-                        else if (randomReplacement <= replacementProbability[1] + replacementProbability[0])
-                        {
-                            newStatus = 1;
-                        }
-                        else if (randomReplacement <= replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
-                        {
-                            newStatus = 2;
-                        }
-                        else if (randomReplacement <= replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
-                        {
-                            newStatus = 3;
-                        }
-                        else if (randomReplacement <= replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
-                        {
-                            newStatus = 4;
-                        }
-                        else if (randomReplacement <= replacementProbability[5] + replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
-                        {
-                            newStatus = 5;
-                        }
-                        else
-                        {
-                            newStatus = currentSpecies;
-                        }
-                        //Only delete and replace the plant if it will be different than what is already there
-                        if (newStatus != currentSpecies)
-                        {
-                            if ((currentSpecies != 0) && (currentSpecies != -1))
-                            {
-                                //Don't try to delete plants that don't exist
-                                DeletePlant(m_prims[x, y]);
-                            }
-                            if (newStatus != -1)  //Could newStatus ever really be -1?
-                            {
-                                if (newStatus != 0)
-                                {
-                                    m_prims[x, y] = CreatePlant(x, y, newStatus);
-                                    if (m_prims[x, y] != null)
-                                    {
-                                        m_cellStatus[x, y] = newStatus;
-                                    }
-                                    else
-                                    {
-                                        m_cellStatus[x, y] = 0;
-                                    }
-                                }
-                                else
-                                {
-                                    m_prims[x, y] = null;
-                                    m_cellStatus[x, y] = 0;
-                                }
-                            }
-                            else
-                            {
-                                m_prims[x, y] = null;
-                                m_cellStatus[x, y] = -1;
-                            }
-                        }
-                    }
+                if (m_currentGeneration > 0)
+                {
+                    nextGeneration = m_currentGeneration - 1;
+                }
+                else
+                {
+                    //Stop stepping through the visualization if we can't go back further.
+                    return;
                 }
             }
+            else
+            {
+                if (m_currentGeneration < m_generations)
+                {
+                    nextGeneration = m_currentGeneration + 1;
+                }
+                else
+                {
+                    //Stop stepping through the visualization if we can't go further.
+                    return;
+                }
+            }
+            VisualizeGeneration(nextGeneration);
             if (m_isRunning)
             {
                 //Check that there hasn't been a request to stop the timer before restarting the timer
                 m_cycleTimer.Start();
             }
+        }
+
+        void VisualizeGeneration(int nextGeneration)
+        {
+            //Update the visualization with plants from the next generation.  Don't waste time deleting and replacing plants if the species isn't going to change.
+            for (int y=0; y<m_yCells; y++)
+            {
+				for (int x=0; x<m_xCells; x++)
+				{
+				    int currentSpecies = m_displayedPlants[x, y];
+				    int newSpecies = m_cellStatus[nextGeneration, x, y];
+                    //Only delete and replace the existing plant if it needs to change
+                    if (newSpecies != currentSpecies)
+                    {
+                        if ((currentSpecies != 0) && (currentSpecies != -1))
+                        {
+                            //Don't try to delete plants that don't exist
+                            DeletePlant(m_prims[x, y]);
+                        }
+                        if ((newSpecies != 0) && (newSpecies != -1))
+                        {
+                            m_prims[x, y] = CreatePlant(x, y, newSpecies);
+                            if (m_prims[x, y] != null)
+                            {
+                                m_displayedPlants[x, y] = newSpecies;
+                            }
+                            else
+                            {
+                                m_displayedPlants[x, y] = 0;
+                            }
+                        }
+                        else
+                        {
+                            m_prims[x, y] = null;
+                            m_displayedPlants[x, y] = 0;
+                        }
+                    }
+                }
+            }
+            m_currentGeneration = nextGeneration;
         }
 
         void OnPause(object source, ElapsedEventArgs e)
@@ -834,6 +734,137 @@ namespace vMeadowModule
             //Return the water level at the specified location.
             //This function performs essentially the same function as llWater() without having to be called by a prim.
             return (float)m_scene.RegionInfo.RegionSettings.WaterHeight;
+        }
+
+        void RunSimulation()
+        {
+            //Generate the simulation data
+            for (int generation=0; generation<m_generations - 1; generation++)
+            {
+                int nextGeneration = generation + 1;
+                int rowabove;
+                int rowbelow;
+                int colleft;
+                int colright;
+                for (int y=0; y<m_yCells; y++)
+                {
+			        rowabove = y + 1;
+				    rowbelow = y - 1;
+				    for (int x=0; x<m_xCells; x++)
+				    {
+				        colright = x + 1;
+				        colleft = x - 1;
+                        int currentSpecies = m_cellStatus[generation, x, y];
+                        if (currentSpecies != -1) //Don't ever try to update a permanent gap
+                        {
+                            float[] replacementProbability = new float[6];
+                            int[] neighborSpeciesCounts = new int[6] {0, 0, 0, 0, 0, 0};
+                            int neighborType;
+                            //Get counts of neighborspecies
+                            //At edges, missing neighborTypes are -1
+                            if (colleft >= 0)
+                            {
+                                neighborType = m_cellStatus[generation, colleft, y];
+                                if (neighborType != -1)
+                                {
+                                    neighborSpeciesCounts[neighborType]++;
+                                }
+                                if (rowbelow >= 0)
+                                {
+                                    neighborType = m_cellStatus[generation, colleft, rowbelow];
+                                    if (neighborType != -1)
+                                    {
+                                        neighborSpeciesCounts[neighborType]++;
+                                    }
+                                }
+                                if (rowabove < m_yCells)
+                                {
+                                    neighborType = m_cellStatus[generation, colleft, rowabove];
+                                    if (neighborType != -1)
+                                    {
+                                        neighborSpeciesCounts[neighborType]++;
+                                    }
+                                }
+                            }
+                            if (colright < m_xCells)
+                            {
+                                neighborType = m_cellStatus[generation, colright, y];
+                                if (neighborType != -1)
+                                {
+                                    neighborSpeciesCounts[neighborType]++;
+                                }
+                                if (rowbelow >= 0)
+                                {
+                                    neighborType = m_cellStatus[generation, colright, rowbelow];
+                                    if (neighborType != -1)
+                                    {
+                                        neighborSpeciesCounts[neighborType]++;
+                                    }
+                                }
+                                if (rowabove < m_yCells)
+                                {
+                                    neighborType = m_cellStatus[generation, colright, rowabove];
+                                    if (neighborType != -1)
+                                    {
+                                        neighborSpeciesCounts[neighborType]++;
+                                    }
+                                }
+                            }
+                            if (rowbelow >= 0)
+                            {
+                                neighborType = m_cellStatus[generation, x, rowbelow];
+                                if (neighborType != -1)
+                                {
+                                    neighborSpeciesCounts[neighborType]++;
+                                }
+                            }
+                            if (rowabove < m_yCells)
+                            {
+                                neighborType = m_cellStatus[generation, x, rowabove];
+                                if (neighborType != -1)
+                                {
+                                    neighborSpeciesCounts[neighborType]++;
+                                }
+                            }
+                            for (int neighborSpecies=0; neighborSpecies<6; neighborSpecies++)
+                            {
+                                replacementProbability[neighborSpecies] = m_replacementMatrix[neighborSpecies, currentSpecies] * ((float)neighborSpeciesCounts[neighborSpecies] / 8.0f);
+                            }
+                            //Randomly determine the new species based on the replacement probablilities
+                            float randomReplacement = (float)m_random.NextDouble();
+                            if (randomReplacement <= replacementProbability[0])
+                            {
+                                m_cellStatus[nextGeneration, x, y] = 0;
+                            }
+                            else if (randomReplacement <= replacementProbability[1] + replacementProbability[0])
+                            {
+                                m_cellStatus[nextGeneration, x, y] = 1;
+                            }
+                            else if (randomReplacement <= replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
+                            {
+                                m_cellStatus[nextGeneration, x, y] = 2;
+                            }
+                            else if (randomReplacement <= replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
+                            {
+                                m_cellStatus[nextGeneration, x, y] = 3;
+                            }
+                            else if (randomReplacement <= replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
+                            {
+                                m_cellStatus[nextGeneration, x, y] = 4;
+                            }
+                            else if (randomReplacement <= replacementProbability[5] + replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
+                            {
+                                m_cellStatus[nextGeneration, x, y] = 5;
+                            }
+                            else
+                            {
+                                m_cellStatus[nextGeneration, x, y] = currentSpecies;
+                            }
+                        }
+                    }
+                }
+            }
+            m_isSimulated = true;
         }
     }
 }
