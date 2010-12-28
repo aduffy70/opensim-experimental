@@ -204,6 +204,20 @@ namespace vMeadowModule
 
         #endregion
 
+        void Alert(string message)
+        {
+            if (m_dialogmod != null)
+            {
+                m_dialogmod.SendGeneralAlert(String.Format("{0}: {1}", Name, message));
+            }
+        }
+
+        void AlertAndLog(string message)
+        {
+            m_log.DebugFormat("[{0}] {1}", Name, message);
+            Alert(message);
+        }
+
         void RandomizeStartMatrix()
         {
             //Generate starting matrix of random plant types
@@ -280,14 +294,14 @@ namespace vMeadowModule
             }
             catch
             {
-                m_log.Info("[vMeadow] Tried to delete a non-existent plant! Was it manually removed?");
+                m_log.Debug("[vMeadow] Tried to delete a non-existent plant! Was it manually removed?");
             }
         }
 
         void StopVisualization()
         {
             //Stop stepping through generations in the visualization
-            m_log.Info("[vMeadow] Stopping...");
+            m_log.Debug("[vMeadow] Stopping...");
             m_isRunning = false;
             m_cycleTimer.Stop();
         }
@@ -300,7 +314,7 @@ namespace vMeadowModule
             {
                 direction = "backward";
             }
-            m_log.Info("[vMeadow] Stepping " + direction + "...");
+            m_log.Debug("[vMeadow] Stepping " + direction + "...");
             m_isRunning = true;
             m_isReverse = isReverse;
             m_cycleTimer.Start();
@@ -315,21 +329,17 @@ namespace vMeadowModule
             }
             else if (chat.Message.ToLower() == "reset")
             {
-                if (m_dialogmod != null)
-                {
-                    m_dialogmod.SendGeneralAlert("vMeadow Module: Resetting community.  Please be patient...");
-                }
+                Alert("Resetting community. This may take a minute...");
                 if (m_isRunning)
                 {
                     StopVisualization();
                 }
                 ClearAllPlants();
-                m_log.Info("[vMeadow] Cleared plants...");
+                m_log.Debug("[vMeadow] Cleared plants...");
                 RunSimulation();
-                m_log.Info("[vMeadow] Ran simulation...");
+                m_log.Debug("[vMeadow] Ran simulation...");
                 VisualizeGeneration(0);
-                m_log.Info("[vMeadow] Loaded generation 0...");
-                m_dialogmod.SendGeneralAlert("vMeadow Module: Community reset...");
+                AlertAndLog("Community reset. Loaded generation 0...");
             }
             else if (chat.Message.ToLower() == "forward")
             {
@@ -337,28 +347,17 @@ namespace vMeadowModule
                 {
                     if (!m_isRunning)
                     {
-                        if (m_dialogmod != null)
-                        {
-                            m_dialogmod.SendGeneralAlert("vMeadow Module: Stepping forward...");
-                        }
+                        Alert("Stepping forward...");
                         StartVisualization(false);
                     }
                     else
                     {
-                        if (m_dialogmod != null)
-                        {
-                            m_dialogmod.SendGeneralAlert("vMeadow Module: Already running. Stop first to change direction...");
-                        }
-                        m_log.Info("[vMeadow] Already running...");
+                        AlertAndLog("Already running. Stop first to change direction...");
                     }
                 }
                 else
                 {
-                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("vMeadow Module: Cannot start.  Please reset the community first...");
-                    }
-                    m_log.Info("[vMeadow] Cannot start.  Matrix not setup...");
+                    AlertAndLog("Cannot start.  Please reset the community first...");
                 }
             }
             else if (chat.Message.ToLower() == "reverse")
@@ -367,47 +366,29 @@ namespace vMeadowModule
                 {
                     if (!m_isRunning)
                     {
-                        if (m_dialogmod != null)
-                        {
-                            m_dialogmod.SendGeneralAlert("vMeadow Module: Stepping backward...");
-                        }
+                        Alert("Stepping backward...");
                         StartVisualization(true);
                     }
                     else
                     {
-                        if (m_dialogmod != null)
-                        {
-                            m_dialogmod.SendGeneralAlert("vMeadow Module: Already running. Stop first to change direction...");
-                        }
-                        m_log.Info("[vMeadow] Already running...");
+                        AlertAndLog("Already running. Stop first to change direction...");
                     }
                 }
                 else
                 {
-                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("vMeadow Module: Cannot start.  Please reset the community first...");
-                    }
-                    m_log.Info("[vMeadow] Cannot start.  Matrix not setup...");
+                    AlertAndLog("Cannot start.  Please reset the community first...");
                 }
             }
             else if (chat.Message.ToLower() == "stop")
             {
                 if (m_isRunning)
                 {
-                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("vMeadow Module: Stop...");
-                    }
+                    Alert("Stopping...");
                     StopVisualization();
                 }
                 else
                 {
-                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("vMeadow Module: Already stopped...");
-                    }
-                    m_log.Info("[vMeadow] Not running...");
+                    AlertAndLog("Already stopped...");
                 }
             }
             else if (chat.Message.ToLower() == "clear")
@@ -416,29 +397,18 @@ namespace vMeadowModule
                 {
                     StopVisualization();
                 }
-                if (m_dialogmod != null)
-                {
-                    m_dialogmod.SendGeneralAlert("vMeadow Module: Clearing all plants.  Please be patient..");
-                }
-                m_log.Info("[vMeadow] Clearing all plants...");
+                AlertAndLog("Clearing all plants.  This may take a minute...");
                 ClearAllPlants();
             }
             else if (chat.Message.ToLower() == "+")
             {
                 if (m_isRunning)
                 {
-                   if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("vMeadow Module: Already running. Stop first to select a specific generation...");
-                    }
-                    m_log.Info("[vMeadow] Already running...");
+                   AlertAndLog("Already running. Stop first...");
                 }
                 else
                 {
-                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("vMeadow Module: Advancing one step...");
-                    }
+                    Alert("Advancing one step...");
                     VisualizeGeneration(m_currentGeneration + 1);
                 }
             }
@@ -446,18 +416,11 @@ namespace vMeadowModule
             {
                 if (m_isRunning)
                 {
-                   if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("vMeadow Module: Already running. Stop first to select a specific generation...");
-                    }
-                    m_log.Info("[vMeadow] Already running...");
+                   AlertAndLog("Already running. Stop first...");
                 }
                 else
                 {
-                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("vMeadow Module: Backing up one step...");
-                    }
+                    Alert("Backing up one step...");
                     VisualizeGeneration(m_currentGeneration - 1);
                 }
             }
@@ -467,11 +430,7 @@ namespace vMeadowModule
                 {
                     if (m_isRunning)
                     {
-                       if (m_dialogmod != null)
-                        {
-                            m_dialogmod.SendGeneralAlert("vMeadow Module: Already running. Stop first to select a specific generation...");
-                        }
-                        m_log.Info("[vMeadow] Already running...");
+                        AlertAndLog("Already running. Stop first...");
                     }
                     else
                     {
@@ -479,24 +438,17 @@ namespace vMeadowModule
                         {
                             int generation = Convert.ToInt32(chat.Message.Substring(5));
                             VisualizeGeneration(generation);
-                            if (m_dialogmod != null)
-                            {
-                                m_dialogmod.SendGeneralAlert("vMeadow Module: Displaying generation " + generation + "...");
-                            }
+                            AlertAndLog(String.Format("Displaying generation {0}...", generation));
                         }
                         catch
                         {
-                            if (m_dialogmod != null)
-                            {
-                                m_dialogmod.SendGeneralAlert("vMeadow Module: Invalid generation number...");
-                            }
-                         }
+                            AlertAndLog("Invalid generation number...");
+                        }
                     }
                 }
                 else
                 {
                     //Try to read configuration info from a url
-                    m_log.Info("[vMeadow] Loading configuration info...");
                     bool readSuccess = ReadConfigs(System.IO.Path.Combine(m_configPath, "data?id=" + chat.Message));
                     if (readSuccess)
                     {
@@ -510,16 +462,18 @@ namespace vMeadowModule
                     }
                 }
             }
+            else
+            {
+                //Invalid command
+                AlertAndLog("Invalid command...");
+            }
         }
 
         bool ReadConfigs(string url)
         {
             string[] configInfo = new string[58]; //TODO: Could I import easier using xml instead of raw text?
             WebRequest configUrl = WebRequest.Create(url);
-            if (m_dialogmod != null)
-            {
-                m_dialogmod.SendGeneralAlert("Reading data from url.  Please be patient...");
-            }
+            AlertAndLog(String.Format("Reading data from url.  This may take a minute..."));
             try
             {
                 StreamReader urlData = new StreamReader(configUrl.GetResponse().GetResponseStream());
@@ -586,20 +540,12 @@ namespace vMeadowModule
                         }
                     }
                 }
-                if (m_dialogmod != null)
-                {
-                    m_dialogmod.SendGeneralAlert("vMeadow Module: Read from \"" + url + "\".  Clearing all plants and generating a new community.  Please be patient...");
-                }
-                m_log.Info("[vMeadow] Read from \"" + url + "\"...");
+                AlertAndLog(String.Format("Read from \"{0}\".  Clearing all plants and generating a new community.  This may take a minute...", url));
                 return true;
             }
             catch //failed to get the data for some reason
             {
-                m_log.Error("[vMeadow] Error loading from \"" + url + "\"...");
-                if (m_dialogmod != null)
-                {
-                    m_dialogmod.SendGeneralAlert("vMeadow Module: Error loading from \"" + url + "\"...");
-                }
+                AlertAndLog(String.Format("Error loading from \"{0}\"...", url));
                 return false;
             }
         }
@@ -619,6 +565,8 @@ namespace vMeadowModule
                 else
                 {
                     //Stop stepping through the visualization if we can't go back further.
+                    m_isRunning = false;
+                    AlertAndLog("Reached generation 0.  Stopping...");
                     return;
                 }
             }
@@ -631,6 +579,8 @@ namespace vMeadowModule
                 else
                 {
                     //Stop stepping through the visualization if we can't go further.
+                    m_isRunning = false;
+                    AlertAndLog(String.Format("Reached generation {0}.  Stopping...", m_generations));
                     return;
                 }
             }
