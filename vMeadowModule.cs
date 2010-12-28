@@ -110,7 +110,7 @@ namespace vMeadowModule
             }
             if (m_enabled)
             {
-                m_log.Info("[vMeadow] Initializing...");
+                m_log.Info("[vMeadowModule] Initializing...");
             }
         }
 
@@ -294,14 +294,14 @@ namespace vMeadowModule
             }
             catch
             {
-                m_log.Debug("[vMeadow] Tried to delete a non-existent plant! Was it manually removed?");
+                m_log.Debug("[vMeadowModule] Tried to delete a non-existent plant! Was it manually removed?");
             }
         }
 
         void StopVisualization()
         {
             //Stop stepping through generations in the visualization
-            m_log.Debug("[vMeadow] Stopping...");
+            m_log.Debug("[vMeadowModule] Stopping...");
             m_isRunning = false;
             m_cycleTimer.Stop();
         }
@@ -314,7 +314,7 @@ namespace vMeadowModule
             {
                 direction = "backward";
             }
-            m_log.Debug("[vMeadow] Stepping " + direction + "...");
+            m_log.Debug("[vMeadowModule] Stepping " + direction + "...");
             m_isRunning = true;
             m_isReverse = isReverse;
             m_cycleTimer.Start();
@@ -335,9 +335,9 @@ namespace vMeadowModule
                     StopVisualization();
                 }
                 ClearAllPlants();
-                m_log.Debug("[vMeadow] Cleared plants...");
+                m_log.Debug("[vMeadowModule] Cleared plants...");
                 RunSimulation();
-                m_log.Debug("[vMeadow] Ran simulation...");
+                m_log.Debug("[vMeadowModule] Ran simulation...");
                 VisualizeGeneration(0);
                 AlertAndLog("Community reset. Loaded generation 0...");
             }
@@ -572,7 +572,7 @@ namespace vMeadowModule
             }
             else
             {
-                if (m_currentGeneration < m_generations)
+                if (m_currentGeneration < m_generations - 1)
                 {
                     nextGeneration = m_currentGeneration + 1;
                 }
@@ -580,7 +580,7 @@ namespace vMeadowModule
                 {
                     //Stop stepping through the visualization if we can't go further.
                     m_isRunning = false;
-                    AlertAndLog(String.Format("Reached generation {0}.  Stopping...", m_generations));
+                    AlertAndLog(String.Format("Reached generation {0}.  Stopping...", m_currentGeneration));
                     return;
                 }
             }
