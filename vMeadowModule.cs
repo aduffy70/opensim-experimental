@@ -65,12 +65,14 @@ namespace vMeadowModule
         float m_cellSpacing; //Space in meters between cell positions
         bool m_naturalAppearance; //Whether the plants are placed in neat rows or randomized a bit
         string m_configPath; //Url path to community config settings
+        string m_logPath; //Local path to folder where logs will be stored
+        string m_instanceTag; //Unique identifier for logs from this region
 
         SceneObjectGroup[,] m_prims; //list of objects managed by this module
         int[,,] m_cellStatus; // plant type for each cell in each generation [gen,x,y]
         string[] m_omvTrees = new string[22] {"None", "Pine1", "Pine2", "WinterPine1", "WinterPine2", "Oak", "TropicalBush1", "TropicalBush2", "Palm1", "Palm2", "Dogwood", "Cypress1", "Cypress2", "Plumeria", "WinterAspen", "Eucalyptus", "Fern", "Eelgrass", "SeaSword", "BeachGrass1", "Kelp1", "Kelp2"};
 
-        int[] m_communityMembers = new int[6] {0, 1, 2, 5, 16, 18};//Default plants to include in the community
+        int[] m_communityMembers = new int[6] {0, 1, 2, 5, 16, 18}; //Default plants to include in the community
         bool m_isRunning = false; //Keep track of whether the visualization is running
         bool m_isSimulated = false; //Whether a simulation has been run.
         Timer m_cycleTimer = new Timer(); //Timer to replace the region heartbeat
@@ -88,6 +90,8 @@ namespace vMeadowModule
         int m_currentGeneration = 0; //The currently displayed generation
         bool m_isReverse = false; //Whether we are stepping backward through the simulation
         int[,] m_displayedPlants; //Tracks the currently displayed plants
+        int[] m_speciesCounts = new int[6] {0, 0, 0, 0, 0, 0}; //Tracks species counts so we can compare acrossed generations
+        Vector3[,] m_coordinates; //Keeps track of the region coordinates and groundlevel where each plant will be placed so we only have to calculate them once.
 
         #region INonSharedRegionModule interface
 
@@ -107,6 +111,8 @@ namespace vMeadowModule
                 m_naturalAppearance = vMeadowConfig.GetBoolean("natural_appearance", true);
                 m_configPath = vMeadowConfig.GetString("config_path", "http://fernseed.usu.edu/vMeadowInfo/");
                 m_generations = vMeadowConfig.GetInt("generations", 10000);
+                m_logPath = vMeadowConfig.GetString("log_path", "addon-modules/vMeadow/logs/");
+                m_instanceTag = vMeadowConfig.GetString("instance_tag", "myregion");
             }
             if (m_enabled)
             {
@@ -124,6 +130,7 @@ namespace vMeadowModule
                 m_pauseTimer.Interval = 30000;
                 m_prims = new SceneObjectGroup[m_xCells, m_yCells];
                 m_cellStatus = new int[m_generations, m_xCells, m_yCells];
+                m_coordinates = new Vector3[m_xCells, m_yCells];
                 RandomizeStartMatrix();
                 m_pauseTimer.Start(); //Don't allow users to setup or use module til all objects have time to load from datastore
             }
@@ -204,7 +211,7 @@ namespace vMeadowModule
 
         #endregion
 
-        void Alert(string message)
+        public void Alert(string message)
         {
             if (m_dialogmod != null)
             {
@@ -225,7 +232,35 @@ namespace vMeadowModule
             {
                 for (int x=0; x<m_xCells; x++)
                 {
-                    m_cellStatus[0, x, y] = m_random.Next(6);
+                    float xRandomOffset = 0;
+                    float yRandomOffset = 0;
+                    if (m_naturalAppearance)
+                    {
+                        //Randomize around the matrix coordinates
+                        xRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
+                        yRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
+                    }
+                    Vector3 position = new Vector3(m_xPosition + (x * m_cellSpacing) + xRandomOffset, m_yPosition + (y * m_cellSpacing) + yRandomOffset, 0.0f);
+                    //Only calculate ground level if the x,y position is within the region boundaries
+                    if ((position.X >= 0) && (position.X <= 256) && (position.Y >= 0) && (position.Y <=256))
+                    {
+                        position.Z = GroundLevel(position);
+                        //Store the coordinates so we don't have to do this again
+                        m_coordinates[x, y] = position;
+                        //Only assign a cellStatus if it is above water- otherwise -1 so no plant will ever be placed.
+                        if (position.Z >= WaterLevel(position))
+                        {
+                            m_cellStatus[0, x, y] = m_random.Next(6);
+                        }
+                        else
+                        {
+                            m_cellStatus[0, x, y] = -1;
+                        }
+                    }
+                    else
+                    {
+                        m_cellStatus[0, x, y] = -1;
+                    }
                 }
             }
         }
@@ -252,38 +287,12 @@ namespace vMeadowModule
 
         SceneObjectGroup CreatePlant(int xPos, int yPos, int plantTypeIndex)
         {
-            //Generates a plant or returns null if xPos,yPos is below water or out of region
-            //Don't send this function non-plant (0 or -1) plantTypeIndex values
-            float xRandomOffset = 0;
-            float yRandomOffset = 0;
-            if (m_naturalAppearance)
-            {
-                //Randomize around the matrix coordinates
-                xRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
-                yRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
-            }
-            Vector3 position = new Vector3(m_xPosition + (xPos * m_cellSpacing) + xRandomOffset, m_yPosition + (yPos * m_cellSpacing) + yRandomOffset, 0.0f);
-            //Only calculate ground level if the x,y position is within the region boundaries
-            if ((position.X >= 0) && (position.X <= 256) && (position.Y >= 0) && (position.Y <=256))
-            {
-                position.Z = GroundLevel(position);
-                //Only add a plant if it is above sea level
-                if (position.Z >= WaterLevel(position))
-                {
-                    Tree treeType = (Tree) Enum.Parse(typeof(Tree), m_omvTrees[m_communityMembers[plantTypeIndex]]);
-                    SceneObjectGroup newPlant = AddTree(UUID.Zero, UUID.Zero, new Vector3(1.0f, 1.0f, 1.0f), Quaternion.Identity, position, treeType, false);
-                    newPlant.RootPart.Name = "vMeadowPlant";
-                    return newPlant;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            else
-            {
-                return null;
-            }
+            //Generates a plant
+            //Don't send this function non-plant (0 or -1) plantTypeIndex values or locations outside of the region.
+            Tree treeType = (Tree) Enum.Parse(typeof(Tree), m_omvTrees[m_communityMembers[plantTypeIndex]]);
+            SceneObjectGroup newPlant = AddTree(UUID.Zero, UUID.Zero, new Vector3(1.0f, 1.0f, 1.0f), Quaternion.Identity, m_coordinates[xPos, yPos], treeType, false);
+            newPlant.RootPart.Name = "vMeadowPlant";
+            return newPlant;
         }
 
         void DeletePlant(SceneObjectGroup deadPlant)
@@ -336,10 +345,13 @@ namespace vMeadowModule
                 }
                 ClearAllPlants();
                 m_log.Debug("[vMeadowModule] Cleared plants...");
+                ClearLogs();
+                m_log.Debug("[vMeadowModule] Cleared logs...");
                 RunSimulation();
                 m_log.Debug("[vMeadowModule] Ran simulation...");
                 VisualizeGeneration(0);
                 AlertAndLog("Community reset. Loaded generation 0...");
+                m_isSimulated = true;
             }
             else if (chat.Message.ToLower() == "forward")
             {
@@ -408,8 +420,15 @@ namespace vMeadowModule
                 }
                 else
                 {
-                    Alert("Advancing one step...");
-                    VisualizeGeneration(m_currentGeneration + 1);
+                    if (m_currentGeneration < m_generations - 1)
+                    {
+                        Alert("Advancing one step...");
+                        VisualizeGeneration(m_currentGeneration + 1);
+                    }
+                    else
+                    {
+                        Alert("Already at the last step...");
+                    }
                 }
             }
             else if (chat.Message.ToLower() == "-")
@@ -420,9 +439,20 @@ namespace vMeadowModule
                 }
                 else
                 {
-                    Alert("Backing up one step...");
-                    VisualizeGeneration(m_currentGeneration - 1);
+                    if (m_currentGeneration > 0)
+                    {
+                        Alert("Backing up one step...");
+                        VisualizeGeneration(m_currentGeneration - 1);
+                    }
+                    else
+                    {
+                        Alert("Already at step 0...");
+                    }
                 }
+            }
+            else if (chat.Message.ToLower() == "now")
+            {
+                CalculateStatistics(m_currentGeneration, m_speciesCounts, false);
             }
             else if (chat.Message.Length > 5)
             {
@@ -518,25 +548,54 @@ namespace vMeadowModule
                     }
                 }
                 m_cellStatus = new int[m_generations, m_xCells, m_yCells];
+                m_coordinates = new Vector3[m_xCells, m_yCells];
                 for (int y=0; y<m_yCells; y++)
                 {
                     char[] startingPlants = new char[m_xCells];
                     startingPlants = configInfo[y + 8].ToCharArray();
                     for (int x=0; x<m_xCells; x++)
                     {
-                        if (startingPlants[x] == 'R')
+                        float xRandomOffset = 0;
+                        float yRandomOffset = 0;
+                        if (m_naturalAppearance)
                         {
-                            //Randomly select a plant type
-                            m_cellStatus[0, x, y] = m_random.Next(6);
+                            //Randomize around the matrix coordinates
+                            xRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
+                            yRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
                         }
-                        else if (startingPlants[x] == 'N')
+                        Vector3 position = new Vector3(m_xPosition + (x * m_cellSpacing) + xRandomOffset, m_yPosition + (y * m_cellSpacing) + yRandomOffset, 0.0f);
+                        //Only calculate ground level if the x,y position is within the region boundaries
+                        if ((position.X >= 0) && (position.X <= 256) && (position.Y >= 0) && (position.Y <=256))
                         {
-                            //There will never be a plant here
-                            m_cellStatus[0, x, y] = -1;
+                            position.Z = GroundLevel(position);
+                            //Store the coordinates so we don't have to do this again
+                            m_coordinates[x, y] = position;
+                            //Only assign a cellStatus if it is above water- otherwise -1 so no plant will ever be placed.
+                            if (position.Z >= WaterLevel(position))
+                            {
+                                if (startingPlants[x] == 'R')
+                                {
+                                    //Randomly select a plant type
+                                    m_cellStatus[0, x, y] = m_random.Next(6);
+                                }
+                                else if (startingPlants[x] == 'N')
+                                {
+                                    //There will never be a plant here
+                                    m_cellStatus[0, x, y] = -1;
+                                }
+                                else
+                                {
+                                    m_cellStatus[0, x, y] = Int32.Parse(startingPlants[x].ToString());
+                                }
+                            }
+                            else
+                            {
+                                m_cellStatus[0, x, y] = -1;
+                            }
                         }
                         else
                         {
-                            m_cellStatus[0, x, y] = Int32.Parse(startingPlants[x].ToString());
+                            m_cellStatus[0, x, y] = -1;
                         }
                     }
                 }
@@ -594,7 +653,9 @@ namespace vMeadowModule
 
         void VisualizeGeneration(int nextGeneration)
         {
-            //Update the visualization with plants from the next generation.  Don't waste time deleting and replacing plants if the species isn't going to change.
+            //Update the visualization with plants from the next generation.
+            //Don't waste time deleting and replacing plants if the species isn't going to change.
+            int [] speciesCounts = new int[6] {0, 0, 0, 0, 0, 0};
             for (int y=0; y<m_yCells; y++)
             {
 				for (int x=0; x<m_xCells; x++)
@@ -627,9 +688,113 @@ namespace vMeadowModule
                             m_displayedPlants[x, y] = 0;
                         }
                     }
+                    if (m_displayedPlants[x, y] != 0)
+                    {
+                        speciesCounts[newSpecies] += 1;
+                    }
                 }
             }
+            CalculateStatistics(nextGeneration, speciesCounts, true);
             m_currentGeneration = nextGeneration;
+        }
+
+        void CalculateStatistics(int generation, int[] speciesCounts, bool needToLog)
+        {
+            //TODO: make these display to a HUD
+            string[] hudString = new string[5];
+            hudString[0] = String.Format("Generation: {0}", generation);
+            hudString[1] = "Species";
+            hudString[2] = "Qty";
+            hudString[3] = "Change";
+            hudString[4] = "%";
+            string logString = generation.ToString();
+            int totalPlants = speciesCounts[1] + speciesCounts[2] + speciesCounts[3] + speciesCounts[4] + speciesCounts[5];
+            for (int i=1; i<6; i++)
+            {
+                hudString[1] += "\n" + i;
+                hudString[2] += "\n" + speciesCounts[i];
+                int qtyChange = speciesCounts[i] - m_speciesCounts[i];
+                string direction = "";
+                if (qtyChange > 0)
+                {
+                    direction = "+";
+                }
+                hudString[3] += "\n" + direction + qtyChange;
+                float percent;
+                if (totalPlants > 0) //Avoid divide-by-zero errors
+                {
+                    percent = (float)(Math.Round((double)((speciesCounts[i] / (float)totalPlants) * 100), 1));
+                }
+                else
+                {
+                    percent = 0f;
+                }
+                hudString[4] += "\n" + percent + "%";
+                logString += String.Format(",{0}", speciesCounts[i]);
+            }
+            Array.Copy(speciesCounts, m_speciesCounts, 6);
+            if (needToLog)
+            {
+                LogData(logString);
+            }
+            UpdateHUDs(hudString);
+        }
+
+        void UpdateHUDs(string[] hudString)
+        {
+            lock (m_scene)
+            {
+                EntityBase[] everyObject = m_scene.GetEntities();
+                SceneObjectGroup sog;
+                foreach (EntityBase e in everyObject)
+                {
+                    if (e is SceneObjectGroup) //ignore avatars
+                    {
+                        sog = (SceneObjectGroup)e;
+                        if (sog.Name.Length > 9)
+                        {
+                            //Avoid an error on objects with short names (and skip over all the plants, since they have 9 character names at most)
+                            //HUD must be the correct major release # to work.  If you make changes that will break old huds, update the release number. Minor release numbers track non-breaking HUD changes.
+                            if (sog.Name.Substring(0,8) == "vpcHUDv1")
+                            {
+                                //Use yellow for HUD text.  It shows against sky, water, or land.
+                                Vector3 textColor = new Vector3(1.0f, 1.0f, 0.0f);
+                                //Place floating text on each named prim of the inworld HUD
+                                foreach (SceneObjectPart labeledPart in sog.Parts)
+                                {
+                                    if (labeledPart.Name == "GenerationvpcHUD")
+                                        labeledPart.SetText(hudString[0], textColor, 1.0);
+                                    else if (labeledPart.Name == "SpeciesvpcHUD")
+                                        labeledPart.SetText(hudString[1], textColor, 1.0);
+                                    else if (labeledPart.Name == "QtyvpcHUD")
+                                        labeledPart.SetText(hudString[2], textColor, 1.0);
+                                    else if (labeledPart.Name == "QtyChangevpcHUD")
+                                        labeledPart.SetText(hudString[3], textColor, 1.0);
+                                    else if (labeledPart.Name == "PercentvpcHUD")
+                                        labeledPart.SetText(hudString[4], textColor, 1.0);
+                                    else if (labeledPart.Name == "PercentChangevpcHUD")
+                                        labeledPart.SetText(hudString[5], textColor, 1.0);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        void LogData(string logString)
+        {
+            string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
+            System.IO.StreamWriter dataLog = System.IO.File.AppendText(logFile);
+            dataLog.WriteLine(logString);
+            dataLog.Close();
+        }
+
+        Void ClearLogs()
+        {
+            string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
+            System.IO.File.Delete(logFile);
         }
 
         void OnPause(object source, ElapsedEventArgs e)
@@ -814,7 +979,6 @@ namespace vMeadowModule
                     }
                 }
             }
-            m_isSimulated = true;
         }
     }
 }
