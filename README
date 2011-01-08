@@ -8,10 +8,16 @@ BUILD NOTES
 This module uses several libraries that I have not included.  The expectation is that the vMeadow/ folder will be placed in the addon-modules/ folder of your OpenSimulator installation.  This will provide access to all required libraries.
 
 USAGE NOTES
-To generate a randomized meadow, chat /18 reset.
-To start the cellular automata system, chat /18 start.
-To stop the cellular automata system, chat /18 stop.
-To remove the meadow, chat /18 clear.
+To generate a randomized meadow and run the cellular automata calculations, chat '/18 reset'.
+To start the visualization, chat '/18 forward'.
+To run the visualization in reverse, chat '/18 reverse'.
+To stop the visualization, chat '/18 stop'.
+To view a particular visualization step, chat '/18 #'.
+To view the next step, chat '/18 +'.
+To view the previous step, chat '/18 -'.
+To remove the meadow, chat '/18 clear'.
+To load a new set of parameters follow the instructions on the vmeadowga form.
+
 
 TODO
 In no particular order...
