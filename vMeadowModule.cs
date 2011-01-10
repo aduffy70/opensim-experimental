@@ -126,7 +126,7 @@ namespace vMeadowModule
             {
                 m_scene = scene;
                 m_dialogmod = m_scene.RequestModuleInterface<IDialogModule>();
-                m_pauseTimer.Elapsed += new ElapsedEventHandler(OnPause);
+                m_pauseTimer.Elapsed += new ElapsedEventHandler(OnPauseTimer);
                 m_pauseTimer.Interval = 30000;
                 m_prims = new SceneObjectGroup[m_xCells, m_yCells];
                 //m_cellStatus = new int[m_generations, m_xCells, m_yCells];
@@ -211,127 +211,60 @@ namespace vMeadowModule
 
         #endregion
 
-        public void Alert(string message)
+        private void OnPauseTimer(object source, ElapsedEventArgs e)
         {
-            if (m_dialogmod != null)
-            {
-                m_dialogmod.SendGeneralAlert(String.Format("{0}: {1}", Name, message));
-            }
+            //After region has had time to load all objects from database after a restart...
+            //Without this pause on region startup it was possible to try to clear all plants before the plants had been completely loaded from the database.
+            m_pauseTimer.Stop();
+            m_scene.EventManager.OnChatFromWorld += new EventManager.ChatFromWorldEvent(OnChat);
+            m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
+            m_cycleTimer.Elapsed += new ElapsedEventHandler(OnCycleTimer);
+            m_cycleTimer.Interval = m_cycleTime;
         }
 
-        void AlertAndLog(string message)
+        private void OnCycleTimer(object source, ElapsedEventArgs e)
         {
-            m_log.DebugFormat("[{0}] {1}", Name, message);
-            Alert(message);
-        }
-
-        void RandomizeStartMatrix()
-        {
-            //Generate starting matrix of random plant types
-            m_cellStatus = new int[m_generations, m_xCells, m_yCells];
-            m_coordinates = new Vector3[m_xCells, m_yCells];
-            for (int y=0; y<m_yCells; y++)
-            {
-                for (int x=0; x<m_xCells; x++)
-                {
-                    float xRandomOffset = 0;
-                    float yRandomOffset = 0;
-                    if (m_naturalAppearance)
-                    {
-                        //Randomize around the matrix coordinates
-                        xRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
-                        yRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
-                    }
-                    Vector3 position = new Vector3(m_xPosition + (x * m_cellSpacing) + xRandomOffset, m_yPosition + (y * m_cellSpacing) + yRandomOffset, 0.0f);
-                    //Only calculate ground level if the x,y position is within the region boundaries
-                    if ((position.X >= 0) && (position.X <= 256) && (position.Y >= 0) && (position.Y <=256))
-                    {
-                        position.Z = GroundLevel(position);
-                        //Store the coordinates so we don't have to do this again
-                        m_coordinates[x, y] = position;
-                        //Only assign a cellStatus if it is above water- otherwise -1 so no plant will ever be placed.
-                        if (position.Z >= WaterLevel(position))
-                        {
-                            m_cellStatus[0, x, y] = m_random.Next(6);
-                        }
-                        else
-                        {
-                            m_cellStatus[0, x, y] = -1;
-                        }
-                    }
-                    else
-                    {
-                        m_cellStatus[0, x, y] = -1;
-                    }
-                }
-            }
-        }
-
-        void ClearAllPlants()
-        {
-            //Delete all vMeadow plants in the region
-            EntityBase[] everyObject = m_scene.GetEntities();
-            SceneObjectGroup sog;
-            foreach (EntityBase e in everyObject)
-            {
-                if (e is SceneObjectGroup)
-                {
-                    sog = (SceneObjectGroup)e;
-                    if (sog.RootPart.Name == "vMeadowPlant")
-                    {
-                        DeletePlant(sog);
-                    }
-                }
-            }
-            m_prims = new SceneObjectGroup[m_xCells, m_yCells];
-            m_displayedPlants = new int[m_xCells, m_yCells];
-        }
-
-        SceneObjectGroup CreatePlant(int xPos, int yPos, int plantTypeIndex)
-        {
-            //Generates a plant
-            //Don't send this function non-plant (0 or -1) plantTypeIndex values or locations outside of the region.
-            Tree treeType = (Tree) Enum.Parse(typeof(Tree), m_omvTrees[m_communityMembers[plantTypeIndex]]);
-            SceneObjectGroup newPlant = AddTree(UUID.Zero, UUID.Zero, new Vector3(1.0f, 1.0f, 1.0f), Quaternion.Identity, m_coordinates[xPos, yPos], treeType, false);
-            newPlant.RootPart.Name = "vMeadowPlant";
-            return newPlant;
-        }
-
-        void DeletePlant(SceneObjectGroup deadPlant)
-        {
-            try
-            {
-                m_scene.DeleteSceneObject(deadPlant, false);
-            }
-            catch
-            {
-                m_log.Debug("[vMeadowModule] Tried to delete a non-existent plant! Was it manually removed?");
-            }
-        }
-
-        void StopVisualization()
-        {
-            //Stop stepping through generations in the visualization
-            m_log.Debug("[vMeadowModule] Stopping...");
-            m_isRunning = false;
+            //Stop the timer so we won't have problems if this process isn't finished before the timer event is triggered again.
             m_cycleTimer.Stop();
-        }
-
-        void StartVisualization(bool isReverse)
-        {
-            //Start stepping forward through generations of the visualization
-            string direction = "forward";
-            if (isReverse)
+            int nextGeneration;
+            //Advance visualization by a generation
+            if (m_isReverse)
             {
-                direction = "backward";
+                if (m_currentGeneration > 0)
+                {
+                    nextGeneration = m_currentGeneration - 1;
+                }
+                else
+                {
+                    //Stop stepping through the visualization if we can't go back further.
+                    m_isRunning = false;
+                    AlertAndLog("Reached generation 0.  Stopping...");
+                    return;
+                }
             }
-            m_log.Debug("[vMeadowModule] Stepping " + direction + "...");
-            m_isRunning = true;
-            m_isReverse = isReverse;
-            m_cycleTimer.Start();
+            else
+            {
+                if (m_currentGeneration < m_generations - 1)
+                {
+                    nextGeneration = m_currentGeneration + 1;
+                }
+                else
+                {
+                    //Stop stepping through the visualization if we can't go further.
+                    m_isRunning = false;
+                    AlertAndLog(String.Format("Reached generation {0}.  Stopping...", m_currentGeneration));
+                    return;
+                }
+            }
+            VisualizeGeneration(nextGeneration);
+            if (m_isRunning)
+            {
+                //Check that there hasn't been a request to stop the timer before restarting the timer
+                m_cycleTimer.Start();
+            }
         }
 
-        void OnChat(Object sender, OSChatMessage chat)
+        private void OnChat(Object sender, OSChatMessage chat)
         {
             if (chat.Channel != m_channel)
             {
@@ -506,8 +439,284 @@ namespace vMeadowModule
             }
         }
 
-        bool ReadConfigs(string url)
+        public void Alert(string message)
         {
+            if (m_dialogmod != null)
+            {
+                m_dialogmod.SendGeneralAlert(String.Format("{0}: {1}", Name, message));
+            }
+        }
+
+        public void AlertAndLog(string message)
+        {
+            m_log.DebugFormat("[{0}] {1}", Name, message);
+            Alert(message);
+        }
+
+        private void CalculateStatistics(int generation, int[] speciesCounts, bool needToLog)
+        {
+            //TODO: This function should be split up into logical subunits.  It generates two different strings, logs one and sends the other to huds, and modifies a global variable.
+            string[] hudString = new string[5];
+            hudString[0] = String.Format("Generation: {0}", generation);
+            hudString[1] = "Species";
+            hudString[2] = "Qty";
+            hudString[3] = "Change";
+            hudString[4] = "%";
+            string logString = generation.ToString();
+            int totalPlants = speciesCounts[1] + speciesCounts[2] + speciesCounts[3] + speciesCounts[4] + speciesCounts[5];
+            for (int i=1; i<6; i++)
+            {
+                hudString[1] += "\n" + i;
+                hudString[2] += "\n" + speciesCounts[i];
+                int qtyChange = speciesCounts[i] - m_speciesCounts[i];
+                string direction = "";
+                if (qtyChange > 0)
+                {
+                    direction = "+";
+                }
+                hudString[3] += "\n" + direction + qtyChange;
+                float percent;
+                if (totalPlants > 0) //Avoid divide-by-zero errors
+                {
+                    percent = (float)(Math.Round((double)((speciesCounts[i] / (float)totalPlants) * 100), 1));
+                }
+                else
+                {
+                    percent = 0f;
+                }
+                hudString[4] += "\n" + percent + "%";
+                logString += String.Format(",{0}", speciesCounts[i]);
+            }
+            Array.Copy(speciesCounts, m_speciesCounts, 6);
+            if (needToLog)
+            {
+                LogData(logString);
+            }
+            UpdateHUDs(hudString);
+        }
+
+        private void ClearAllPlants()
+        {
+            //Delete all vMeadow plants in the region
+            EntityBase[] everyObject = m_scene.GetEntities();
+            SceneObjectGroup sog;
+            foreach (EntityBase e in everyObject)
+            {
+                if (e is SceneObjectGroup)
+                {
+                    sog = (SceneObjectGroup)e;
+                    if (sog.RootPart.Name == "vMeadowPlant")
+                    {
+                        DeletePlant(sog);
+                    }
+                }
+            }
+            m_prims = new SceneObjectGroup[m_xCells, m_yCells];
+            m_displayedPlants = new int[m_xCells, m_yCells];
+        }
+
+        private void ClearLogs()
+        {
+            string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
+            System.IO.File.Delete(logFile);
+        }
+
+        private SceneObjectGroup CreatePlant(int xPos, int yPos, int plantTypeIndex)
+        {
+            //Generates a plant
+            //Don't send this function non-plant (0 or -1) plantTypeIndex values or locations outside of the region.
+            Tree treeType = (Tree) Enum.Parse(typeof(Tree), m_omvTrees[m_communityMembers[plantTypeIndex]]);
+            SceneObjectGroup newPlant = AddTree(UUID.Zero, UUID.Zero, new Vector3(1.0f, 1.0f, 1.0f), Quaternion.Identity, m_coordinates[xPos, yPos], treeType, false);
+            newPlant.RootPart.Name = "vMeadowPlant";
+            return newPlant;
+        }
+
+        private void DeletePlant(SceneObjectGroup deadPlant)
+        {
+            try
+            {
+                m_scene.DeleteSceneObject(deadPlant, false);
+            }
+            catch
+            {
+                m_log.Debug("[vMeadowModule] Tried to delete a non-existent plant! Was it manually removed?");
+            }
+        }
+
+        private int[] GetNeighborSpeciesCounts(int x, int y, int rowabove, int rowbelow, int colright, int colleft, int generation)
+        {
+            //Get counts of neighborspecies
+            //At edges, missing neighborTypes are -1
+            int[] neighborSpeciesCounts = new int[6] {0, 0, 0, 0, 0, 0};
+            int neighborType;
+            if (colleft >= 0)
+            {
+                neighborType = m_cellStatus[generation, colleft, y];
+                if (neighborType != -1)
+                {
+                    neighborSpeciesCounts[neighborType]++;
+                }
+                if (rowbelow >= 0)
+                {
+                    neighborType = m_cellStatus[generation, colleft, rowbelow];
+                    if (neighborType != -1)
+                    {
+                        neighborSpeciesCounts[neighborType]++;
+                    }
+                }
+                if (rowabove < m_yCells)
+                {
+                    neighborType = m_cellStatus[generation, colleft, rowabove];
+                    if (neighborType != -1)
+                    {
+                        neighborSpeciesCounts[neighborType]++;
+                    }
+                }
+            }
+            if (colright < m_xCells)
+            {
+                neighborType = m_cellStatus[generation, colright, y];
+                if (neighborType != -1)
+                {
+                    neighborSpeciesCounts[neighborType]++;
+                }
+                if (rowbelow >= 0)
+                {
+                    neighborType = m_cellStatus[generation, colright, rowbelow];
+                    if (neighborType != -1)
+                    {
+                        neighborSpeciesCounts[neighborType]++;
+                    }
+                }
+                if (rowabove < m_yCells)
+                {
+                    neighborType = m_cellStatus[generation, colright, rowabove];
+                    if (neighborType != -1)
+                    {
+                        neighborSpeciesCounts[neighborType]++;
+                    }
+                }
+            }
+            if (rowbelow >= 0)
+            {
+                neighborType = m_cellStatus[generation, x, rowbelow];
+                if (neighborType != -1)
+                {
+                    neighborSpeciesCounts[neighborType]++;
+                }
+            }
+            if (rowabove < m_yCells)
+            {
+                neighborType = m_cellStatus[generation, x, rowabove];
+                if (neighborType != -1)
+                {
+                    neighborSpeciesCounts[neighborType]++;
+                }
+            }
+            return neighborSpeciesCounts;
+        }
+
+        private float[] GetReplacementProbabilities(int currentSpecies, int[] neighborSpeciesCounts)
+        {
+            //Calculate the probability that the current plant will be replaced by each species.
+            float[] replacementProbabilities = new float[6];
+            for (int neighborSpecies=0; neighborSpecies<6; neighborSpecies++)
+            {
+                replacementProbabilities[neighborSpecies] = m_replacementMatrix[neighborSpecies, currentSpecies] * ((float)neighborSpeciesCounts[neighborSpecies] / 8.0f);
+            }
+            return replacementProbabilities;
+        }
+
+        public float GroundLevel(Vector3 location)
+        {
+            //Return the ground level at the specified location.
+            //The first part of this function performs essentially the same function as llGroundNormal() without having to be called by a prim.
+            //Find two points in addition to the position to define a plane
+            Vector3 p0 = new Vector3(location.X, location.Y, (float)m_scene.Heightmap[(int)location.X, (int)location.Y]);
+            Vector3 p1 = new Vector3();
+            Vector3 p2 = new Vector3();
+            if ((location.X + 1.0f) >= m_scene.Heightmap.Width)
+                p1 = new Vector3(location.X + 1.0f, location.Y, (float)m_scene.Heightmap[(int)location.X, (int)location.Y]);
+            else
+                p1 = new Vector3(location.X + 1.0f, location.Y, (float)m_scene.Heightmap[(int)(location.X + 1.0f), (int)location.Y]);
+            if ((location.Y + 1.0f) >= m_scene.Heightmap.Height)
+                p2 = new Vector3(location.X, location.Y + 1.0f, (float)m_scene.Heightmap[(int)location.X, (int)location.Y]);
+            else
+                p2 = new Vector3(location.X, location.Y + 1.0f, (float)m_scene.Heightmap[(int)location.X, (int)(location.Y + 1.0f)]);
+            //Find normalized vectors from p0 to p1 and p0 to p2
+            Vector3 v0 = new Vector3(p1.X - p0.X, p1.Y - p0.Y, p1.Z - p0.Z);
+            Vector3 v1 = new Vector3(p2.X - p0.X, p2.Y - p0.Y, p2.Z - p0.Z);
+            v0.Normalize();
+            v1.Normalize();
+            //Find the cross product of the vectors (the slope normal).
+            Vector3 vsn = new Vector3();
+            vsn.X = (v0.Y * v1.Z) - (v0.Z * v1.Y);
+            vsn.Y = (v0.Z * v1.X) - (v0.X * v1.Z);
+            vsn.Z = (v0.X * v1.Y) - (v0.Y * v1.X);
+            vsn.Normalize();
+            //The second part of this function does the same thing as llGround() without having to be called from a prim
+            //Get the height for the integer coordinates from the Heightmap
+            float baseheight = (float)m_scene.Heightmap[(int)location.X, (int)location.Y];
+            //Calculate the difference between the actual coordinates and the integer coordinates
+            float xdiff = location.X - (float)((int)location.X);
+            float ydiff = location.Y - (float)((int)location.Y);
+            //Use the equation of the tangent plane to adjust the height to account for slope
+            return (((vsn.X * xdiff) + (vsn.Y * ydiff)) / (-1 * vsn.Z)) + baseheight;
+        }
+
+        private void LogData(string logString)
+        {
+            string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
+            System.IO.StreamWriter dataLog = System.IO.File.AppendText(logFile);
+            dataLog.WriteLine(logString);
+            dataLog.Close();
+        }
+
+        private void RandomizeStartMatrix()
+        {
+            //Generate starting matrix of random plant types
+            m_cellStatus = new int[m_generations, m_xCells, m_yCells];
+            m_coordinates = new Vector3[m_xCells, m_yCells];
+            for (int y=0; y<m_yCells; y++)
+            {
+                for (int x=0; x<m_xCells; x++)
+                {
+                    float xRandomOffset = 0;
+                    float yRandomOffset = 0;
+                    if (m_naturalAppearance)
+                    {
+                        //Randomize around the matrix coordinates
+                        xRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
+                        yRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
+                    }
+                    Vector3 position = new Vector3(m_xPosition + (x * m_cellSpacing) + xRandomOffset, m_yPosition + (y * m_cellSpacing) + yRandomOffset, 0.0f);
+                    //Only calculate ground level if the x,y position is within the region boundaries
+                    if ((position.X >= 0) && (position.X <= 256) && (position.Y >= 0) && (position.Y <=256))
+                    {
+                        position.Z = GroundLevel(position);
+                        //Store the coordinates so we don't have to do this again
+                        m_coordinates[x, y] = position;
+                        //Only assign a cellStatus if it is above water- otherwise -1 so no plant will ever be placed.
+                        if (position.Z >= WaterLevel(position))
+                        {
+                            m_cellStatus[0, x, y] = m_random.Next(6);
+                        }
+                        else
+                        {
+                            m_cellStatus[0, x, y] = -1;
+                        }
+                    }
+                    else
+                    {
+                        m_cellStatus[0, x, y] = -1;
+                    }
+                }
+            }
+        }
+
+        private bool ReadConfigs(string url)
+        {
+            //TODO: Split this function up into separate steps: Read data, parse data, generate starting matrix.
             string[] configInfo = new string[58]; //TODO: Could I import easier using xml instead of raw text?
             WebRequest configUrl = WebRequest.Create(url);
             AlertAndLog(String.Format("Reading data from url.  This may take a minute..."));
@@ -616,49 +825,148 @@ namespace vMeadowModule
             }
         }
 
-        void OnCycleTimer(object source, ElapsedEventArgs e)
+        private void RunSimulation()
         {
-            //Stop the timer so we won't have problems if this process isn't finished before the timer event is triggered again.
-            m_cycleTimer.Stop();
-            int nextGeneration;
-            //Advance visualization by a generation
-            if (m_isReverse)
+            //Generate the simulation data
+            for (int generation=0; generation<m_generations - 1; generation++)
             {
-                if (m_currentGeneration > 0)
+                if (generation % 1000 == 0)
                 {
-                    nextGeneration = m_currentGeneration - 1;
+                    //Provide status updates every 1000 generations
+                    Alert(String.Format("Step {0} of {1}...", generation, m_generations));
                 }
-                else
+                int nextGeneration = generation + 1;
+                int rowabove;
+                int rowbelow;
+                int colleft;
+                int colright;
+                for (int y=0; y<m_yCells; y++)
                 {
-                    //Stop stepping through the visualization if we can't go back further.
-                    m_isRunning = false;
-                    AlertAndLog("Reached generation 0.  Stopping...");
-                    return;
+			        rowabove = y + 1;
+				    rowbelow = y - 1;
+				    for (int x=0; x<m_xCells; x++)
+				    {
+				        colright = x + 1;
+				        colleft = x - 1;
+                        int currentSpecies = m_cellStatus[generation, x, y];
+                        if (currentSpecies != -1) //Don't ever try to update a permanent gap
+                        {
+                            //Get species counts of neighbors
+                            int[] neighborSpeciesCounts = GetNeighborSpeciesCounts(x, y, rowabove, rowbelow, colright, colleft, generation);
+                            //Calculate replacement probabilities
+                            float[] replacementProbability = GetReplacementProbabilities(currentSpecies, neighborSpeciesCounts);
+                            //Select the species for the next generation
+                            m_cellStatus[nextGeneration, x, y] = SelectNextGenerationSpecies(replacementProbability, currentSpecies);
+                        }
+                        else
+                        {
+                            m_cellStatus[nextGeneration, x, y] = -1;
+                        }
+                    }
                 }
-            }
-            else
-            {
-                if (m_currentGeneration < m_generations - 1)
-                {
-                    nextGeneration = m_currentGeneration + 1;
-                }
-                else
-                {
-                    //Stop stepping through the visualization if we can't go further.
-                    m_isRunning = false;
-                    AlertAndLog(String.Format("Reached generation {0}.  Stopping...", m_currentGeneration));
-                    return;
-                }
-            }
-            VisualizeGeneration(nextGeneration);
-            if (m_isRunning)
-            {
-                //Check that there hasn't been a request to stop the timer before restarting the timer
-                m_cycleTimer.Start();
             }
         }
 
-        void VisualizeGeneration(int nextGeneration)
+        private int SelectNextGenerationSpecies(float[] replacementProbability, int currentSpecies)
+        {
+            //Randomly determine the new species based on the replacement probablilities
+            float randomReplacement = (float)m_random.NextDouble();
+            if (randomReplacement <= replacementProbability[0])
+            {
+                return 0;
+            }
+            else if (randomReplacement <= replacementProbability[1] + replacementProbability[0])
+            {
+                return 1;
+            }
+            else if (randomReplacement <= replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
+            {
+                return 2;
+            }
+            else if (randomReplacement <= replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
+            {
+                return 3;
+            }
+            else if (randomReplacement <= replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
+            {
+                return 4;
+            }
+            else if (randomReplacement <= replacementProbability[5] + replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
+            {
+                return 5;
+            }
+            else
+            {
+                return currentSpecies;
+            }
+        }
+
+        private void StartVisualization(bool isReverse)
+        {
+            //Start stepping forward through generations of the visualization
+            string direction = "forward";
+            if (isReverse)
+            {
+                direction = "backward";
+            }
+            m_log.Debug("[vMeadowModule] Stepping " + direction + "...");
+            m_isRunning = true;
+            m_isReverse = isReverse;
+            m_cycleTimer.Start();
+        }
+
+        private void StopVisualization()
+        {
+            //Stop stepping through generations in the visualization
+            m_log.Debug("[vMeadowModule] Stopping...");
+            m_isRunning = false;
+            m_cycleTimer.Stop();
+        }
+
+        private void UpdateHUDs(string[] hudString)
+        {
+            //Display current data on all vpcHUDs in the region
+            lock (m_scene)
+            {
+                EntityBase[] everyObject = m_scene.GetEntities();
+                SceneObjectGroup sog;
+                foreach (EntityBase e in everyObject)
+                {
+                    if (e is SceneObjectGroup) //ignore avatars
+                    {
+                        sog = (SceneObjectGroup)e;
+                        if (sog.Name.Length > 9)
+                        {
+                            //Avoid an error on objects with short names.
+                            //HUD must be the correct major release # to work.  If you make changes that will break old huds, update the release number. Minor release numbers track non-breaking HUD changes.
+                            if (sog.Name.Substring(0,8) == "vpcHUDv1")
+                            {
+                                //Use yellow for HUD text.  It shows against sky, water, or land.
+                                Vector3 textColor = new Vector3(1.0f, 1.0f, 0.0f);
+                                //Place floating text on each named prim of the inworld HUD
+                                foreach (SceneObjectPart labeledPart in sog.Parts)
+                                {
+                                    if (labeledPart.Name == "GenerationvpcHUD")
+                                        labeledPart.SetText(hudString[0], textColor, 1.0);
+                                    else if (labeledPart.Name == "SpeciesvpcHUD")
+                                        labeledPart.SetText(hudString[1], textColor, 1.0);
+                                    else if (labeledPart.Name == "QtyvpcHUD")
+                                        labeledPart.SetText(hudString[2], textColor, 1.0);
+                                    else if (labeledPart.Name == "QtyChangevpcHUD")
+                                        labeledPart.SetText(hudString[3], textColor, 1.0);
+                                    else if (labeledPart.Name == "PercentvpcHUD")
+                                        labeledPart.SetText(hudString[4], textColor, 1.0);
+                                    else if (labeledPart.Name == "PercentChangevpcHUD")
+                                        labeledPart.SetText(hudString[5], textColor, 1.0);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void VisualizeGeneration(int nextGeneration)
         {
             //Update the visualization with plants from the next generation.
             //Don't waste time deleting and replacing plants if the species isn't going to change.
@@ -705,295 +1013,11 @@ namespace vMeadowModule
             m_currentGeneration = nextGeneration;
         }
 
-        void CalculateStatistics(int generation, int[] speciesCounts, bool needToLog)
-        {
-            //TODO: make these display to a HUD
-            string[] hudString = new string[5];
-            hudString[0] = String.Format("Generation: {0}", generation);
-            hudString[1] = "Species";
-            hudString[2] = "Qty";
-            hudString[3] = "Change";
-            hudString[4] = "%";
-            string logString = generation.ToString();
-            int totalPlants = speciesCounts[1] + speciesCounts[2] + speciesCounts[3] + speciesCounts[4] + speciesCounts[5];
-            for (int i=1; i<6; i++)
-            {
-                hudString[1] += "\n" + i;
-                hudString[2] += "\n" + speciesCounts[i];
-                int qtyChange = speciesCounts[i] - m_speciesCounts[i];
-                string direction = "";
-                if (qtyChange > 0)
-                {
-                    direction = "+";
-                }
-                hudString[3] += "\n" + direction + qtyChange;
-                float percent;
-                if (totalPlants > 0) //Avoid divide-by-zero errors
-                {
-                    percent = (float)(Math.Round((double)((speciesCounts[i] / (float)totalPlants) * 100), 1));
-                }
-                else
-                {
-                    percent = 0f;
-                }
-                hudString[4] += "\n" + percent + "%";
-                logString += String.Format(",{0}", speciesCounts[i]);
-            }
-            Array.Copy(speciesCounts, m_speciesCounts, 6);
-            if (needToLog)
-            {
-                LogData(logString);
-            }
-            UpdateHUDs(hudString);
-        }
-
-        void UpdateHUDs(string[] hudString)
-        {
-            lock (m_scene)
-            {
-                EntityBase[] everyObject = m_scene.GetEntities();
-                SceneObjectGroup sog;
-                foreach (EntityBase e in everyObject)
-                {
-                    if (e is SceneObjectGroup) //ignore avatars
-                    {
-                        sog = (SceneObjectGroup)e;
-                        if (sog.Name.Length > 9)
-                        {
-                            //Avoid an error on objects with short names (and skip over all the plants, since they have 9 character names at most)
-                            //HUD must be the correct major release # to work.  If you make changes that will break old huds, update the release number. Minor release numbers track non-breaking HUD changes.
-                            if (sog.Name.Substring(0,8) == "vpcHUDv1")
-                            {
-                                //Use yellow for HUD text.  It shows against sky, water, or land.
-                                Vector3 textColor = new Vector3(1.0f, 1.0f, 0.0f);
-                                //Place floating text on each named prim of the inworld HUD
-                                foreach (SceneObjectPart labeledPart in sog.Parts)
-                                {
-                                    if (labeledPart.Name == "GenerationvpcHUD")
-                                        labeledPart.SetText(hudString[0], textColor, 1.0);
-                                    else if (labeledPart.Name == "SpeciesvpcHUD")
-                                        labeledPart.SetText(hudString[1], textColor, 1.0);
-                                    else if (labeledPart.Name == "QtyvpcHUD")
-                                        labeledPart.SetText(hudString[2], textColor, 1.0);
-                                    else if (labeledPart.Name == "QtyChangevpcHUD")
-                                        labeledPart.SetText(hudString[3], textColor, 1.0);
-                                    else if (labeledPart.Name == "PercentvpcHUD")
-                                        labeledPart.SetText(hudString[4], textColor, 1.0);
-                                    else if (labeledPart.Name == "PercentChangevpcHUD")
-                                        labeledPart.SetText(hudString[5], textColor, 1.0);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-
-        void LogData(string logString)
-        {
-            string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
-            System.IO.StreamWriter dataLog = System.IO.File.AppendText(logFile);
-            dataLog.WriteLine(logString);
-            dataLog.Close();
-        }
-
-        Void ClearLogs()
-        {
-            string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
-            System.IO.File.Delete(logFile);
-        }
-
-        void OnPause(object source, ElapsedEventArgs e)
-        {
-            //After region has had time to load all objects from database after a restart...
-            m_pauseTimer.Stop();
-            m_scene.EventManager.OnChatFromWorld += new EventManager.ChatFromWorldEvent(OnChat);
-            m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
-            m_cycleTimer.Elapsed += new ElapsedEventHandler(OnCycleTimer);
-            m_cycleTimer.Interval = m_cycleTime;
-        }
-
-        float GroundLevel(Vector3 location)
-        {
-            //Return the ground level at the specified location.
-            //The first part of this function performs essentially the same function as llGroundNormal() without having to be called by a prim.
-            //Find two points in addition to the position to define a plane
-            Vector3 p0 = new Vector3(location.X, location.Y, (float)m_scene.Heightmap[(int)location.X, (int)location.Y]);
-            Vector3 p1 = new Vector3();
-            Vector3 p2 = new Vector3();
-            if ((location.X + 1.0f) >= m_scene.Heightmap.Width)
-                p1 = new Vector3(location.X + 1.0f, location.Y, (float)m_scene.Heightmap[(int)location.X, (int)location.Y]);
-            else
-                p1 = new Vector3(location.X + 1.0f, location.Y, (float)m_scene.Heightmap[(int)(location.X + 1.0f), (int)location.Y]);
-            if ((location.Y + 1.0f) >= m_scene.Heightmap.Height)
-                p2 = new Vector3(location.X, location.Y + 1.0f, (float)m_scene.Heightmap[(int)location.X, (int)location.Y]);
-            else
-                p2 = new Vector3(location.X, location.Y + 1.0f, (float)m_scene.Heightmap[(int)location.X, (int)(location.Y + 1.0f)]);
-            //Find normalized vectors from p0 to p1 and p0 to p2
-            Vector3 v0 = new Vector3(p1.X - p0.X, p1.Y - p0.Y, p1.Z - p0.Z);
-            Vector3 v1 = new Vector3(p2.X - p0.X, p2.Y - p0.Y, p2.Z - p0.Z);
-            v0.Normalize();
-            v1.Normalize();
-            //Find the cross product of the vectors (the slope normal).
-            Vector3 vsn = new Vector3();
-            vsn.X = (v0.Y * v1.Z) - (v0.Z * v1.Y);
-            vsn.Y = (v0.Z * v1.X) - (v0.X * v1.Z);
-            vsn.Z = (v0.X * v1.Y) - (v0.Y * v1.X);
-            vsn.Normalize();
-            //The second part of this function does the same thing as llGround() without having to be called from a prim
-            //Get the height for the integer coordinates from the Heightmap
-            float baseheight = (float)m_scene.Heightmap[(int)location.X, (int)location.Y];
-            //Calculate the difference between the actual coordinates and the integer coordinates
-            float xdiff = location.X - (float)((int)location.X);
-            float ydiff = location.Y - (float)((int)location.Y);
-            //Use the equation of the tangent plane to adjust the height to account for slope
-            return (((vsn.X * xdiff) + (vsn.Y * ydiff)) / (-1 * vsn.Z)) + baseheight;
-        }
-
-        float WaterLevel(Vector3 location)
+        public float WaterLevel(Vector3 location)
         {
             //Return the water level at the specified location.
             //This function performs essentially the same function as llWater() without having to be called by a prim.
             return (float)m_scene.RegionInfo.RegionSettings.WaterHeight;
-        }
-
-        void RunSimulation()
-        {
-            //Generate the simulation data
-            for (int generation=0; generation<m_generations - 1; generation++)
-            {
-                if (generation % 1000 == 0)
-                {
-                    Alert(String.Format("Step {0} of {1}...", generation, m_generations));
-                }
-                int nextGeneration = generation + 1;
-                int rowabove;
-                int rowbelow;
-                int colleft;
-                int colright;
-                for (int y=0; y<m_yCells; y++)
-                {
-			        rowabove = y + 1;
-				    rowbelow = y - 1;
-				    for (int x=0; x<m_xCells; x++)
-				    {
-				        colright = x + 1;
-				        colleft = x - 1;
-                        int currentSpecies = m_cellStatus[generation, x, y];
-                        if (currentSpecies != -1) //Don't ever try to update a permanent gap
-                        {
-                            float[] replacementProbability = new float[6];
-                            int[] neighborSpeciesCounts = new int[6] {0, 0, 0, 0, 0, 0};
-                            int neighborType;
-                            //Get counts of neighborspecies
-                            //At edges, missing neighborTypes are -1
-                            if (colleft >= 0)
-                            {
-                                neighborType = m_cellStatus[generation, colleft, y];
-                                if (neighborType != -1)
-                                {
-                                    neighborSpeciesCounts[neighborType]++;
-                                }
-                                if (rowbelow >= 0)
-                                {
-                                    neighborType = m_cellStatus[generation, colleft, rowbelow];
-                                    if (neighborType != -1)
-                                    {
-                                        neighborSpeciesCounts[neighborType]++;
-                                    }
-                                }
-                                if (rowabove < m_yCells)
-                                {
-                                    neighborType = m_cellStatus[generation, colleft, rowabove];
-                                    if (neighborType != -1)
-                                    {
-                                        neighborSpeciesCounts[neighborType]++;
-                                    }
-                                }
-                            }
-                            if (colright < m_xCells)
-                            {
-                                neighborType = m_cellStatus[generation, colright, y];
-                                if (neighborType != -1)
-                                {
-                                    neighborSpeciesCounts[neighborType]++;
-                                }
-                                if (rowbelow >= 0)
-                                {
-                                    neighborType = m_cellStatus[generation, colright, rowbelow];
-                                    if (neighborType != -1)
-                                    {
-                                        neighborSpeciesCounts[neighborType]++;
-                                    }
-                                }
-                                if (rowabove < m_yCells)
-                                {
-                                    neighborType = m_cellStatus[generation, colright, rowabove];
-                                    if (neighborType != -1)
-                                    {
-                                        neighborSpeciesCounts[neighborType]++;
-                                    }
-                                }
-                            }
-                            if (rowbelow >= 0)
-                            {
-                                neighborType = m_cellStatus[generation, x, rowbelow];
-                                if (neighborType != -1)
-                                {
-                                    neighborSpeciesCounts[neighborType]++;
-                                }
-                            }
-                            if (rowabove < m_yCells)
-                            {
-                                neighborType = m_cellStatus[generation, x, rowabove];
-                                if (neighborType != -1)
-                                {
-                                    neighborSpeciesCounts[neighborType]++;
-                                }
-                            }
-                            for (int neighborSpecies=0; neighborSpecies<6; neighborSpecies++)
-                            {
-                                replacementProbability[neighborSpecies] = m_replacementMatrix[neighborSpecies, currentSpecies] * ((float)neighborSpeciesCounts[neighborSpecies] / 8.0f);
-                            }
-                            //Randomly determine the new species based on the replacement probablilities
-                            float randomReplacement = (float)m_random.NextDouble();
-                            if (randomReplacement <= replacementProbability[0])
-                            {
-                                m_cellStatus[nextGeneration, x, y] = 0;
-                            }
-                            else if (randomReplacement <= replacementProbability[1] + replacementProbability[0])
-                            {
-                                m_cellStatus[nextGeneration, x, y] = 1;
-                            }
-                            else if (randomReplacement <= replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
-                            {
-                                m_cellStatus[nextGeneration, x, y] = 2;
-                            }
-                            else if (randomReplacement <= replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
-                            {
-                                m_cellStatus[nextGeneration, x, y] = 3;
-                            }
-                            else if (randomReplacement <= replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
-                            {
-                                m_cellStatus[nextGeneration, x, y] = 4;
-                            }
-                            else if (randomReplacement <= replacementProbability[5] + replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
-                            {
-                                m_cellStatus[nextGeneration, x, y] = 5;
-                            }
-                            else
-                            {
-                                m_cellStatus[nextGeneration, x, y] = currentSpecies;
-                            }
-                        }
-                        else
-                        {
-                            m_cellStatus[nextGeneration, x, y] = -1;
-                        }
-                    }
-                }
-            }
         }
     }
 }
