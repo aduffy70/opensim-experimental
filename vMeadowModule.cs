@@ -346,11 +346,11 @@ namespace vMeadowModule
                     StopVisualization();
                 }
                 ClearAllPlants();
-                m_log.Debug("[vMeadowModule] Cleared plants...");
+                Alert("Cleared existing plants...");
                 ClearLogs();
-                m_log.Debug("[vMeadowModule] Cleared logs...");
+                Alert("Cleared logs...");
                 RunSimulation();
-                m_log.Debug("[vMeadowModule] Ran simulation...");
+                Alert("Simulation complete.  Generating plants...");
                 VisualizeGeneration(0);
                 AlertAndLog("Community reset. Loaded generation 0...");
                 m_isSimulated = true;
@@ -489,7 +489,11 @@ namespace vMeadowModule
                             StopVisualization();
                         }
                         ClearAllPlants();
+                        Alert("Cleared existing plants...");
+                        ClearLogs();
+                        Alert("Cleared logs...");
                         RunSimulation();
+                        Alert("Simulation complete.  Generating plants...");
                         VisualizeGeneration(0);
                         m_isSimulated = true;
                     }
@@ -859,6 +863,10 @@ namespace vMeadowModule
             //Generate the simulation data
             for (int generation=0; generation<m_generations - 1; generation++)
             {
+                if (generation % 1000 == 0)
+                {
+                    Alert(String.Format("Step {0} of {1}...", generation, m_generations));
+                }
                 int nextGeneration = generation + 1;
                 int rowabove;
                 int rowbelow;
