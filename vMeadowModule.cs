@@ -129,8 +129,8 @@ namespace vMeadowModule
                 m_pauseTimer.Elapsed += new ElapsedEventHandler(OnPause);
                 m_pauseTimer.Interval = 30000;
                 m_prims = new SceneObjectGroup[m_xCells, m_yCells];
-                m_cellStatus = new int[m_generations, m_xCells, m_yCells];
-                m_coordinates = new Vector3[m_xCells, m_yCells];
+                //m_cellStatus = new int[m_generations, m_xCells, m_yCells];
+                //m_coordinates = new Vector3[m_xCells, m_yCells];
                 RandomizeStartMatrix();
                 m_pauseTimer.Start(); //Don't allow users to setup or use module til all objects have time to load from datastore
             }
@@ -228,6 +228,8 @@ namespace vMeadowModule
         void RandomizeStartMatrix()
         {
             //Generate starting matrix of random plant types
+            m_cellStatus = new int[m_generations, m_xCells, m_yCells];
+            m_coordinates = new Vector3[m_xCells, m_yCells];
             for (int y=0; y<m_yCells; y++)
             {
                 for (int x=0; x<m_xCells; x++)
@@ -489,6 +491,7 @@ namespace vMeadowModule
                         ClearAllPlants();
                         RunSimulation();
                         VisualizeGeneration(0);
+                        m_isSimulated = true;
                     }
                 }
             }
@@ -975,6 +978,10 @@ namespace vMeadowModule
                             {
                                 m_cellStatus[nextGeneration, x, y] = currentSpecies;
                             }
+                        }
+                        else
+                        {
+                            m_cellStatus[nextGeneration, x, y] = -1;
                         }
                     }
                 }
