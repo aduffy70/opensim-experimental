@@ -5,11 +5,12 @@ DESCRIPTION
 An OpenSimulator (http://www.opensimulator.org) region module to demonstrate Conway's Game of Life on the surface of a toroid
 
 BUILD NOTES
-This module uses several libraries that I have not included.  The expectation is that the ConwaysGOL/ folder will be placed in the addon-modules/ folder of your OpenSimulator installation.  This will provide access to all required libraries.
+This module uses several libraries that I have not included.  The expectation is that the ConwaysGOL/ folder will be placed in the addon-modules/ folder of your OpenSimulator installation.  This will provide access to all required libraries. 
 
 USAGE NOTES
 To start an example pattern, chat /9 example
 To define a custom starting pattern, visit http://fernseed.usu.edu/cgol-pattern-generator
+To run your own pattern generator, use the files in conwaygol-webforms/
 
 TODO
 In no particular order...
