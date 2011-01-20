@@ -389,6 +389,11 @@ namespace vMeadowModule
             {
                 CalculateStatistics(m_currentGeneration, m_speciesCounts, false);
             }
+            else if (chat.Message.ToLower() == "test")
+            {
+                //TEMP: Just a place to plug in temporary test code.
+
+            }
             else if (chat.Message.Length > 5)
             {
                 if (chat.Message.ToLower().Substring(0,4) == "step")
@@ -842,12 +847,12 @@ namespace vMeadowModule
                 int colright;
                 for (int y=0; y<m_yCells; y++)
                 {
-			        rowabove = y + 1;
-				    rowbelow = y - 1;
-				    for (int x=0; x<m_xCells; x++)
-				    {
-				        colright = x + 1;
-				        colleft = x - 1;
+                    rowabove = y + 1;
+                    rowbelow = y - 1;
+                    for (int x=0; x<m_xCells; x++)
+                    {
+                        colright = x + 1;
+                        colleft = x - 1;
                         int currentSpecies = m_cellStatus[generation, x, y];
                         if (currentSpecies != -1) //Don't ever try to update a permanent gap
                         {
@@ -973,10 +978,10 @@ namespace vMeadowModule
             int [] speciesCounts = new int[6] {0, 0, 0, 0, 0, 0};
             for (int y=0; y<m_yCells; y++)
             {
-				for (int x=0; x<m_xCells; x++)
-				{
-				    int currentSpecies = m_displayedPlants[x, y];
-				    int newSpecies = m_cellStatus[nextGeneration, x, y];
+                for (int x=0; x<m_xCells; x++)
+                {
+                    int currentSpecies = m_displayedPlants[x, y];
+                    int newSpecies = m_cellStatus[nextGeneration, x, y];
                     //Only delete and replace the existing plant if it needs to change
                     if (newSpecies != currentSpecies)
                     {
@@ -1018,6 +1023,21 @@ namespace vMeadowModule
             //Return the water level at the specified location.
             //This function performs essentially the same function as llWater() without having to be called by a prim.
             return (float)m_scene.RegionInfo.RegionSettings.WaterHeight;
+        }
+
+        public Vector3 GetSoilType(Vector3 location)
+        {
+            //Return the soiltype vector (salinity, drainage, fertility) for a location.
+            //This function performs essentially the same function as osSoilType() without having to be called by a prim.
+            IvpgSoilModule module = m_scene.RequestModuleInterface<IvpgSoilModule>();
+            Vector3 soil = new Vector3(0f,0f,0f);
+            if (module != null)
+            {
+                int x = (int)location.X;
+                int y = (int)location.Y;
+                soil = module.SoilType(x, y, 0);
+            }
+            return soil;
         }
     }
 }
