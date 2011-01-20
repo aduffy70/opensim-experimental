@@ -12,7 +12,7 @@ To generate a randomized meadow and run the cellular automata calculations, chat
 To start the visualization, chat '/18 forward'.
 To run the visualization in reverse, chat '/18 reverse'.
 To stop the visualization, chat '/18 stop'.
-To view a particular visualization step, chat '/18 #'.
+To view a particular visualization step, chat '/18 step #'.
 To view the next step, chat '/18 +'.
 To view the previous step, chat '/18 -'.
 To remove the meadow, chat '/18 clear'.
