@@ -28,7 +28,6 @@
 using System;
 using System.IO;
 using System.Net;
-using System.Collections.Generic;
 using System.Reflection;
 using System.Timers;
 
@@ -37,7 +36,6 @@ using Nini.Config;
 using OpenMetaverse;
 
 using OpenSim.Framework;
-using OpenSim.Region.Framework;
 using OpenSim.Region.Framework.Interfaces;
 using OpenSim.Region.Framework.Scenes;
 
