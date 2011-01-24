@@ -209,7 +209,7 @@ namespace vMeadowModule
 
         #endregion
 
-        private void OnPauseTimer(object source, ElapsedEventArgs e)
+        void OnPauseTimer(object source, ElapsedEventArgs e)
         {
             //After region has had time to load all objects from database after a restart...
             //Without this pause on region startup it was possible to try to clear all plants before the plants had been completely loaded from the database.
@@ -220,7 +220,7 @@ namespace vMeadowModule
             m_cycleTimer.Interval = m_cycleTime;
         }
 
-        private void OnCycleTimer(object source, ElapsedEventArgs e)
+        void OnCycleTimer(object source, ElapsedEventArgs e)
         {
             //Stop the timer so we won't have problems if this process isn't finished before the timer event is triggered again.
             m_cycleTimer.Stop();
@@ -262,7 +262,7 @@ namespace vMeadowModule
             }
         }
 
-        private void OnChat(Object sender, OSChatMessage chat)
+        void OnChat(Object sender, OSChatMessage chat)
         {
             if (chat.Channel != m_channel)
             {
@@ -456,7 +456,7 @@ namespace vMeadowModule
             Alert(message);
         }
 
-        private void CalculateStatistics(int generation, int[] speciesCounts, bool needToLog)
+        void CalculateStatistics(int generation, int[] speciesCounts, bool needToLog)
         {
             //TODO: This function should be split up into logical subunits.  It generates two different strings, logs one and sends the other to huds, and modifies a global variable.
             string[] hudString = new string[5];
@@ -498,7 +498,7 @@ namespace vMeadowModule
             UpdateHUDs(hudString);
         }
 
-        private void ClearAllPlants()
+        void ClearAllPlants()
         {
             //Delete all vMeadow plants in the region
             EntityBase[] everyObject = m_scene.GetEntities();
@@ -518,13 +518,13 @@ namespace vMeadowModule
             m_displayedPlants = new int[m_xCells, m_yCells];
         }
 
-        private void ClearLogs()
+        void ClearLogs()
         {
             string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
             System.IO.File.Delete(logFile);
         }
 
-        private SceneObjectGroup CreatePlant(int xPos, int yPos, int plantTypeIndex)
+        SceneObjectGroup CreatePlant(int xPos, int yPos, int plantTypeIndex)
         {
             //Generates a plant
             //Don't send this function non-plant (0 or -1) plantTypeIndex values or locations outside of the region.
@@ -534,7 +534,7 @@ namespace vMeadowModule
             return newPlant;
         }
 
-        private void DeletePlant(SceneObjectGroup deadPlant)
+        void DeletePlant(SceneObjectGroup deadPlant)
         {
             try
             {
@@ -546,7 +546,7 @@ namespace vMeadowModule
             }
         }
 
-        private int[] GetNeighborSpeciesCounts(int x, int y, int rowabove, int rowbelow, int colright, int colleft, int generation)
+        int[] GetNeighborSpeciesCounts(int x, int y, int rowabove, int rowbelow, int colright, int colleft, int generation)
         {
             //Get counts of neighborspecies
             //At edges, missing neighborTypes are -1
@@ -619,7 +619,7 @@ namespace vMeadowModule
             return neighborSpeciesCounts;
         }
 
-        private float[] GetReplacementProbabilities(int currentSpecies, int[] neighborSpeciesCounts)
+        float[] GetReplacementProbabilities(int currentSpecies, int[] neighborSpeciesCounts)
         {
             //Calculate the probability that the current plant will be replaced by each species.
             float[] replacementProbabilities = new float[6];
@@ -667,7 +667,7 @@ namespace vMeadowModule
             return (((vsn.X * xdiff) + (vsn.Y * ydiff)) / (-1 * vsn.Z)) + baseheight;
         }
 
-        private void LogData(string logString)
+        void LogData(string logString)
         {
             string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
             System.IO.StreamWriter dataLog = System.IO.File.AppendText(logFile);
@@ -675,7 +675,7 @@ namespace vMeadowModule
             dataLog.Close();
         }
 
-        private void RandomizeStartMatrix()
+        void RandomizeStartMatrix()
         {
             //Generate starting matrix of random plant types
             m_cellStatus = new int[m_generations, m_xCells, m_yCells];
@@ -717,7 +717,7 @@ namespace vMeadowModule
             }
         }
 
-        private bool ReadConfigs(string url)
+        bool ReadConfigs(string url)
         {
             //TODO: Split this function up into separate steps: Read data, parse data, generate starting matrix.
             string[] configInfo = new string[58]; //TODO: Could I import easier using xml instead of raw text?
@@ -828,7 +828,7 @@ namespace vMeadowModule
             }
         }
 
-        private void RunSimulation()
+        void RunSimulation()
         {
             //Generate the simulation data
             for (int generation=0; generation<m_generations - 1; generation++)
@@ -836,7 +836,7 @@ namespace vMeadowModule
                 if (generation % 1000 == 0)
                 {
                     //Provide status updates every 1000 generations
-                    Alert(String.Format("Step {0} of {1}...", generation, m_generations));
+                    Alert(String.Format("Step {0} of {1}...", generation, m_generations - 1));
                 }
                 int nextGeneration = generation + 1;
                 int rowabove;
@@ -870,7 +870,9 @@ namespace vMeadowModule
             }
         }
 
-        private int SelectNextGenerationSpecies(float[] replacementProbability, int currentSpecies)
+
+
+        int SelectNextGenerationSpecies(float[] replacementProbability, int currentSpecies)
         {
             //Randomly determine the new species based on the replacement probablilities
             float randomReplacement = (float)m_random.NextDouble();
@@ -904,7 +906,7 @@ namespace vMeadowModule
             }
         }
 
-        private void StartVisualization(bool isReverse)
+        void StartVisualization(bool isReverse)
         {
             //Start stepping forward through generations of the visualization
             string direction = "forward";
@@ -918,7 +920,7 @@ namespace vMeadowModule
             m_cycleTimer.Start();
         }
 
-        private void StopVisualization()
+        void StopVisualization()
         {
             //Stop stepping through generations in the visualization
             m_log.Debug("[vMeadowModule] Stopping...");
@@ -926,7 +928,7 @@ namespace vMeadowModule
             m_cycleTimer.Stop();
         }
 
-        private void UpdateHUDs(string[] hudString)
+        void UpdateHUDs(string[] hudString)
         {
             //Display current data on all vpcHUDs in the region
             lock (m_scene)
@@ -969,7 +971,7 @@ namespace vMeadowModule
             }
         }
 
-        private void VisualizeGeneration(int nextGeneration)
+        void VisualizeGeneration(int nextGeneration)
         {
             //Update the visualization with plants from the next generation.
             //Don't waste time deleting and replacing plants if the species isn't going to change.
