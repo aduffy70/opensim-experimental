@@ -188,7 +188,6 @@ namespace vMeadowModule
             return m_scene.AddNewPrim(uuid, groupID, position, rotation, treeShape);
         }
 
-
         #endregion
 
         #region IEntityCreator Members
@@ -220,6 +219,8 @@ namespace vMeadowModule
 
         #endregion
 
+        #region Module management or interface-specific functions
+
         void OnPauseTimer(object source, ElapsedEventArgs e)
         {
             //After region has had time to load all objects from database after a restart...
@@ -229,48 +230,6 @@ namespace vMeadowModule
             m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
             m_cycleTimer.Elapsed += new ElapsedEventHandler(OnCycleTimer);
             m_cycleTimer.Interval = m_cycleTime;
-        }
-
-        void OnCycleTimer(object source, ElapsedEventArgs e)
-        {
-            //Stop the timer so we won't have problems if this process isn't finished before the timer event is triggered again.
-            m_cycleTimer.Stop();
-            int nextGeneration;
-            //Advance visualization by a generation
-            if (m_isReverse)
-            {
-                if (m_currentGeneration > 0)
-                {
-                    nextGeneration = m_currentGeneration - 1;
-                }
-                else
-                {
-                    //Stop stepping through the visualization if we can't go back further.
-                    m_isRunning = false;
-                    AlertAndLog("Reached generation 0.  Stopping...");
-                    return;
-                }
-            }
-            else
-            {
-                if (m_currentGeneration < m_generations - 1)
-                {
-                    nextGeneration = m_currentGeneration + 1;
-                }
-                else
-                {
-                    //Stop stepping through the visualization if we can't go further.
-                    m_isRunning = false;
-                    AlertAndLog(String.Format("Reached generation {0}.  Stopping...", m_currentGeneration));
-                    return;
-                }
-            }
-            VisualizeGeneration(nextGeneration);
-            if (m_isRunning)
-            {
-                //Check that there hasn't been a request to stop the timer before restarting the timer
-                m_cycleTimer.Start();
-            }
         }
 
         void OnChat(Object sender, OSChatMessage chat)
@@ -467,9 +426,57 @@ namespace vMeadowModule
             Alert(message);
         }
 
+
+        #endregion
+
+        #region Visualization-specific functions
+
+        void OnCycleTimer(object source, ElapsedEventArgs e)
+        {
+            //Stop the timer so we won't have problems if this process isn't finished before the timer event is triggered again.
+            m_cycleTimer.Stop();
+            int nextGeneration;
+            //Advance visualization by a generation
+            if (m_isReverse)
+            {
+                if (m_currentGeneration > 0)
+                {
+                    nextGeneration = m_currentGeneration - 1;
+                }
+                else
+                {
+                    //Stop stepping through the visualization if we can't go back further.
+                    m_isRunning = false;
+                    AlertAndLog("Reached generation 0.  Stopping...");
+                    return;
+                }
+            }
+            else
+            {
+                if (m_currentGeneration < m_generations - 1)
+                {
+                    nextGeneration = m_currentGeneration + 1;
+                }
+                else
+                {
+                    //Stop stepping through the visualization if we can't go further.
+                    m_isRunning = false;
+                    AlertAndLog(String.Format("Reached generation {0}.  Stopping...", m_currentGeneration));
+                    return;
+                }
+            }
+            VisualizeGeneration(nextGeneration);
+            if (m_isRunning)
+            {
+                //Check that there hasn't been a request to stop the timer before restarting the timer
+                m_cycleTimer.Start();
+            }
+        }
+
         void CalculateStatistics(int generation, int[] speciesCounts, bool needToLog)
         {
             //TODO: This function should be split up into logical subunits.  It generates two different strings, logs one and sends the other to huds, and modifies a global variable.
+            //TODO: This should probably happen during the simulation, not during the visualization.
             string[] hudString = new string[5];
             hudString[0] = String.Format("Generation: {0}", generation);
             hudString[1] = "Species";
@@ -556,6 +563,130 @@ namespace vMeadowModule
                 m_log.Debug("[vMeadowModule] Tried to delete a non-existent plant! Was it manually removed?");
             }
         }
+
+        void LogData(string logString)
+        {
+            string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
+            System.IO.StreamWriter dataLog = System.IO.File.AppendText(logFile);
+            dataLog.WriteLine(logString);
+            dataLog.Close();
+        }
+
+        void StartVisualization(bool isReverse)
+        {
+            //Start stepping forward through generations of the visualization
+            string direction = "forward";
+            if (isReverse)
+            {
+                direction = "backward";
+            }
+            m_log.Debug("[vMeadowModule] Stepping " + direction + "...");
+            m_isRunning = true;
+            m_isReverse = isReverse;
+            m_cycleTimer.Start();
+        }
+
+        void StopVisualization()
+        {
+            //Stop stepping through generations in the visualization
+            m_log.Debug("[vMeadowModule] Stopping...");
+            m_isRunning = false;
+            m_cycleTimer.Stop();
+        }
+
+        void UpdateHUDs(string[] hudString)
+        {
+            //Display current data on all vpcHUDs in the region
+            lock (m_scene)
+            {
+                EntityBase[] everyObject = m_scene.GetEntities();
+                SceneObjectGroup sog;
+                foreach (EntityBase e in everyObject)
+                {
+                    if (e is SceneObjectGroup) //ignore avatars
+                    {
+                        sog = (SceneObjectGroup)e;
+                        if (sog.Name.Length > 9)
+                        {
+                            //Avoid an error on objects with short names.
+                            //HUD must be the correct major release # to work.  If you make changes that will break old huds, update the release number. Minor release numbers track non-breaking HUD changes.
+                            if (sog.Name.Substring(0,8) == "vpcHUDv1")
+                            {
+                                //Use yellow for HUD text.  It shows against sky, water, or land.
+                                Vector3 textColor = new Vector3(1.0f, 1.0f, 0.0f);
+                                //Place floating text on each named prim of the inworld HUD
+                                foreach (SceneObjectPart labeledPart in sog.Parts)
+                                {
+                                    if (labeledPart.Name == "GenerationvpcHUD")
+                                        labeledPart.SetText(hudString[0], textColor, 1.0);
+                                    else if (labeledPart.Name == "SpeciesvpcHUD")
+                                        labeledPart.SetText(hudString[1], textColor, 1.0);
+                                    else if (labeledPart.Name == "QtyvpcHUD")
+                                        labeledPart.SetText(hudString[2], textColor, 1.0);
+                                    else if (labeledPart.Name == "QtyChangevpcHUD")
+                                        labeledPart.SetText(hudString[3], textColor, 1.0);
+                                    else if (labeledPart.Name == "PercentvpcHUD")
+                                        labeledPart.SetText(hudString[4], textColor, 1.0);
+                                    else if (labeledPart.Name == "PercentChangevpcHUD")
+                                        labeledPart.SetText(hudString[5], textColor, 1.0);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        void VisualizeGeneration(int nextGeneration)
+        {
+            //Update the visualization with plants from the next generation.
+            //Don't waste time deleting and replacing plants if the species isn't going to change.
+            int [] speciesCounts = new int[6] {0, 0, 0, 0, 0, 0};
+            for (int y=0; y<m_yCells; y++)
+            {
+                for (int x=0; x<m_xCells; x++)
+                {
+                    int currentSpecies = m_displayedPlants[x, y];
+                    int newSpecies = m_cellStatus[nextGeneration, x, y];
+                    //Only delete and replace the existing plant if it needs to change
+                    if (newSpecies != currentSpecies)
+                    {
+                        if ((currentSpecies != 0) && (currentSpecies != -1))
+                        {
+                            //Don't try to delete plants that don't exist
+                            DeletePlant(m_prims[x, y]);
+                        }
+                        if ((newSpecies != 0) && (newSpecies != -1))
+                        {
+                            m_prims[x, y] = CreatePlant(x, y, newSpecies);
+                            if (m_prims[x, y] != null)
+                            {
+                                m_displayedPlants[x, y] = newSpecies;
+                            }
+                            else
+                            {
+                                m_displayedPlants[x, y] = 0;
+                            }
+                        }
+                        else
+                        {
+                            m_prims[x, y] = null;
+                            m_displayedPlants[x, y] = 0;
+                        }
+                    }
+                    if (m_displayedPlants[x, y] != 0)
+                    {
+                        speciesCounts[newSpecies] += 1;
+                    }
+                }
+            }
+            CalculateStatistics(nextGeneration, speciesCounts, true);
+            m_currentGeneration = nextGeneration;
+        }
+
+        #endregion
+
+        #region Simulation-specific functions
 
         int[] GetNeighborSpeciesCounts(int x, int y, int rowabove, int rowbelow, int colright, int colleft, int generation)
         {
@@ -677,14 +808,6 @@ namespace vMeadowModule
             float ydiff = location.Y - (float)((int)location.Y);
             //Use the equation of the tangent plane to adjust the height to account for slope
             return (((vsn.X * xdiff) + (vsn.Y * ydiff)) / (-1 * vsn.Z)) + baseheight;
-        }
-
-        void LogData(string logString)
-        {
-            string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
-            System.IO.StreamWriter dataLog = System.IO.File.AppendText(logFile);
-            dataLog.WriteLine(logString);
-            dataLog.Close();
         }
 
         void RandomizeStartMatrix()
@@ -1006,7 +1129,6 @@ namespace vMeadowModule
             return health;
         }
 
-
         bool[,] CalculateDisturbance()
         {
             //TODO: This needs to generate a disturbance matrix based on settings from the webform.
@@ -1063,118 +1185,6 @@ namespace vMeadowModule
             }
         }
 
-        void StartVisualization(bool isReverse)
-        {
-            //Start stepping forward through generations of the visualization
-            string direction = "forward";
-            if (isReverse)
-            {
-                direction = "backward";
-            }
-            m_log.Debug("[vMeadowModule] Stepping " + direction + "...");
-            m_isRunning = true;
-            m_isReverse = isReverse;
-            m_cycleTimer.Start();
-        }
-
-        void StopVisualization()
-        {
-            //Stop stepping through generations in the visualization
-            m_log.Debug("[vMeadowModule] Stopping...");
-            m_isRunning = false;
-            m_cycleTimer.Stop();
-        }
-
-        void UpdateHUDs(string[] hudString)
-        {
-            //Display current data on all vpcHUDs in the region
-            lock (m_scene)
-            {
-                EntityBase[] everyObject = m_scene.GetEntities();
-                SceneObjectGroup sog;
-                foreach (EntityBase e in everyObject)
-                {
-                    if (e is SceneObjectGroup) //ignore avatars
-                    {
-                        sog = (SceneObjectGroup)e;
-                        if (sog.Name.Length > 9)
-                        {
-                            //Avoid an error on objects with short names.
-                            //HUD must be the correct major release # to work.  If you make changes that will break old huds, update the release number. Minor release numbers track non-breaking HUD changes.
-                            if (sog.Name.Substring(0,8) == "vpcHUDv1")
-                            {
-                                //Use yellow for HUD text.  It shows against sky, water, or land.
-                                Vector3 textColor = new Vector3(1.0f, 1.0f, 0.0f);
-                                //Place floating text on each named prim of the inworld HUD
-                                foreach (SceneObjectPart labeledPart in sog.Parts)
-                                {
-                                    if (labeledPart.Name == "GenerationvpcHUD")
-                                        labeledPart.SetText(hudString[0], textColor, 1.0);
-                                    else if (labeledPart.Name == "SpeciesvpcHUD")
-                                        labeledPart.SetText(hudString[1], textColor, 1.0);
-                                    else if (labeledPart.Name == "QtyvpcHUD")
-                                        labeledPart.SetText(hudString[2], textColor, 1.0);
-                                    else if (labeledPart.Name == "QtyChangevpcHUD")
-                                        labeledPart.SetText(hudString[3], textColor, 1.0);
-                                    else if (labeledPart.Name == "PercentvpcHUD")
-                                        labeledPart.SetText(hudString[4], textColor, 1.0);
-                                    else if (labeledPart.Name == "PercentChangevpcHUD")
-                                        labeledPart.SetText(hudString[5], textColor, 1.0);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        void VisualizeGeneration(int nextGeneration)
-        {
-            //Update the visualization with plants from the next generation.
-            //Don't waste time deleting and replacing plants if the species isn't going to change.
-            int [] speciesCounts = new int[6] {0, 0, 0, 0, 0, 0};
-            for (int y=0; y<m_yCells; y++)
-            {
-                for (int x=0; x<m_xCells; x++)
-                {
-                    int currentSpecies = m_displayedPlants[x, y];
-                    int newSpecies = m_cellStatus[nextGeneration, x, y];
-                    //Only delete and replace the existing plant if it needs to change
-                    if (newSpecies != currentSpecies)
-                    {
-                        if ((currentSpecies != 0) && (currentSpecies != -1))
-                        {
-                            //Don't try to delete plants that don't exist
-                            DeletePlant(m_prims[x, y]);
-                        }
-                        if ((newSpecies != 0) && (newSpecies != -1))
-                        {
-                            m_prims[x, y] = CreatePlant(x, y, newSpecies);
-                            if (m_prims[x, y] != null)
-                            {
-                                m_displayedPlants[x, y] = newSpecies;
-                            }
-                            else
-                            {
-                                m_displayedPlants[x, y] = 0;
-                            }
-                        }
-                        else
-                        {
-                            m_prims[x, y] = null;
-                            m_displayedPlants[x, y] = 0;
-                        }
-                    }
-                    if (m_displayedPlants[x, y] != 0)
-                    {
-                        speciesCounts[newSpecies] += 1;
-                    }
-                }
-            }
-            CalculateStatistics(nextGeneration, speciesCounts, true);
-            m_currentGeneration = nextGeneration;
-        }
-
         public float WaterLevel(Vector3 location)
         {
             //Return the water level at the specified location.
@@ -1196,5 +1206,7 @@ namespace vMeadowModule
             }
             return soil;
         }
+
+        #endregion
     }
 }
