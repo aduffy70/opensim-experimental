@@ -89,7 +89,20 @@ namespace vMeadowModule
         bool m_isReverse = false; //Whether we are stepping backward through the simulation
         int[,] m_displayedPlants; //Tracks the currently displayed plants
         int[] m_speciesCounts = new int[6] {0, 0, 0, 0, 0, 0}; //Tracks species counts so we can compare acrossed generations
+        int[,] m_totalSpeciesCounts; //Total species counts for each generation.  TODO: This will replace m_speciesCounts.  We will calculate this during the simulation instead of the visualization since it is needed for the replacement probability calculations.
         Vector3[,] m_coordinates; //Keeps track of the region coordinates and groundlevel where each plant will be placed so we only have to calculate them once.
+
+        //TODO: These need to come from the webtool!
+        int[] m_ageMaximum = new int[6] {0, 10, 10, 5, 25, 100};
+        float[] m_altitudeOptimal = new float[6] {0.0f, 20.0f, 40.0f, 20.0f, 40.0f, 30.0f};
+        float[] m_altitudeShape = new float[6] {0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f};
+        float[] m_salinityShape = new float[6] {0.0f, 0.1f, 0.0f, 0.3f, 0.0f, 0.5f};
+        float[] m_drainageShape = new float[6] {0.0f, 0.0f, 0.2f, 0.0f, 0.4f, 0.0f};
+        float[] m_fertilityShape = new float[6] {0.0f, 0.1f, 0.1f, 0.1f, 0.1f, 0.1f};
+        float[] m_salinityOptimal = new float[6] {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+        float[] m_drainageOptimal = new float[6] {0.0f, 0.0f, 0.5f, 1.0f, 0.5f, 0.0f};
+        float[] m_fertilityOptimal = new float[6] {0.0f, 1.0f, 0.5f, 0.0f, 0.5f, 1.0f};
+
 
         #region INonSharedRegionModule interface
 
@@ -127,8 +140,6 @@ namespace vMeadowModule
                 m_pauseTimer.Elapsed += new ElapsedEventHandler(OnPauseTimer);
                 m_pauseTimer.Interval = 30000;
                 m_prims = new SceneObjectGroup[m_xCells, m_yCells];
-                //m_cellStatus = new int[m_generations, m_xCells, m_yCells];
-                //m_coordinates = new Vector3[m_xCells, m_yCells];
                 RandomizeStartMatrix();
                 m_pauseTimer.Start(); //Don't allow users to setup or use module til all objects have time to load from datastore
             }
@@ -619,13 +630,14 @@ namespace vMeadowModule
             return neighborSpeciesCounts;
         }
 
-        float[] GetReplacementProbabilities(int currentSpecies, int[] neighborSpeciesCounts)
+        float[] GetReplacementProbabilities(int currentSpecies, int[] neighborSpeciesCounts, int generation)
         {
             //Calculate the probability that the current plant will be replaced by each species.
             float[] replacementProbabilities = new float[6];
-            for (int neighborSpecies=0; neighborSpecies<6; neighborSpecies++)
+            float totalCount = (float)(m_totalSpeciesCounts[generation, 0] + m_totalSpeciesCounts[generation, 1] + m_totalSpeciesCounts[generation, 2] + m_totalSpeciesCounts[generation, 3] + m_totalSpeciesCounts[generation, 4] + m_totalSpeciesCounts[generation, 5]);
+            for (int species=0; species<6; species++)
             {
-                replacementProbabilities[neighborSpecies] = m_replacementMatrix[neighborSpecies, currentSpecies] * ((float)neighborSpeciesCounts[neighborSpecies] / 8.0f);
+                replacementProbabilities[species] = ((m_replacementMatrix[species, currentSpecies] * ((float)neighborSpeciesCounts[species] / 8.0f)) * 0.75f) + ((m_replacementMatrix[species, currentSpecies] * ((float)m_totalSpeciesCounts[generation, species] / totalCount)) * 0.25f);
             }
             return replacementProbabilities;
         }
@@ -679,6 +691,7 @@ namespace vMeadowModule
         {
             //Generate starting matrix of random plant types
             m_cellStatus = new int[m_generations, m_xCells, m_yCells];
+            m_totalSpeciesCounts = new int[m_generations, 6];
             m_coordinates = new Vector3[m_xCells, m_yCells];
             for (int y=0; y<m_yCells; y++)
             {
@@ -702,7 +715,9 @@ namespace vMeadowModule
                         //Only assign a cellStatus if it is above water- otherwise -1 so no plant will ever be placed.
                         if (position.Z >= WaterLevel(position))
                         {
-                            m_cellStatus[0, x, y] = m_random.Next(6);
+                            int newSpecies = m_random.Next(6);
+                            m_cellStatus[0, x, y] = newSpecies;
+                            m_totalSpeciesCounts[0, newSpecies]++;
                         }
                         else
                         {
@@ -767,6 +782,7 @@ namespace vMeadowModule
                     }
                 }
                 m_cellStatus = new int[m_generations, m_xCells, m_yCells];
+                m_totalSpeciesCounts = new int[m_generations, 6];
                 m_coordinates = new Vector3[m_xCells, m_yCells];
                 for (int y=0; y<m_yCells; y++)
                 {
@@ -795,7 +811,9 @@ namespace vMeadowModule
                                 if (startingPlants[x] == 'R')
                                 {
                                     //Randomly select a plant type
-                                    m_cellStatus[0, x, y] = m_random.Next(6);
+                                    int newSpecies = m_random.Next(6);
+                                    m_cellStatus[0, x, y] = newSpecies;
+                                    m_totalSpeciesCounts[0, newSpecies]++;
                                 }
                                 else if (startingPlants[x] == 'N')
                                 {
@@ -804,7 +822,9 @@ namespace vMeadowModule
                                 }
                                 else
                                 {
-                                    m_cellStatus[0, x, y] = Int32.Parse(startingPlants[x].ToString());
+                                    int newSpecies = Int32.Parse(startingPlants[x].ToString());
+                                    m_cellStatus[0, x, y] = newSpecies;
+                                    m_totalSpeciesCounts[0, newSpecies]++;
                                 }
                             }
                             else
@@ -831,6 +851,7 @@ namespace vMeadowModule
         void RunSimulation()
         {
             //Generate the simulation data
+            int[,] age = new int[m_xCells, m_yCells];
             for (int generation=0; generation<m_generations - 1; generation++)
             {
                 if (generation % 1000 == 0)
@@ -843,6 +864,7 @@ namespace vMeadowModule
                 int rowbelow;
                 int colleft;
                 int colright;
+                bool[,] disturbance = CalculateDisturbance();
                 for (int y=0; y<m_yCells; y++)
                 {
                     rowabove = y + 1;
@@ -854,12 +876,57 @@ namespace vMeadowModule
                         int currentSpecies = m_cellStatus[generation, x, y];
                         if (currentSpecies != -1) //Don't ever try to update a permanent gap
                         {
-                            //Get species counts of neighbors
-                            int[] neighborSpeciesCounts = GetNeighborSpeciesCounts(x, y, rowabove, rowbelow, colright, colleft, generation);
-                            //Calculate replacement probabilities
-                            float[] replacementProbability = GetReplacementProbabilities(currentSpecies, neighborSpeciesCounts);
-                            //Select the species for the next generation
-                            m_cellStatus[nextGeneration, x, y] = SelectNextGenerationSpecies(replacementProbability, currentSpecies);
+                            if (disturbance[x, y])
+                            {
+                                m_cellStatus[nextGeneration, x, y] = 0;
+                                m_totalSpeciesCounts[nextGeneration, 0]++;
+                                age[x, y] = 0;
+                            }
+                            else
+                            {
+                                //Get species counts of neighbors
+                                int[] neighborSpeciesCounts = GetNeighborSpeciesCounts(x, y, rowabove, rowbelow, colright, colleft, generation);
+                                //Determine plant survival based on age and environment
+                                bool plantSurvives = CalculateSurvival(currentSpecies, age[x, y], m_coordinates[x, y]);
+                                if (plantSurvives)
+                                {
+                                    //Calculate replacement probabilities
+                                    float[] replacementProbability = GetReplacementProbabilities(currentSpecies, neighborSpeciesCounts, generation);
+                                    int newSpecies = SelectNextGenerationSpecies(replacementProbability, currentSpecies);
+                                    if (newSpecies == -1)
+                                    {
+                                        //The old plant is still there
+                                        age[x, y]++;
+                                        m_cellStatus[nextGeneration, x, y] = currentSpecies;
+                                        m_totalSpeciesCounts[nextGeneration, currentSpecies]++;
+                                    }
+                                    else
+                                    {
+                                        //The old plant has been replaced (though possibly by another of the same species...)
+                                        age[x, y] = 0;
+                                        m_cellStatus[nextGeneration, x, y] = newSpecies;
+                                        m_totalSpeciesCounts[nextGeneration, newSpecies]++;
+                                    }
+                                }
+                                else
+                                {
+                                    //Calculate replacement probabilities based on a gap
+                                    float[] replacementProbability = GetReplacementProbabilities(0, neighborSpeciesCounts, generation);
+                                    age[x, y] = 0;
+                                    int newSpecies = SelectNextGenerationSpecies(replacementProbability, 0);
+                                    if (newSpecies == -1)
+                                    {
+                                        //No new plant was selected.  It will be a gap.
+                                        m_cellStatus[nextGeneration, x, y] = 0;
+                                        m_totalSpeciesCounts[nextGeneration, 0]++;
+                                    }
+                                    else
+                                    {
+                                        m_cellStatus[nextGeneration, x, y] = newSpecies;
+                                        m_totalSpeciesCounts[nextGeneration, newSpecies]++;
+                                    }
+                                }
+                            }
                         }
                         else
                         {
@@ -870,7 +937,97 @@ namespace vMeadowModule
             }
         }
 
+        bool CalculateSurvival(int species, int age, Vector3 coordinates)
+        {
+            //Return true if the plant survives or false if it does not
 
+            //Generate a float from 0-1.0 representing the probability of survival
+            float ageHealth = CalculateAgeHealth(age, m_ageMaximum[species]);
+            float altitudeHealth = CalculateAltitudeHealth(coordinates.Z, m_altitudeOptimal[species], m_altitudeShape[species]);
+            Vector3 soilType = GetSoilType(coordinates);
+            float salinityHealth = CalculateSoilHealth(soilType.X, m_salinityOptimal[species], m_salinityShape[species]);
+            float drainageHealth = CalculateSoilHealth(soilType.Y, m_drainageOptimal[species], m_drainageShape[species]);
+            float fertilityHealth = CalculateSoilHealth(soilType.Z, m_fertilityOptimal[species], m_fertilityShape[species]);
+            float survivalProbability = ageHealth + altitudeHealth + salinityHealth + drainageHealth + fertilityHealth;
+            //Select a random float from 0-1.0.  Plant survives if random number <= probability of survival
+            float randomFloat = (float)m_random.NextDouble();
+            if (randomFloat <= survivalProbability)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        float CalculateSoilHealth(float actual, float optimal, float shape)
+        {
+            //Returns a value from 0-1.0 representing the health of an individual with an 'actual' value for some environmental parameter given the optimal value and shape. This function works for things like soil values where the actual values will range from 0-1.0.
+            float health = 1.0f - (Math.Abs(optimal - actual) * shape);
+            if (health > 1.0f)
+            {
+                health = 1.0f;
+            }
+            if (health < 0f)
+            {
+                health = 0f;
+            }
+            return health;
+        }
+
+        float CalculateAltitudeHealth(float actual, float optimal, float shape)
+        {
+            //Returns a value from 0-1.0 representing the health of an individual with an 'actual' value for some environmental parameter given the optimal value and shape. This function works for altitude.
+            float health = 1.0f - (Math.Abs(optimal - actual / 50f) * shape);
+            if (health > 1.0f)
+            {
+                health = 1.0f;
+            }
+            if (health < 0f)
+            {
+                health = 0f;
+            }
+            return health;
+        }
+
+        float CalculateAgeHealth(int actual, int maximum)
+        {
+            //Returns a value from 0-1.0 representing the health of an individual with an 'actual' value for some environmental parameter given the optimal value and shape. This function works for age or others parameters with a miximum rather than optimal value.
+            float health = ((maximum - actual) / (float)maximum);
+            if (health > 1.0f)
+            {
+                health = 1.0f;
+            }
+            if (health < 0f)
+            {
+                health = 0f;
+            }
+            return health;
+        }
+
+
+        bool[,] CalculateDisturbance()
+        {
+            //TODO: This needs to generate a disturbance matrix based on settings from the webform.
+            //For now it just returns a matrix with a 5:1 true:false ratio
+            bool[,] disturbanceMatrix = new bool[m_xCells, m_yCells];
+            for (int y=0; y<m_yCells; y++)
+            {
+                for (int x=0; x<m_xCells; x++)
+                {
+                    if (m_random.Next(5) == 0)
+                    {
+                        disturbanceMatrix[x, y] = false;
+                    }
+                    else
+                    {
+                        disturbanceMatrix[x, y] = true;
+                    }
+                }
+            }
+            return disturbanceMatrix;
+        }
 
         int SelectNextGenerationSpecies(float[] replacementProbability, int currentSpecies)
         {
