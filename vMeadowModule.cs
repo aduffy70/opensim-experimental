@@ -65,7 +65,6 @@ namespace vMeadowModule
         string m_configPath; //Url path to community config settings
         string m_logPath; //Local path to folder where logs will be stored
         string m_instanceTag; //Unique identifier for logs from this region
-
         SceneObjectGroup[,] m_prims; //list of objects managed by this module
         int[,,] m_cellStatus; // plant type for each cell in each generation [gen,x,y]
         string[] m_omvTrees = new string[22] {"None", "Pine1", "Pine2", "WinterPine1", "WinterPine2", "Oak", "TropicalBush1", "TropicalBush2", "Palm1", "Palm2", "Dogwood", "Cypress1", "Cypress2", "Plumeria", "WinterAspen", "Eucalyptus", "Fern", "Eelgrass", "SeaSword", "BeachGrass1", "Kelp1", "Kelp2"};
@@ -77,31 +76,39 @@ namespace vMeadowModule
         Timer m_pauseTimer = new Timer(); //Timer to delay trying to delete objects before the region has loaded completely
         Scene m_scene;
         Random m_random = new Random(); //A Random Class object to use throughout this module
-        //Replacement Matrix.  The probability of replacement of one species by a surrounding species.  Example [0,1] is the probability that species 1 will be replace by species 0, if all 8 of species 1's neighbors are species 0.
-        //Values from Thorhallsdottir 1990 as presented by Silvertown et al 1992.
+        //Replacement Matrix.  The probability of replacement of one species by a surrounding species.  Example [0,1] is the probability that species 1 will be replaced by species 0, if all 8 of species 1's neighbors are species 0.
+        /*//Values from Thorhallsdottir 1990 as presented by Silvertown et al 1992.
         float[,] m_replacementMatrix = new float[6,6] {{0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 0.00f},
                                                        {0.00f, 0.00f, 0.02f, 0.06f, 0.05f, 0.03f},
                                                        {0.00f, 0.23f, 0.00f, 0.09f, 0.32f, 0.37f},
                                                        {0.00f, 0.06f, 0.08f, 0.00f, 0.16f, 0.09f},
                                                        {0.00f, 0.44f, 0.06f, 0.06f, 0.00f, 0.11f},
-                                                       {0.00f, 0.03f, 0.02f, 0.03f, 0.05f, 0.00f}};
+                                                       {0.00f, 0.03f, 0.02f, 0.03f, 0.05f, 0.00f}};*/
+        float[,] m_replacementMatrix = new float[6,6] {{0f, 0f, 0f, 0f, 0f, 0f},
+                                                       {0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f},
+                                                       {0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f},
+                                                       {0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f},
+                                                       {0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f},
+                                                       {0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f}};
+
+        //TODO: These need to come from the webtool!
+        int[] m_ageMaximum = new int[6] {0, 10, 10, 10, 10, 10}; //Maximum age for each species
+        //Optimal values and shape parameters for each species
+        float[] m_altitudeOptimal = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_altitudeShape = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_salinityOptimal = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_salinityShape = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_drainageOptimal = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_drainageShape = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_fertilityOptimal = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_fertilityShape = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+
         int m_currentGeneration = 0; //The currently displayed generation
         bool m_isReverse = false; //Whether we are stepping backward through the simulation
         int[,] m_displayedPlants; //Tracks the currently displayed plants
         int[] m_speciesCounts = new int[6] {0, 0, 0, 0, 0, 0}; //Tracks species counts so we can compare acrossed generations
         int[,] m_totalSpeciesCounts; //Total species counts for each generation.  TODO: This will replace m_speciesCounts.  We will calculate this during the simulation instead of the visualization since it is needed for the replacement probability calculations.
         Vector3[,] m_coordinates; //Keeps track of the region coordinates and groundlevel where each plant will be placed so we only have to calculate them once.
-
-        //TODO: These need to come from the webtool!
-        int[] m_ageMaximum = new int[6] {0, 10, 10, 5, 25, 100};
-        float[] m_altitudeOptimal = new float[6] {0.0f, 20.0f, 40.0f, 20.0f, 40.0f, 30.0f};
-        float[] m_altitudeShape = new float[6] {0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f};
-        float[] m_salinityShape = new float[6] {0.0f, 0.1f, 0.0f, 0.3f, 0.0f, 0.5f};
-        float[] m_drainageShape = new float[6] {0.0f, 0.0f, 0.2f, 0.0f, 0.4f, 0.0f};
-        float[] m_fertilityShape = new float[6] {0.0f, 0.1f, 0.1f, 0.1f, 0.1f, 0.1f};
-        float[] m_salinityOptimal = new float[6] {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
-        float[] m_drainageOptimal = new float[6] {0.0f, 0.0f, 0.5f, 1.0f, 0.5f, 0.0f};
-        float[] m_fertilityOptimal = new float[6] {0.0f, 1.0f, 0.5f, 0.0f, 0.5f, 1.0f};
 
 
         #region INonSharedRegionModule interface
@@ -1132,19 +1139,19 @@ namespace vMeadowModule
         bool[,] CalculateDisturbance()
         {
             //TODO: This needs to generate a disturbance matrix based on settings from the webform.
-            //For now it just returns a matrix with a 5:1 true:false ratio
+            //For now it just returns a matrix with a 100:1 false:true ratio
             bool[,] disturbanceMatrix = new bool[m_xCells, m_yCells];
             for (int y=0; y<m_yCells; y++)
             {
                 for (int x=0; x<m_xCells; x++)
                 {
-                    if (m_random.Next(5) == 0)
+                    if (m_random.Next(100) == 0)
                     {
-                        disturbanceMatrix[x, y] = false;
+                        disturbanceMatrix[x, y] = true;
                     }
                     else
                     {
-                        disturbanceMatrix[x, y] = true;
+                        disturbanceMatrix[x, y] = false;
                     }
                 }
             }
