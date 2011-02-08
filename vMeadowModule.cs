@@ -85,18 +85,18 @@ namespace vMeadowModule
                                                        {0.00f, 0.44f, 0.06f, 0.06f, 0.00f, 0.11f},
                                                        {0.00f, 0.03f, 0.02f, 0.03f, 0.05f, 0.00f}};*/
         float[,] m_replacementMatrix = new float[6,6] {{0f, 0f, 0f, 0f, 0f, 0f},
-                                                       {0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f},
-                                                       {0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f},
-                                                       {0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f},
-                                                       {0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f},
-                                                       {0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f}};
+                                                       {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
+                                                       {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
+                                                       {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
+                                                       {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
+                                                       {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f}};
 
         //TODO: These need to come from the webtool!
-        int[] m_ageMaximum = new int[6] {0, 10, 10, 10, 10, 10}; //Maximum age for each species
+        int[] m_ageMaximum = new int[6] {0, 20, 20, 20, 20, 20}; //Maximum age for each species
         //Optimal values and shape parameters for each species
-        float[] m_altitudeOptimal = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
-        float[] m_altitudeShape = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
-        float[] m_salinityOptimal = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_altitudeOptimal = new float[6] {0f, 20f, 20f, 20f, 20f, 20f};
+        float[] m_altitudeShape = new float[6] {0f, 1f, 1f, 1f, 1f, 1f};
+        float[] m_salinityOptimal = new float[6] {0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
         float[] m_salinityShape = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
         float[] m_drainageOptimal = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
         float[] m_drainageShape = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
@@ -433,6 +433,10 @@ namespace vMeadowModule
             Alert(message);
         }
 
+        public void Log(string message)
+        {
+            m_log.DebugFormat("[{0}] {1}", Name, message);
+        }
 
         #endregion
 
@@ -773,9 +777,12 @@ namespace vMeadowModule
             //Calculate the probability that the current plant will be replaced by each species.
             float[] replacementProbabilities = new float[6];
             float totalCount = (float)(m_totalSpeciesCounts[generation, 0] + m_totalSpeciesCounts[generation, 1] + m_totalSpeciesCounts[generation, 2] + m_totalSpeciesCounts[generation, 3] + m_totalSpeciesCounts[generation, 4] + m_totalSpeciesCounts[generation, 5]);
+            //Log("Current: " + currentSpecies.ToString());
+            //Log("Total: " + totalCount.ToString());
             for (int species=0; species<6; species++)
             {
                 replacementProbabilities[species] = ((m_replacementMatrix[species, currentSpecies] * ((float)neighborSpeciesCounts[species] / 8.0f)) * 0.75f) + ((m_replacementMatrix[species, currentSpecies] * ((float)m_totalSpeciesCounts[generation, species] / totalCount)) * 0.25f);
+                //Log(species.ToString() + " " + neighborSpeciesCounts[species].ToString() + " " + m_totalSpeciesCounts[generation, species].ToString() + " " + replacementProbabilities[species].ToString());
             }
             return replacementProbabilities;
         }
@@ -1006,6 +1013,10 @@ namespace vMeadowModule
                         int currentSpecies = m_cellStatus[generation, x, y];
                         if (currentSpecies != -1) //Don't ever try to update a permanent gap
                         {
+                            if (generation == 0)
+                            {
+                                age[x, y] = 0; //Set the initial age value for all plants
+                            }
                             if (disturbance[x, y])
                             {
                                 m_cellStatus[nextGeneration, x, y] = 0;
@@ -1025,6 +1036,7 @@ namespace vMeadowModule
                                     int newSpecies = SelectNextGenerationSpecies(replacementProbability, currentSpecies);
                                     if (newSpecies == -1)
                                     {
+                                        //Log("Still there");
                                         //The old plant is still there
                                         age[x, y]++;
                                         m_cellStatus[nextGeneration, x, y] = currentSpecies;
@@ -1032,6 +1044,7 @@ namespace vMeadowModule
                                     }
                                     else
                                     {
+                                        //Log("Replaced");
                                         //The old plant has been replaced (though possibly by another of the same species...)
                                         age[x, y] = 0;
                                         m_cellStatus[nextGeneration, x, y] = newSpecies;
@@ -1072,22 +1085,31 @@ namespace vMeadowModule
             //Return true if the plant survives or false if it does not
 
             //Generate a float from 0-1.0 representing the probability of survival
-            float ageHealth = CalculateAgeHealth(age, m_ageMaximum[species]);
-            float altitudeHealth = CalculateAltitudeHealth(coordinates.Z, m_altitudeOptimal[species], m_altitudeShape[species]);
-            Vector3 soilType = GetSoilType(coordinates);
-            float salinityHealth = CalculateSoilHealth(soilType.X, m_salinityOptimal[species], m_salinityShape[species]);
-            float drainageHealth = CalculateSoilHealth(soilType.Y, m_drainageOptimal[species], m_drainageShape[species]);
-            float fertilityHealth = CalculateSoilHealth(soilType.Z, m_fertilityOptimal[species], m_fertilityShape[species]);
-            float survivalProbability = ageHealth + altitudeHealth + salinityHealth + drainageHealth + fertilityHealth;
-            //Select a random float from 0-1.0.  Plant survives if random number <= probability of survival
-            float randomFloat = (float)m_random.NextDouble();
-            if (randomFloat <= survivalProbability)
+            if (species == 0) //If there is no plant it can't possibly survive...
             {
-                return true;
+                return false;
             }
             else
             {
-                return false;
+                float ageHealth = CalculateAgeHealth(age, m_ageMaximum[species]);
+                float altitudeHealth = CalculateAltitudeHealth(coordinates.Z, m_altitudeOptimal[species], m_altitudeShape[species]);
+                Vector3 soilType = GetSoilType(coordinates);
+                float salinityHealth = CalculateSoilHealth(soilType.X, m_salinityOptimal[species], m_salinityShape[species]);
+                float drainageHealth = CalculateSoilHealth(soilType.Y, m_drainageOptimal[species], m_drainageShape[species]);
+                float fertilityHealth = CalculateSoilHealth(soilType.Z, m_fertilityOptimal[species], m_fertilityShape[species]);
+                float survivalProbability = ageHealth * altitudeHealth * salinityHealth * drainageHealth * fertilityHealth;
+                //Select a random float from 0-1.0.  Plant survives if random number <= probability of survival
+                float randomFloat = (float)m_random.NextDouble();
+                if (randomFloat <= survivalProbability)
+                {
+                    //Log("Health: " + survivalProbability.ToString() + " Random: " + randomFloat.ToString() + " Survived");
+                    return true;
+                }
+                else
+                {
+                    //Log("Health: " + survivalProbability.ToString() + " Random: " + randomFloat.ToString() + " Died");
+                    return false;
+                }
             }
         }
 
@@ -1095,6 +1117,7 @@ namespace vMeadowModule
         {
             //Returns a value from 0-1.0 representing the health of an individual with an 'actual' value for some environmental parameter given the optimal value and shape. This function works for things like soil values where the actual values will range from 0-1.0.
             float health = 1.0f - (Math.Abs(optimal - actual) * shape);
+            //Log("Soil: " + health.ToString() + " " + actual.ToString() + " " + optimal.ToString() + " " + shape.ToString());
             if (health > 1.0f)
             {
                 health = 1.0f;
@@ -1109,7 +1132,8 @@ namespace vMeadowModule
         float CalculateAltitudeHealth(float actual, float optimal, float shape)
         {
             //Returns a value from 0-1.0 representing the health of an individual with an 'actual' value for some environmental parameter given the optimal value and shape. This function works for altitude.
-            float health = 1.0f - (Math.Abs(optimal - actual / 50f) * shape);
+            float health = 1.0f - (Math.Abs(((optimal - actual) / 50f)) * shape);
+            //Log("Altitude: " + health.ToString() + " " + actual.ToString() + " " + optimal.ToString() + " " + shape.ToString());
             if (health > 1.0f)
             {
                 health = 1.0f;
@@ -1125,6 +1149,7 @@ namespace vMeadowModule
         {
             //Returns a value from 0-1.0 representing the health of an individual with an 'actual' value for some environmental parameter given the optimal value and shape. This function works for age or others parameters with a miximum rather than optimal value.
             float health = ((maximum - actual) / (float)maximum);
+            //Log("Age: " + health.ToString() + " " + actual.ToString() + " " + maximum.ToString());
             if (health > 1.0f)
             {
                 health = 1.0f;
@@ -1188,7 +1213,7 @@ namespace vMeadowModule
             }
             else
             {
-                return currentSpecies;
+                return -1; //To indicate that the current plant was not replaced (we can't just send the current species integer because that would mean the current individual was replaced by a new member of the same species.
             }
         }
 
