@@ -69,7 +69,8 @@ namespace vMeadowModule
         int[,,] m_cellStatus; // plant type for each cell in each generation [gen,x,y]
         string[] m_omvTrees = new string[22] {"None", "Pine1", "Pine2", "WinterPine1", "WinterPine2", "Oak", "TropicalBush1", "TropicalBush2", "Palm1", "Palm2", "Dogwood", "Cypress1", "Cypress2", "Plumeria", "WinterAspen", "Eucalyptus", "Fern", "Eelgrass", "SeaSword", "BeachGrass1", "Kelp1", "Kelp2"};
 
-        int[] m_communityMembers = new int[6] {0, 1, 2, 5, 16, 18}; //Default plants to include in the community
+        //int[] m_communityMembers = new int[6] {0, 1, 2, 5, 16, 18}; //Default plants to include in the community
+        int[] m_communityMembers = new int[6] {0, 16, 17, 18, 19, 20}; //DEBUG- smaller plants
         bool m_isRunning = false; //Keep track of whether the visualization is running
         bool m_isSimulated = false; //Whether a simulation has been run.
         Timer m_cycleTimer = new Timer(); //Timer to replace the region heartbeat
@@ -95,7 +96,7 @@ namespace vMeadowModule
         int[] m_ageMaximum = new int[6] {0, 20, 20, 20, 20, 20}; //Maximum age for each species
         //Optimal values and shape parameters for each species
         float[] m_altitudeOptimal = new float[6] {0f, 20f, 20f, 20f, 20f, 20f};
-        float[] m_altitudeShape = new float[6] {0f, 1f, 1f, 1f, 1f, 1f};
+        float[] m_altitudeShape = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
         float[] m_salinityOptimal = new float[6] {0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
         float[] m_salinityShape = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
         float[] m_drainageOptimal = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
@@ -781,7 +782,7 @@ namespace vMeadowModule
             //Log("Total: " + totalCount.ToString());
             for (int species=0; species<6; species++)
             {
-                replacementProbabilities[species] = ((m_replacementMatrix[species, currentSpecies] * ((float)neighborSpeciesCounts[species] / 8.0f)) * 0.75f) + ((m_replacementMatrix[species, currentSpecies] * ((float)m_totalSpeciesCounts[generation, species] / totalCount)) * 0.25f);
+                replacementProbabilities[species] = ((m_replacementMatrix[species, currentSpecies] * ((float)neighborSpeciesCounts[species] / 8.0f)) * 0.80f) + ((m_replacementMatrix[species, currentSpecies] * ((float)m_totalSpeciesCounts[generation, species] / totalCount)) * 0.1995f) + 0.0005f; //80% local, 19.95% distant, 0.05% out-of-area
                 //Log(species.ToString() + " " + neighborSpeciesCounts[species].ToString() + " " + m_totalSpeciesCounts[generation, species].ToString() + " " + replacementProbabilities[species].ToString());
             }
             return replacementProbabilities;
@@ -1185,34 +1186,36 @@ namespace vMeadowModule
 
         int SelectNextGenerationSpecies(float[] replacementProbability, int currentSpecies)
         {
-            //Randomly determine the new species based on the replacement probablilities
+            //Randomly determine the new species based on the replacement probablilities.  We aren't concerned with the probability of replacement by no plant, since we are looking at competition between species here.
             float randomReplacement = (float)m_random.NextDouble();
-            if (randomReplacement <= replacementProbability[0])
+            if (randomReplacement <= replacementProbability[1])
             {
-                return 0;
-            }
-            else if (randomReplacement <= replacementProbability[1] + replacementProbability[0])
-            {
+                //Log(currentSpecies.ToString() + " 1    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());
                 return 1;
             }
-            else if (randomReplacement <= replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
+            else if (randomReplacement <= replacementProbability[2] + replacementProbability[1])
             {
+                //Log(currentSpecies.ToString() + " 2    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());
                 return 2;
             }
-            else if (randomReplacement <= replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
+            else if (randomReplacement <= replacementProbability[3] + replacementProbability[2] + replacementProbability[1])
             {
+                //Log(currentSpecies.ToString() + " 3    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());
                 return 3;
             }
-            else if (randomReplacement <= replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
+            else if (randomReplacement <= replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1])
             {
+                //Log(currentSpecies.ToString() + " 4    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());
                 return 4;
             }
-            else if (randomReplacement <= replacementProbability[5] + replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1] + replacementProbability[0])
+            else if (randomReplacement <= replacementProbability[5] + replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1])
             {
+                //Log(currentSpecies.ToString() + " 5    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());
                 return 5;
             }
             else
             {
+                //Log(currentSpecies.ToString() + " -    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());
                 return -1; //To indicate that the current plant was not replaced (we can't just send the current species integer because that would mean the current individual was replaced by a new member of the same species.
             }
         }
