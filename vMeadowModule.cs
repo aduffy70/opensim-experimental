@@ -107,8 +107,7 @@ namespace vMeadowModule
         int m_currentGeneration = 0; //The currently displayed generation
         bool m_isReverse = false; //Whether we are stepping backward through the simulation
         int[,] m_displayedPlants; //Tracks the currently displayed plants
-        int[] m_speciesCounts = new int[6] {0, 0, 0, 0, 0, 0}; //Tracks species counts so we can compare acrossed generations
-        int[,] m_totalSpeciesCounts; //Total species counts for each generation.  TODO: This will replace m_speciesCounts.  We will calculate this during the simulation instead of the visualization since it is needed for the replacement probability calculations.
+        int[,] m_totalSpeciesCounts; //Total species counts for each generation.
         Vector3[,] m_coordinates; //Keeps track of the region coordinates and groundlevel where each plant will be placed so we only have to calculate them once.
 
 
@@ -363,7 +362,7 @@ namespace vMeadowModule
             }
             else if (chat.Message.ToLower() == "now")
             {
-                CalculateStatistics(m_currentGeneration, m_speciesCounts, false);
+                CalculateStatistics(m_currentGeneration, m_currentGeneration, false);
             }
             else if (chat.Message.ToLower() == "test")
             {
@@ -485,10 +484,10 @@ namespace vMeadowModule
             }
         }
 
-        void CalculateStatistics(int generation, int[] speciesCounts, bool needToLog)
+        void CalculateStatistics(int generation, int lastVisualizedGeneration, bool needToLog)
         {
-            //TODO: This function should be split up into logical subunits.  It generates two different strings, logs one and sends the other to huds, and modifies a global variable.
-            //TODO: This should probably happen during the simulation, not during the visualization.
+            //Generates data to send to the log and the hud.
+            //TODO: The logging should probably happen during the simulation, not during the visualization?
             string[] hudString = new string[5];
             hudString[0] = String.Format("Generation: {0}", generation);
             hudString[1] = "Species";
@@ -496,12 +495,12 @@ namespace vMeadowModule
             hudString[3] = "Change";
             hudString[4] = "%";
             string logString = generation.ToString();
-            int totalPlants = speciesCounts[1] + speciesCounts[2] + speciesCounts[3] + speciesCounts[4] + speciesCounts[5];
+            int totalPlants = m_totalSpeciesCounts[generation, 1] + m_totalSpeciesCounts[generation, 2] + m_totalSpeciesCounts[generation, 3] + m_totalSpeciesCounts[generation, 4] + m_totalSpeciesCounts[generation, 5];
             for (int i=1; i<6; i++)
             {
                 hudString[1] += "\n" + i;
-                hudString[2] += "\n" + speciesCounts[i];
-                int qtyChange = speciesCounts[i] - m_speciesCounts[i];
+                hudString[2] += "\n" + m_totalSpeciesCounts[generation, i];
+                int qtyChange = m_totalSpeciesCounts[generation, i] - m_totalSpeciesCounts[lastVisualizedGeneration, i];
                 string direction = "";
                 if (qtyChange > 0)
                 {
@@ -511,16 +510,15 @@ namespace vMeadowModule
                 float percent;
                 if (totalPlants > 0) //Avoid divide-by-zero errors
                 {
-                    percent = (float)(Math.Round((double)((speciesCounts[i] / (float)totalPlants) * 100), 1));
+                    percent = (float)(Math.Round((double)((m_totalSpeciesCounts[generation, i] / (float)totalPlants) * 100), 1));
                 }
                 else
                 {
                     percent = 0f;
                 }
                 hudString[4] += "\n" + percent + "%";
-                logString += String.Format(",{0}", speciesCounts[i]);
+                logString += String.Format(",{0}", m_totalSpeciesCounts[generation, i]);
             }
-            Array.Copy(speciesCounts, m_speciesCounts, 6);
             if (needToLog)
             {
                 LogData(logString);
@@ -692,7 +690,7 @@ namespace vMeadowModule
                     }
                 }
             }
-            CalculateStatistics(nextGeneration, speciesCounts, true);
+            CalculateStatistics(nextGeneration, m_currentGeneration, true);
             m_currentGeneration = nextGeneration;
         }
 
