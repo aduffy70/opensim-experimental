@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xcells>50</xcells>
+<ycells>50</ycells>
+
+<xstart>30</xstart>
+<ystart>30</ystart>
+
+<spacing>4</spacing>
+
+<croplike>0</croplike>
+
+<terrainmap>0</terrainmap>
+<salinitymap>1</salinitymap>
+<drainagemap>0</drainagemap>
+<fertilitymap>2</fertilitymap>
+
+<allspecies>
+    <species>
+        <type>1</type>
+        <replacement>0.5,0.5,0.5,0.5,0.5,0.5</replacement>
+        <agemaximum>20</agemaximum>
+        <altitudeopt>20</altitudeopt>
+        <altitudeshape>0</altitudeshape>
+        <salinityopt>0</salinityopt>
+        <salinityshape>0</salinityshape>
+        <drainageopt>0</drainageopt>
+        <drainageshape>0</drainageshape>
+        <fertilityopt>0</fertilityopt>
+        <fertilityshape>0</fertilityshape>
+    </species>
+        <species>
+        <type>12</type>
+        <replacement>0.5,0.5,0.5,0.5,0.5,0.5</replacement>
+        <agemaximum>20</agemaximum>
+        <altitudeopt>20</altitudeopt>
+        <altitudeshape>0</altitudeshape>
+        <salinityopt>0</salinityopt>
+        <salinityshape>0</salinityshape>
+        <drainageopt>0</drainageopt>
+        <drainageshape>0</drainageshape>
+        <fertilityopt>0</fertilityopt>
+        <fertilityshape>0</fertilityshape>
+    </species>
+        <species>
+        <type>5</type>
+        <replacement>0.5,0.5,0.5,0.5,0.5,0.5</replacement>
+        <agemaximum>20</agemaximum>
+        <altitudeopt>20</altitudeopt>
+        <altitudeshape>0</altitudeshape>
+        <salinityopt>0</salinityopt>
+        <salinityshape>0</salinityshape>
+        <drainageopt>0</drainageopt>
+        <drainageshape>0</drainageshape>
+        <fertilityopt>0</fertilityopt>
+        <fertilityshape>0</fertilityshape>
+    </species>
+        <species>
+        <type>16</type>
+        <replacement>0.5,0.5,0.5,0.5,0.5,0.5</replacement>
+        <agemaximum>20</agemaximum>
+        <altitudeopt>20</altitudeopt>
+        <altitudeshape>0</altitudeshape>
+        <salinityopt>0</salinityopt>
+        <salinityshape>0</salinityshape>
+        <drainageopt>0</drainageopt>
+        <drainageshape>0</drainageshape>
+        <fertilityopt>0</fertilityopt>
+        <fertilityshape>0</fertilityshape>
+    </species>
+        <species>
+        <type>18</type>
+        <replacement>0.5,0.5,0.5,0.5,0.5,0.5</replacement>
+        <agemaximum>20</agemaximum>
+        <altitudeopt>20</altitudeopt>
+        <altitudeshape>0</altitudeshape>
+        <salinityopt>0</salinityopt>
+        <salinityshape>0</salinityshape>
+        <drainageopt>0</drainageopt>
+        <drainageshape>0</drainageshape>
+        <fertilityopt>0</fertilityopt>
+        <fertilityshape>0</fertilityshape>
+    </species>
+</allspecies>
+
+<replacementrows>
+    <replacementrow>0.5,0.5,0.5,0.5,0.5,0.5</replacementrow>
+    <replacementrow>0.5,0.5,0.5,0.5,0.5,0.5</replacementrow>
+    <replacementrow>0.5,0.5,0.5,0.5,0.5,0.5</replacementrow>
+    <replacementrow>0.5,0.5,0.5,0.5,0.5,0.5</replacementrow>
+    <replacementrow>0.5,0.5,0.5,0.5,0.5,0.5</replacementrow>
+</replacementrows>
+
+<disturbanceonly>1</disturbanceonly>
+
+<plantrows>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>NNNNNNNNNNRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>NNNNNNNNNNRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>NNNNNNNNNNRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>NNNNNNNNNNRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+    <plantrow>NNNNNNNNNNRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
+</plantrows>
+
