@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<disturbanceonly>1</disturbanceonly>
+
 <xcells>50</xcells>
 <ycells>50</ycells>
 
@@ -18,80 +20,77 @@
 <allspecies>
     <species>
         <type>1</type>
-        <replacement>0.5,0.5,0.5,0.5,0.5,0.5</replacement>
-        <agemaximum>20</agemaximum>
-        <altitudeopt>20</altitudeopt>
-        <altitudeshape>0</altitudeshape>
-        <salinityopt>0</salinityopt>
-        <salinityshape>0</salinityshape>
-        <drainageopt>0</drainageopt>
-        <drainageshape>0</drainageshape>
-        <fertilityopt>0</fertilityopt>
-        <fertilityshape>0</fertilityshape>
+        <agemaximum>M</agemaximum>
+        <altitudeopt>L</altitudeopt>
+        <altitudeshape>N</altitudeshape>
+        <salinityopt>H</salinityopt>
+        <salinityshape>M</salinityshape>
+        <drainageopt>M</drainageopt>
+        <drainageshape>L</drainageshape>
+        <fertilityopt>H</fertilityopt>
+        <fertilityshape>H</fertilityshape>
     </species>
         <species>
         <type>12</type>
-        <replacement>0.5,0.5,0.5,0.5,0.5,0.5</replacement>
-        <agemaximum>20</agemaximum>
-        <altitudeopt>20</altitudeopt>
-        <altitudeshape>0</altitudeshape>
-        <salinityopt>0</salinityopt>
-        <salinityshape>0</salinityshape>
-        <drainageopt>0</drainageopt>
-        <drainageshape>0</drainageshape>
-        <fertilityopt>0</fertilityopt>
-        <fertilityshape>0</fertilityshape>
+        <agemaximum>M</agemaximum>
+        <altitudeopt>L</altitudeopt>
+        <altitudeshape>N</altitudeshape>
+        <salinityopt>H</salinityopt>
+        <salinityshape>M</salinityshape>
+        <drainageopt>M</drainageopt>
+        <drainageshape>L</drainageshape>
+        <fertilityopt>H</fertilityopt>
+        <fertilityshape>H</fertilityshape>
     </species>
         <species>
         <type>5</type>
-        <replacement>0.5,0.5,0.5,0.5,0.5,0.5</replacement>
-        <agemaximum>20</agemaximum>
-        <altitudeopt>20</altitudeopt>
-        <altitudeshape>0</altitudeshape>
-        <salinityopt>0</salinityopt>
-        <salinityshape>0</salinityshape>
-        <drainageopt>0</drainageopt>
-        <drainageshape>0</drainageshape>
-        <fertilityopt>0</fertilityopt>
-        <fertilityshape>0</fertilityshape>
+        <agemaximum>M</agemaximum>
+        <altitudeopt>L</altitudeopt>
+        <altitudeshape>N</altitudeshape>
+        <salinityopt>H</salinityopt>
+        <salinityshape>M</salinityshape>
+        <drainageopt>M</drainageopt>
+        <drainageshape>L</drainageshape>
+        <fertilityopt>H</fertilityopt>
+        <fertilityshape>H</fertilityshape>
     </species>
         <species>
         <type>16</type>
-        <replacement>0.5,0.5,0.5,0.5,0.5,0.5</replacement>
-        <agemaximum>20</agemaximum>
-        <altitudeopt>20</altitudeopt>
-        <altitudeshape>0</altitudeshape>
-        <salinityopt>0</salinityopt>
-        <salinityshape>0</salinityshape>
-        <drainageopt>0</drainageopt>
-        <drainageshape>0</drainageshape>
-        <fertilityopt>0</fertilityopt>
-        <fertilityshape>0</fertilityshape>
+        <agemaximum>M</agemaximum>
+        <altitudeopt>L</altitudeopt>
+        <altitudeshape>N</altitudeshape>
+        <salinityopt>H</salinityopt>
+        <salinityshape>M</salinityshape>
+        <drainageopt>M</drainageopt>
+        <drainageshape>L</drainageshape>
+        <fertilityopt>H</fertilityopt>
+        <fertilityshape>H</fertilityshape>
     </species>
         <species>
         <type>18</type>
-        <replacement>0.5,0.5,0.5,0.5,0.5,0.5</replacement>
-        <agemaximum>20</agemaximum>
-        <altitudeopt>20</altitudeopt>
-        <altitudeshape>0</altitudeshape>
-        <salinityopt>0</salinityopt>
-        <salinityshape>0</salinityshape>
-        <drainageopt>0</drainageopt>
-        <drainageshape>0</drainageshape>
-        <fertilityopt>0</fertilityopt>
-        <fertilityshape>0</fertilityshape>
+        <agemaximum>M</agemaximum>
+        <altitudeopt>L</altitudeopt>
+        <altitudeshape>N</altitudeshape>
+        <salinityopt>H</salinityopt>
+        <salinityshape>M</salinityshape>
+        <drainageopt>M</drainageopt>
+        <drainageshape>L</drainageshape>
+        <fertilityopt>H</fertilityopt>
+        <fertilityshape>H</fertilityshape>
     </species>
 </allspecies>
 
 <replacementrows>
-    <replacementrow>0.5,0.5,0.5,0.5,0.5,0.5</replacementrow>
-    <replacementrow>0.5,0.5,0.5,0.5,0.5,0.5</replacementrow>
-    <replacementrow>0.5,0.5,0.5,0.5,0.5,0.5</replacementrow>
-    <replacementrow>0.5,0.5,0.5,0.5,0.5,0.5</replacementrow>
-    <replacementrow>0.5,0.5,0.5,0.5,0.5,0.5</replacementrow>
+    <replacementrow>H,L,L,L,M,L</replacementrow>
+    <replacementrow>H,L,L,L,M,L</replacementrow>
+    <replacementrow>H,L,L,L,M,L</replacementrow>
+    <replacementrow>H,L,L,L,M,L</replacementrow>
+    <replacementrow>H,L,L,L,M,L</replacementrow>
 </replacementrows>
 
 <disturbanceonly>1</disturbanceonly>
+
+<ongoingdisturbance>L</ongoingdisturbance>
 
 <plantrows>
     <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
