@@ -108,6 +108,7 @@ namespace vMeadowModule
         bool m_isReverse = false; //Whether we are stepping backward through the simulation
         int[,] m_displayedPlants; //Tracks the currently displayed plants
         int[,] m_totalSpeciesCounts; //Total species counts for each generation.
+        int m_totalActiveCells; //The total number of possible plant locations (plants + gaps + disturbed areas ... or ... xCells * yCells - cells-below-water). This shouldn't change over the course of a simulation.
         Vector3[,] m_coordinates; //Keeps track of the region coordinates and groundlevel where each plant will be placed so we only have to calculate them once.
 
 
@@ -495,7 +496,7 @@ namespace vMeadowModule
             hudString[3] = "Change";
             hudString[4] = "%";
             string logString = generation.ToString();
-            int totalPlants = m_totalSpeciesCounts[generation, 1] + m_totalSpeciesCounts[generation, 2] + m_totalSpeciesCounts[generation, 3] + m_totalSpeciesCounts[generation, 4] + m_totalSpeciesCounts[generation, 5];
+            int totalPlants = m_totalActiveCells - m_totalSpeciesCounts[generation, 0];
             for (int i=1; i<6; i++)
             {
                 hudString[1] += "\n" + i;
@@ -777,12 +778,11 @@ namespace vMeadowModule
             //Calculate the probability that the current plant will be replaced by each species.
             //The first value is always 0 because gaps cannot replace a plant through competition. Gaps arise only when a plant dies and no replacement is selected.
             float[] replacementProbabilities = new float[6];
-            float totalCount = (float)(m_totalSpeciesCounts[generation, 0] + m_totalSpeciesCounts[generation, 1] + m_totalSpeciesCounts[generation, 2] + m_totalSpeciesCounts[generation, 3] + m_totalSpeciesCounts[generation, 4] + m_totalSpeciesCounts[generation, 5]); //TODO: This count doesn't change, so why do we recalculate it 50*50*10000 times?
             //Log("Current: " + currentSpecies.ToString()); //DEBUG
-            //Log("Total: " + totalCount.ToString()); //DEBUG
+            //Log("Total: " + m_totalActiveCells.ToString()); //DEBUG
             for (int species=1; species<6; species++)
             {
-                replacementProbabilities[species] = ((m_replacementMatrix[species, currentSpecies] * ((float)neighborSpeciesCounts[species] / 8.0f)) * 0.80f) + ((m_replacementMatrix[species, currentSpecies] * ((float)m_totalSpeciesCounts[generation, species] / totalCount)) * 0.1995f) + 0.0005f; //80% local, 19.95% distant, 0.05% out-of-area
+                replacementProbabilities[species] = ((m_replacementMatrix[species, currentSpecies] * ((float)neighborSpeciesCounts[species] / 8.0f)) * 0.80f) + ((m_replacementMatrix[species, currentSpecies] * ((float)m_totalSpeciesCounts[generation, species] / m_totalActiveCells)) * 0.1995f) + 0.0005f; //80% local, 19.95% distant, 0.05% out-of-area
                 //Log(species.ToString() + " " + neighborSpeciesCounts[species].ToString() + " " + m_totalSpeciesCounts[generation, species].ToString() + " " + replacementProbabilities[species].ToString()); //DEBUG
             }
             return replacementProbabilities;
@@ -870,6 +870,7 @@ namespace vMeadowModule
                     }
                 }
             }
+             m_totalActiveCells = m_totalSpeciesCounts[0, 0] + m_totalSpeciesCounts[0, 1] + m_totalSpeciesCounts[0, 2] + m_totalSpeciesCounts[0, 3] + m_totalSpeciesCounts[0, 4] + m_totalSpeciesCounts[0, 5]; //This total number of active cells will remain constant unless we load new parameters from the webform.
         }
 
         bool ReadConfigs(string url)
@@ -985,6 +986,7 @@ namespace vMeadowModule
                         }
                     }
                 }
+                m_totalActiveCells = m_totalSpeciesCounts[0, 0] + m_totalSpeciesCounts[0, 1] + m_totalSpeciesCounts[0, 2] + m_totalSpeciesCounts[0, 3] + m_totalSpeciesCounts[0, 4] + m_totalSpeciesCounts[0, 5]; //This count only changes when we load new parameters from the webform.
                 AlertAndLog(String.Format("Read from \"{0}\".  Clearing all plants and generating a new community.  This may take a minute...", url));
                 return true;
             }
