@@ -703,13 +703,13 @@ namespace vMeadowModule
         int[] GetNeighborSpeciesCounts(int x, int y, int rowabove, int rowbelow, int colright, int colleft, int generation)
         {
             //Get counts of neighborspecies
-            //At edges, missing neighborTypes are -1
+            //Edge cells will have fewer neighbors.  That is ok.  We only care about the count of neighbors of each species so a neighbor that is a gap or off the edge of the matrix doesn't matter.
             int[] neighborSpeciesCounts = new int[6] {0, 0, 0, 0, 0, 0};
             int neighborType;
             if (colleft >= 0)
             {
                 neighborType = m_cellStatus[generation, colleft, y];
-                if (neighborType != -1)
+                if (neighborType != -1) //Don't count permanent gaps
                 {
                     neighborSpeciesCounts[neighborType]++;
                 }
@@ -770,20 +770,22 @@ namespace vMeadowModule
                     neighborSpeciesCounts[neighborType]++;
                 }
             }
+            //Log(neighborSpeciesCounts[0].ToString() + " " + neighborSpeciesCounts[1].ToString() + " " + neighborSpeciesCounts[2].ToString() + " " + neighborSpeciesCounts[3].ToString() + " " + neighborSpeciesCounts[4].ToString() + " " + neighborSpeciesCounts[5].ToString()); //DEBUG
             return neighborSpeciesCounts;
         }
 
         float[] GetReplacementProbabilities(int currentSpecies, int[] neighborSpeciesCounts, int generation)
         {
             //Calculate the probability that the current plant will be replaced by each species.
+            //The first value is always 0 because gaps cannot replace a plant through competition. Gaps arise only when a plant dies and no replacement is selected.
             float[] replacementProbabilities = new float[6];
-            float totalCount = (float)(m_totalSpeciesCounts[generation, 0] + m_totalSpeciesCounts[generation, 1] + m_totalSpeciesCounts[generation, 2] + m_totalSpeciesCounts[generation, 3] + m_totalSpeciesCounts[generation, 4] + m_totalSpeciesCounts[generation, 5]);
-            //Log("Current: " + currentSpecies.ToString());
-            //Log("Total: " + totalCount.ToString());
-            for (int species=0; species<6; species++)
+            float totalCount = (float)(m_totalSpeciesCounts[generation, 0] + m_totalSpeciesCounts[generation, 1] + m_totalSpeciesCounts[generation, 2] + m_totalSpeciesCounts[generation, 3] + m_totalSpeciesCounts[generation, 4] + m_totalSpeciesCounts[generation, 5]); //TODO: This count doesn't change, so why do we recalculate it 50*50*10000 times?
+            //Log("Current: " + currentSpecies.ToString()); //DEBUG
+            //Log("Total: " + totalCount.ToString()); //DEBUG
+            for (int species=1; species<6; species++)
             {
                 replacementProbabilities[species] = ((m_replacementMatrix[species, currentSpecies] * ((float)neighborSpeciesCounts[species] / 8.0f)) * 0.80f) + ((m_replacementMatrix[species, currentSpecies] * ((float)m_totalSpeciesCounts[generation, species] / totalCount)) * 0.1995f) + 0.0005f; //80% local, 19.95% distant, 0.05% out-of-area
-                //Log(species.ToString() + " " + neighborSpeciesCounts[species].ToString() + " " + m_totalSpeciesCounts[generation, species].ToString() + " " + replacementProbabilities[species].ToString());
+                //Log(species.ToString() + " " + neighborSpeciesCounts[species].ToString() + " " + m_totalSpeciesCounts[generation, species].ToString() + " " + replacementProbabilities[species].ToString()); //DEBUG
             }
             return replacementProbabilities;
         }
@@ -827,7 +829,7 @@ namespace vMeadowModule
 
         void RandomizeStartMatrix()
         {
-            //Generate starting matrix of random plant types
+            //Generate starting matrix of random plant types and determine the region x,y,z coordinates where each plant will be placed
             m_cellStatus = new int[m_generations, m_xCells, m_yCells];
             m_totalSpeciesCounts = new int[m_generations, 6];
             m_coordinates = new Vector3[m_xCells, m_yCells];
@@ -839,31 +841,33 @@ namespace vMeadowModule
                     float yRandomOffset = 0;
                     if (m_naturalAppearance)
                     {
-                        //Randomize around the matrix coordinates
+                        //Randomize around the matrix coordinates for a more natural (less crop-like) appearance
                         xRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
                         yRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
                     }
                     Vector3 position = new Vector3(m_xPosition + (x * m_cellSpacing) + xRandomOffset, m_yPosition + (y * m_cellSpacing) + yRandomOffset, 0.0f);
-                    //Only calculate ground level if the x,y position is within the region boundaries
                     if ((position.X >= 0) && (position.X <= 256) && (position.Y >= 0) && (position.Y <=256))
                     {
+                        //Only calculate ground level if the x,y position is within the region boundaries
                         position.Z = GroundLevel(position);
                         //Store the coordinates so we don't have to do this again
                         m_coordinates[x, y] = position;
-                        //Only assign a cellStatus if it is above water- otherwise -1 so no plant will ever be placed.
                         if (position.Z >= WaterLevel(position))
                         {
+                            //Assign a random plant type if the coordinates are above water
                             int newSpecies = m_random.Next(6);
                             m_cellStatus[0, x, y] = newSpecies;
                             m_totalSpeciesCounts[0, newSpecies]++;
                         }
                         else
                         {
+                            //If the coordinates are below water make it a permanent gap
                             m_cellStatus[0, x, y] = -1;
                         }
                     }
                     else
                     {
+                        //If the x,y position is outside the region boundaries make it a permanent gap
                         m_cellStatus[0, x, y] = -1;
                     }
                 }
@@ -872,8 +876,10 @@ namespace vMeadowModule
 
         bool ReadConfigs(string url)
         {
+            //Read configuration data from a url.  This works with the vMeadowGA google app.
             //TODO: Split this function up into separate steps: Read data, parse data, generate starting matrix.
-            string[] configInfo = new string[58]; //TODO: Could I import easier using xml instead of raw text?
+            //TODO: Could I import easier using xml instead of raw text? It would make the parsing easier as I start having webforms to change only part of the configs at a time.
+            string[] configInfo = new string[58];
             WebRequest configUrl = WebRequest.Create(url);
             AlertAndLog(String.Format("Reading data from url.  This may take a minute..."));
             try
@@ -889,6 +895,7 @@ namespace vMeadowModule
                     lineCount++;
                 }
                 //Parse the data
+                //Size, position, and spacing of the community matrix
                 string[] matrixInfo = new string[6];
                 matrixInfo = configInfo[0].Split(',');
                 m_xCells = Int32.Parse(matrixInfo[0]);
@@ -896,6 +903,7 @@ namespace vMeadowModule
                 m_xPosition = float.Parse(matrixInfo[2]);
                 m_yPosition = float.Parse(matrixInfo[3]);
                 m_cellSpacing = float.Parse(matrixInfo[4]);
+                //Natural or crop-like appearance
                 if (matrixInfo[5] == "1")
                 {
                     m_naturalAppearance = true;
@@ -904,12 +912,15 @@ namespace vMeadowModule
                 {
                     m_naturalAppearance = false;
                 }
+                //Which 5 species to include in the community
                 string[] plants = new string[5];
                 plants = configInfo[1].Split(',');
-                for (int i = 1; i<6; i++) //Start at index 1 so index 0 stays "None"
+                for (int i = 1; i<6; i++) //Start at index 1 so index 0 stays "None" to represent gaps
                 {
                     m_communityMembers[i] = Int32.Parse(plants[i - 1]);
                 }
+                //Replacement probabilities
+                //TODO: make this 5 rows instead of 6 because the first row should always be zeros.  We don't allow for a gap to replace a plant through competition so we shouldn't be letting them enter anything in the first row on the webform either.  Currently anything they enter there ends up in the probabilities table here but is ignored later.
                 for (int i=0; i<6; i++)
                 {
                     string[] probabilities = new string[6];
@@ -979,8 +990,9 @@ namespace vMeadowModule
                 AlertAndLog(String.Format("Read from \"{0}\".  Clearing all plants and generating a new community.  This may take a minute...", url));
                 return true;
             }
-            catch //failed to get the data for some reason
+            catch
             {
+                //Failed to get the data for some reason
                 AlertAndLog(String.Format("Error loading from \"{0}\"...", url));
                 return false;
             }
@@ -1002,6 +1014,7 @@ namespace vMeadowModule
                 int rowbelow;
                 int colleft;
                 int colright;
+                //TODO: Do we really need to get the disturbance values every generation?  It depends on if we are using only permanent disturbance defined on the webform or if we also want to have some underlying level of ongoing new disturbance (perhaps with the level set via the webform too).  If we don't have ongoing new disturbance we could move the disturbance array declaration outside of the generation loop so the function only gets called once (or better yet, make it global and set its values when we start the region or import new parameters from the webform.
                 bool[,] disturbance = CalculateDisturbance();
                 for (int y=0; y<m_yCells; y++)
                 {
@@ -1014,10 +1027,6 @@ namespace vMeadowModule
                         int currentSpecies = m_cellStatus[generation, x, y];
                         if (currentSpecies != -1) //Don't ever try to update a permanent gap
                         {
-                            if (generation == 0)
-                            {
-                                age[x, y] = 0; //Set the initial age value for all plants
-                            }
                             if (disturbance[x, y])
                             {
                                 m_cellStatus[nextGeneration, x, y] = 0;
@@ -1032,12 +1041,13 @@ namespace vMeadowModule
                                 bool plantSurvives = CalculateSurvival(currentSpecies, age[x, y], m_coordinates[x, y]);
                                 if (plantSurvives)
                                 {
-                                    //Calculate replacement probabilities
+                                    //Calculate replacement probabilities based on current plant
                                     float[] replacementProbability = GetReplacementProbabilities(currentSpecies, neighborSpeciesCounts, generation);
+                                    //Determine the next generation plant based on those probabilities
                                     int newSpecies = SelectNextGenerationSpecies(replacementProbability, currentSpecies);
                                     if (newSpecies == -1)
                                     {
-                                        //Log("Still there");
+                                        //Log("Still there"); //DEBUG
                                         //The old plant is still there
                                         age[x, y]++;
                                         m_cellStatus[nextGeneration, x, y] = currentSpecies;
@@ -1045,7 +1055,7 @@ namespace vMeadowModule
                                     }
                                     else
                                     {
-                                        //Log("Replaced");
+                                        //Log("Replaced"); //DEBUG
                                         //The old plant has been replaced (though possibly by another of the same species...)
                                         age[x, y] = 0;
                                         m_cellStatus[nextGeneration, x, y] = newSpecies;
@@ -1057,15 +1067,17 @@ namespace vMeadowModule
                                     //Calculate replacement probabilities based on a gap
                                     float[] replacementProbability = GetReplacementProbabilities(0, neighborSpeciesCounts, generation);
                                     age[x, y] = 0;
+                                    //Determine the next generation plant based on those probabilities
                                     int newSpecies = SelectNextGenerationSpecies(replacementProbability, 0);
                                     if (newSpecies == -1)
                                     {
-                                        //No new plant was selected.  It will be a gap.
+                                        //No new plant was selected.  It will still be a gap.
                                         m_cellStatus[nextGeneration, x, y] = 0;
                                         m_totalSpeciesCounts[nextGeneration, 0]++;
                                     }
                                     else
                                     {
+                                        //Store the new plant status and update the total species counts
                                         m_cellStatus[nextGeneration, x, y] = newSpecies;
                                         m_totalSpeciesCounts[nextGeneration, newSpecies]++;
                                     }
@@ -1074,6 +1086,7 @@ namespace vMeadowModule
                         }
                         else
                         {
+                            //Permanent gaps stay gaps
                             m_cellStatus[nextGeneration, x, y] = -1;
                         }
                     }
@@ -1084,31 +1097,34 @@ namespace vMeadowModule
         bool CalculateSurvival(int species, int age, Vector3 coordinates)
         {
             //Return true if the plant survives or false if it does not
-
-            //Generate a float from 0-1.0 representing the probability of survival
             if (species == 0) //If there is no plant it can't possibly survive...
             {
                 return false;
             }
             else
             {
+                //Generate a float from 0-1.0 representing the probability of survival based on plant age, and altitude
                 float ageHealth = CalculateAgeHealth(age, m_ageMaximum[species]);
                 float altitudeHealth = CalculateAltitudeHealth(coordinates.Z, m_altitudeOptimal[species], m_altitudeShape[species]);
+                //Get the soil values for the plant's coordinates and calculate a probability of survival based on those values
                 Vector3 soilType = GetSoilType(coordinates);
                 float salinityHealth = CalculateSoilHealth(soilType.X, m_salinityOptimal[species], m_salinityShape[species]);
                 float drainageHealth = CalculateSoilHealth(soilType.Y, m_drainageOptimal[species], m_drainageShape[species]);
                 float fertilityHealth = CalculateSoilHealth(soilType.Z, m_fertilityOptimal[species], m_fertilityShape[species]);
+                //Overall survival probability is the product of these separate survival probabilities
                 float survivalProbability = ageHealth * altitudeHealth * salinityHealth * drainageHealth * fertilityHealth;
                 //Select a random float from 0-1.0.  Plant survives if random number <= probability of survival
                 float randomFloat = (float)m_random.NextDouble();
                 if (randomFloat <= survivalProbability)
                 {
-                    //Log("Health: " + survivalProbability.ToString() + " Random: " + randomFloat.ToString() + " Survived");
+                    //Plant survives
+                    //Log("Health: " + survivalProbability.ToString() + " Random: " + randomFloat.ToString() + " Survived"); //DEBUG
                     return true;
                 }
                 else
                 {
-                    //Log("Health: " + survivalProbability.ToString() + " Random: " + randomFloat.ToString() + " Died");
+                    //Plant does not survive
+                    //Log("Health: " + survivalProbability.ToString() + " Random: " + randomFloat.ToString() + " Died"); //DEBUG
                     return false;
                 }
             }
@@ -1116,9 +1132,10 @@ namespace vMeadowModule
 
         float CalculateSoilHealth(float actual, float optimal, float shape)
         {
-            //Returns a value from 0-1.0 representing the health of an individual with an 'actual' value for some environmental parameter given the optimal value and shape. This function works for things like soil values where the actual values will range from 0-1.0.
+            //Returns a value from 0-1.0 representing the health of an individual with an 'actual' value for some environmental parameter given the optimal value and shape. This function works for things like soil values where the actual values will range from 0-1.0.  It doesn't have to be soil values. With an optimal of 1.0 and a shape of 1, values range (linearly) from 1.0 at 1.0 to 0.0 at 0.0.  Lower values for shape flatten the 'fitness curve'. With shape <= 0, health will always equal 1.
             float health = 1.0f - (Math.Abs(optimal - actual) * shape);
-            //Log("Soil: " + health.ToString() + " " + actual.ToString() + " " + optimal.ToString() + " " + shape.ToString());
+            //Log("Soil: " + health.ToString() + " " + actual.ToString() + " " + optimal.ToString() + " " + shape.ToString()); //DEBUG
+            //Don't allow return values >1 or <0
             if (health > 1.0f)
             {
                 health = 1.0f;
@@ -1132,9 +1149,10 @@ namespace vMeadowModule
 
         float CalculateAltitudeHealth(float actual, float optimal, float shape)
         {
-            //Returns a value from 0-1.0 representing the health of an individual with an 'actual' value for some environmental parameter given the optimal value and shape. This function works for altitude.
+            //Returns a value from 0-1.0 representing the health of an individual with an 'actual' value for some environmental parameter given the optimal value and shape. This function works for altitude.  With an optimal of 50 and a shape of 1, values range (linearly) from 1.0 at 50m to 0.0 at 0m.  Lower values for shape flatten the 'fitness curve'. With shape <= 0, health will always equal 1.0.
             float health = 1.0f - (Math.Abs(((optimal - actual) / 50f)) * shape);
-            //Log("Altitude: " + health.ToString() + " " + actual.ToString() + " " + optimal.ToString() + " " + shape.ToString());
+            //Log("Altitude: " + health.ToString() + " " + actual.ToString() + " " + optimal.ToString() + " " + shape.ToString()); //DEBUG
+            //Don't allow return values >1 or <0
             if (health > 1.0f)
             {
                 health = 1.0f;
@@ -1146,11 +1164,12 @@ namespace vMeadowModule
             return health;
         }
 
-        float CalculateAgeHealth(int actual, int maximum)
+        float CalculateAgeHealth(int actual, int maximumAge)
         {
-            //Returns a value from 0-1.0 representing the health of an individual with an 'actual' value for some environmental parameter given the optimal value and shape. This function works for age or others parameters with a miximum rather than optimal value.
-            float health = ((maximum - actual) / (float)maximum);
-            //Log("Age: " + health.ToString() + " " + actual.ToString() + " " + maximum.ToString());
+            //Returns a value from 0-1.0 representing the health of an individual with an 'actual' value for some environmental parameter given the optimal value and shape. This function works for age or others parameters with a maximum rather than optimal value. Health is highest (1.0) when age = 0 and decreases linearly to 0.0 when age = maximumAge.
+            float health = ((maximumAge - actual) / (float)maximumAge);
+            //Log("Age: " + health.ToString() + " " + actual.ToString() + " " + maximum.ToString()); //DEBUG
+            //Don't allow return values >1 or <0
             if (health > 1.0f)
             {
                 health = 1.0f;
@@ -1164,8 +1183,8 @@ namespace vMeadowModule
 
         bool[,] CalculateDisturbance()
         {
-            //TODO: This needs to generate a disturbance matrix based on settings from the webform.
-            //For now it just returns a matrix with a 100:1 false:true ratio
+            //Returns a matrix of true and false values representing 'disturbed' areas where no plants will be allowed to grow, and 'undisturbed' locations where plants will grow normally.
+            //TODO: This needs to generate a disturbance matrix based on settings from the webform. Atul is working on the user interface for the webform. For now, this function just returns a random matrix with a 100:1 false:true ratio.
             bool[,] disturbanceMatrix = new bool[m_xCells, m_yCells];
             for (int y=0; y<m_yCells; y++)
             {
@@ -1174,6 +1193,7 @@ namespace vMeadowModule
                     if (m_random.Next(100) == 0)
                     {
                         disturbanceMatrix[x, y] = true;
+                        //Log("Disturbance at (" + x.ToString() + ", " + y.ToString() + ")"); //DEBUG
                     }
                     else
                     {
@@ -1190,47 +1210,48 @@ namespace vMeadowModule
             float randomReplacement = (float)m_random.NextDouble();
             if (randomReplacement <= replacementProbability[1])
             {
-                //Log(currentSpecies.ToString() + " 1    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());
+                //Log(currentSpecies.ToString() + " 1    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString()); //DEBUG
                 return 1;
             }
             else if (randomReplacement <= replacementProbability[2] + replacementProbability[1])
             {
-                //Log(currentSpecies.ToString() + " 2    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());
+                //Log(currentSpecies.ToString() + " 2    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());  //DEBUG
                 return 2;
             }
             else if (randomReplacement <= replacementProbability[3] + replacementProbability[2] + replacementProbability[1])
             {
-                //Log(currentSpecies.ToString() + " 3    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());
+                //Log(currentSpecies.ToString() + " 3    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());  //DEBUG
                 return 3;
             }
             else if (randomReplacement <= replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1])
             {
-                //Log(currentSpecies.ToString() + " 4    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());
+                //Log(currentSpecies.ToString() + " 4    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());  //DEBUG
                 return 4;
             }
             else if (randomReplacement <= replacementProbability[5] + replacementProbability[4] + replacementProbability[3] + replacementProbability[2] + replacementProbability[1])
             {
-                //Log(currentSpecies.ToString() + " 5    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());
+                //Log(currentSpecies.ToString() + " 5    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());  //DEBUG
                 return 5;
             }
             else
             {
-                //Log(currentSpecies.ToString() + " -    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString());
-                return -1; //To indicate that the current plant was not replaced (we can't just send the current species integer because that would mean the current individual was replaced by a new member of the same species.
+                //Indicate that the current plant was not replaced (we use -1 for this because returning the current species integer would indicate that the current individual was replaced by a new member of the same species.
+                //Log(currentSpecies.ToString() + " -    " +randomReplacement.ToString() + " " + replacementProbability[0].ToString() + " " + replacementProbability[1].ToString() + " " + replacementProbability[2].ToString() + " " + replacementProbability[3].ToString() + " " + replacementProbability[4].ToString() + " " + replacementProbability[5].ToString()); //DEBUG
+                return -1;
             }
         }
 
         public float WaterLevel(Vector3 location)
         {
             //Return the water level at the specified location.
-            //This function performs essentially the same function as llWater() without having to be called by a prim.
+            //This function performs the same function as llWater() without having to be called by a prim.
             return (float)m_scene.RegionInfo.RegionSettings.WaterHeight;
         }
 
         public Vector3 GetSoilType(Vector3 location)
         {
             //Return the soiltype vector (salinity, drainage, fertility) for a location.
-            //This function performs essentially the same function as osSoilType() without having to be called by a prim.
+            //This function performs the same function as osSoilType() without having to be called by a prim.
             IvpgSoilModule module = m_scene.RequestModuleInterface<IvpgSoilModule>();
             Vector3 soil = new Vector3(0f,0f,0f);
             if (module != null)
