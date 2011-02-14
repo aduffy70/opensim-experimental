@@ -47,15 +47,45 @@ class MeadowRecordObject(db.Model):
     # CSV integers represeting the OpenMetaverse Tree types for each of the 5 species in the community
     plant_types = db.StringProperty()
     # CSV replacement probabilities for each species
-    replacement_0 = db.StringProperty()
     replacement_1 = db.StringProperty()
     replacement_2 = db.StringProperty()
     replacement_3 = db.StringProperty()
     replacement_4 = db.StringProperty()
     replacement_5 = db.StringProperty()
-    # All other info (x_cells, y_cells, x_position, y_position, spacing, natural)
-    other_info = db.StringProperty()
+    #Lifespans for each species (S=short, M=mid, L=long)
+    lifespans = db.StringProperty()
+    #Altitude optimum for each species (L=low, M=mid, H=high)
+    altitude_optimums = db.StringProperty()
+    #Altitude effects for each species (N=None, L=Low, M=mid, H=high)
+    altitude_effects = db.StringProperty()
+    #Salinity optimum for each species (L=low, M=mid, H=high)
+    salinity_optimums = db.StringProperty()
+    #Salinity effects for each species (N=None, L=Low, M=mid, H=high)
+    salinity_effects = db.StringProperty()
+    #Drainage optimum for each species (L=low, M=mid, H=high)
+    drainage_optimums = db.StringProperty()
+    #Drainage effects for each species (N=None, L=Low, M=mid, H=high)
+    drainage_effects = db.StringProperty()
+    #Fertility optimum for each species (L=low, M=mid, H=high)
+    fertility_optimums = db.StringProperty()
+    #Fertility effects for each species (N=None, L=Low, M=mid, H=high)
+    fertility_effects = db.StringProperty()
+    # All other matrix info (disturbance_only, x_cells, y_cells, x_position, y_position, spacing, natural, terrain, salinity, drainage, and fertility maps)
+    disturbance_only = db.IntegerProperty()
+    x_size = db.IntegerProperty()
+    y_size = db.IntegerProperty()
+    x_location = db.FloatProperty()
+    y_location = db.FloatProperty()
+    spacing = db.FloatProperty()
+    natural = db.IntegerProperty()
+    terrain = db.IntegerProperty()
+    salinity = db.IntegerProperty()
+    drainage = db.IntegerProperty()
+    fertility = db.IntegerProperty()
+    #Matrix representing the starting values for each position in the matrix (R=random, N=disturbance, 0=gap, 1-5=plant types)
     starting_matrix = db.TextProperty()
+    #Ongoing disturbance rate (random temporary disturbance each generation in addition to the permanent disturbance on the starting matrix) (N=none, L=low, M=mid, H=high)
+    ongoing_disturbance = db.StringProperty()
 
 
 class ChooseMatrixSizePage(webapp.RequestHandler):
@@ -66,71 +96,147 @@ class ChooseMatrixSizePage(webapp.RequestHandler):
         self.response.out.write(self.form)
         self.response.out.write(page.footer)
 
+    #I hid the matrix parameters for simplicity.  The matrix will always be 50*50 stretching acrossed an entire region.  I left the parameters there in case I decide to change back later.
     form = """
         <form enctype="multipart/form-data" action="/matrixform" method="post">
-        <p><b>Matrix size:</b> Specify the size of the community matrix in x,y dimensions.<br>
-        X size: <input type="text" name="x_size" value="10" maxlength="2" size="3"> &nbsp;&nbsp;
-        Y size: <input type="text" name="y_size" value="10" maxlength="2" size="3"><i> (1 - 50)</i></p>
-        <p><b>Matrix location:</b> Specify the region coordinates of the 0,0 (southwest) plant of the matrix.<br>
-        X location: <input type="text" name="x_location" value="128" maxlength="5" size="5"> &nbsp;&nbsp;
-        Y location: <input type="text" name="y_location" value="128" maxlength="5" size="5"><i> (0 - 256.0)</i></p>
-        <p><b>Plant spacing:</b> Specify the distance between adjacent plants in the matrix.<br>
-        Spacing: <input type="text" name="spacing" value="1" maxlength="4" size="4"><i> (0 - 20.0)</i></p>
+        <p><b>Modify disturbance settings only:</b> Check this box to only modify the disturbance settings.  Any other changes to the form will be ignored.<br>
+        Disturbance only:<input name="disturbance_only" type="checkbox"></p>
+        <input type="hidden" name="x_size" value="50" maxlength="2" size="3">
+        <input type="hidden" name="y_size" value="50" maxlength="2" size="3">
+        <input type="hidden" name="x_location" value="5" maxlength="5" size="5">
+        <input type="hidden" name="y_location" value="5" maxlength="5" size="5">
+        <input type="hidden" name="spacing" value="5" maxlength="4" size="4">
         <p><b>Community appearance:</b> Specify whether the community should appear natural (plants randomly placed near the coordinates) or crop-like (plants placed exactly on the matrix coordinates).  This does not effect the simulation results - only the appearance.<br>
         Natural: <input name="natural" checked="checked" type="checkbox"></p>
+        <p><b>Terrain map:</b> Select the terrain<br>
+        <input type="radio" name="terrain" value="0" checked><img src="/images/FS23map.jpg" height="100" width="100" />&nbsp;&nbsp;</p>
+        <p><b>Soil salinity map:</b> Select the pattern of soil salinity on the landscape<br>
+        <input type="radio" name="salinity" value="0" checked><img src="/images/SoilXmap.jpg" height="100" width="100" />&nbsp;&nbsp;
+        <input type="radio" name="salinity" value="1"><img src="/images/SoilYmap.jpg" height="100" width="100" />&nbsp;&nbsp;
+        <input type="radio" name="salinity" value="2"><img src="/images/SoilZmap.jpg" height="100" width="100" />&nbsp;&nbsp;</p>
+        <p><b>Soil drainage map:</b> Select the pattern of soil drainage on the landscape<br>
+        <input type="radio" name="drainage" value="0"><img src="/images/SoilXmap.jpg" height="100" width="100" />&nbsp;&nbsp;
+        <input type="radio" name="drainage" value="1" checked><img src="/images/SoilYmap.jpg" height="100" width="100" />&nbsp;&nbsp;
+        <input type="radio" name="drainage" value="2"><img src="/images/SoilZmap.jpg" height="100" width="100" />&nbsp;&nbsp;</p>
+        <p><b>Soil fertility map:</b> Select the pattern of soil fertility on the landscape<br>
+        <input type="radio" name="fertility" value="0" checked><img src="/images/SoilXmap.jpg" height="100" width="100" />&nbsp;&nbsp;
+        <input type="radio" name="fertility" value="1"><img src="/images/SoilYmap.jpg" height="100" width="100" />&nbsp;&nbsp;
+        <input type="radio" name="fertility" value="2" checked><img src="/images/SoilZmap.jpg" height="100" width="100" />&nbsp;&nbsp;</p>
         <input type="submit" value="Setup Matrix">
         </form>
         """
 
 class SetupMatrixPage(webapp.RequestHandler):
     def post(self):
+        self.disturbance_only = self.request.get('disturbance_only')
         self.x_size = self.request.get('x_size')
         self.y_size = self.request.get('y_size')
         self.x_location = self.request.get('x_location')
         self.y_location = self.request.get('y_location')
         self.spacing = self.request.get('spacing')
         self.natural = self.request.get('natural')
+        self.terrain = self.request.get('terrain')
+        self.salinity = self.request.get('salinity')
+        self.drainage = self.request.get('drainage')
+        self.fertility = self.request.get('fertility')
         page = HtmlPage()
         self.response.out.write(page.header)
         if (self.valid_inputs()):
             self.response.out.write(self.generate_form())
         else:
-            self.response.out.write("Error - matrix size out of range!")
+            self.response.out.write("Error - matrix settings out of range!")
         self.response.out.write(page.footer)
 
     form = """
         <form enctype="multipart/form-data" action="/created" method="post">
         """
 
-    plant_type_form = """
-        <p><b>Plant types:</b><br>
-        Specify the plant types to include in the community.</p>
-        """
-
-    plant_type_field = """
-        <b></b>%s) <select name="plant_code_%s">
-        <option value = "1">Pine1</option>
-        <option value = "2">Pine2</option>
-        <option value = "3">Pine3</option>
-        <option value = "4">Pine4</option>
-        <option value = "5">Oak</option>
-        <option value = "6">Bush1</option>
-        <option value = "7">Bush2</option>
-        <option value = "8">Palm1</option>
-        <option value = "9">Palm2</option>
-        <option value = "10">Dogwood</option>
-        <option value = "11">Cypress1</option>
-        <option value = "12">Cypress2</option>
-        <option value = "13">Plumeria</option>
-        <option value = "14">Aspen</option>
-        <option value = "15">Eucalyptus</option>
-        <option value = "16">Fern</option>
-        <option value = "17">Eelgrass</option>
-        <option value = "18">SeaSword</option>
-        <option value = "19">BeachGrass</option>
-        <option value = "20">Kelp1</option>
-        <option value = "21">Kelp2</option>
-        </select>&nbsp;&nbsp;
+    plant_data_form = """
+        <p><b>Plant type %s: </b></br>&nbsp;&nbsp;
+        <b>Appearance: </b>
+        <select name="plant_code_%s">
+            <option value = "1">Pine1</option>
+            <option value = "2">Pine2</option>
+            <option value = "3">Pine3</option>
+            <option value = "4">Pine4</option>
+            <option value = "5">Oak</option>
+            <option value = "6">Bush1</option>
+            <option value = "7">Bush2</option>
+            <option value = "8">Palm1</option>
+            <option value = "9">Palm2</option>
+            <option value = "10">Dogwood</option>
+            <option value = "11">Cypress1</option>
+            <option value = "12">Cypress2</option>
+            <option value = "13">Plumeria</option>
+            <option value = "14">Aspen</option>
+            <option value = "15">Eucalyptus</option>
+            <option value = "16">Fern</option>
+            <option value = "17">Eelgrass</option>
+            <option value = "18">SeaSword</option>
+            <option value = "19">BeachGrass</option>
+            <option value = "20">Kelp1</option>
+            <option value = "21">Kelp2</option>
+        </select>
+        <a href="/plants" target="_blank">View examples</a>
+        <br>&nbsp;&nbsp;
+        <b>Lifespan: </b>
+        <select name="lifespan_%s">
+            <option value = "S">Short</option>
+            <option value = "M">Medium</option>
+            <option value = "L">Long</option>
+        </select><br>&nbsp;&nbsp;
+        <b>Altitude- </b> Optimum:
+        <select name="altitude_optimum_%s">
+            <option value = "L">Low</option>
+            <option value = "M">Mid</option>
+            <option value = "H">High</option>
+        </select>&nbsp;&nbsp;&nbsp;&nbsp;
+        Effect:
+        <select name="altitude_effect_%s">
+            <option value = "N">None</option>
+            <option value = "L">Low</option>
+            <option value = "M">Mid</option>
+            <option value = "H">High</option>
+        </select><br>&nbsp;&nbsp;
+        <b>Salinity- </b> Optimum:
+        <select name="salinity_optimum_%s">
+            <option value = "L">Low</option>
+            <option value = "M">Mid</option>
+            <option value = "H">High</option>
+        </select>&nbsp;&nbsp;&nbsp;&nbsp;
+        Effect:
+        <select name="salinity_effect_%s">
+            <option value = "N">None</option>
+            <option value = "L">Low</option>
+            <option value = "M">Mid</option>
+            <option value = "H">High</option>
+        </select><br>&nbsp;&nbsp;
+        <b>Drainage- </b> Optimum:
+        <select name="drainage_optimum_%s">
+            <option value = "L">Low</option>
+            <option value = "M">Mid</option>
+            <option value = "H">High</option>
+        </select>&nbsp;&nbsp;&nbsp;&nbsp;
+        Effect:
+        <select name="drainage_effect_%s">
+            <option value = "N">None</option>
+            <option value = "L">Low</option>
+            <option value = "M">Mid</option>
+            <option value = "H">High</option>
+        </select><br>&nbsp;&nbsp;
+        <b>Fertility- </b> Optimum:
+        <select name="fertility_optimum_%s">
+            <option value = "L">Low</option>
+            <option value = "M">Mid</option>
+            <option value = "H">High</option>
+        </select>&nbsp;&nbsp;&nbsp;&nbsp;
+        Effect:
+        <select name="fertility_effect_%s">
+            <option value = "N">None</option>
+            <option value = "L">Low</option>
+            <option value = "M">Mid</option>
+            <option value = "H">High</option>
+        </select><br>
         """
 
     replacement_matrix_form = """
@@ -145,7 +251,7 @@ class SetupMatrixPage(webapp.RequestHandler):
     community_matrix_form = """
     <p><b>Starting Community Matrix</b><br>
     Specify the initial plant type to place at each position of the community matrix.<br>
-    <i>(R = randomly selected, N = Permanent gap, 0 = Temporary gap)</i></p>
+    <i>(R = randomly selected, N = Permanently disturbed area, 0 = Temporary gap)</i></p>
     """
 
     community_matrix_field = """
@@ -169,25 +275,33 @@ class SetupMatrixPage(webapp.RequestHandler):
         assembled_form += self.form
         assembled_form += """<input type="submit" value="Submit">"""
         # Plant type form section
-        assembled_form += self.plant_type_form
+        #assembled_form += self.plant_type_form
         for i in range(1,6):
-            assembled_form += self.plant_type_field % (i, i)
+            assembled_form += self.plant_data_form % (i, i, i, i, i, i, i, i, i, i, i)
         assembled_form += """</p>"""
         # Replacement matrix form section
         assembled_form += self.replacement_matrix_form
-        for row in range(6):
+        for row in range(1,6):
             assembled_row = """<tr>"""
             if (row == 3):
                 assembled_row += """<td><b> B &nbsp;&nbsp;&nbsp;</b></td><th> %s </th>""" % row
             else:
                 assembled_row += """<td></td><th> %s </th>""" % row
             for  column in range(6):
-                if (row == column):
-                    assembled_row += """<td></td>"""
-                else:
-                    assembled_row += """<td><input type="text" name="replace_%s_%s" value="0.5" maxlength="4" size="4"></td>""" % (row, column)
+                assembled_row += """<td><select name="replace_%s_%s">
+                                        <option value = "L">Low</option>
+                                        <option value = "M">Mid</option>
+                                        <option value = "H">High</option>
+                                    </select></td>""" % (row, column)
             assembled_form += assembled_row + """</tr>"""
         assembled_form += """</table></p>"""
+        assembled_form += """<p><b>Ongoing disturbance rate: <b>
+                             <select name="ongoing_disturbance">
+                                <option value = "N">None</option>
+                                <option value = "L">Low</option>
+                                <option value = "M">Mid</option>
+                                <option value = "H">High</option>
+                            </select>"""
         # Community matrix form section
         assembled_form += self.community_matrix_form
         for y in range(int(self.y_size) - 1, -1, -1):
@@ -196,13 +310,18 @@ class SetupMatrixPage(webapp.RequestHandler):
             assembled_form += """<br>"""
         # Pass along items from the first form page
         assembled_form += """
+            <input type="hidden" name="disturbance_only" value="%s">
             <input type="hidden" name="x_size" value="%s">
             <input type="hidden" name="y_size" value="%s">
             <input type="hidden" name="x_location" value="%s">
             <input type="hidden" name="y_location" value="%s">
             <input type="hidden" name="spacing" value="%s">
             <input type="hidden" name="natural" value="%s">
-            """ % (self.x_size, self.y_size, self.x_location, self.y_location, self.spacing, self.natural)
+            <input type="hidden" name="terrain" value="%s">
+            <input type="hidden" name="salinity" value="%s">
+            <input type="hidden" name="drainage" value="%s">
+            <input type="hidden" name="fertility" value="%s">
+            """ % (self.disturbance_only, self.x_size, self.y_size, self.x_location, self.y_location, self.spacing, self.natural, self.terrain, self.salinity, self.drainage, self.fertility)
         assembled_form += """</p><input type="submit" value="Submit"></div></form>"""
         return assembled_form
 
@@ -238,56 +357,59 @@ class CreateCommunityRecord(webapp.RequestHandler):
     def post(self):
         page = HtmlPage()
         self.response.out.write(page.header)
-        if (self.valid_input()):
-            self.id = str(int(time.time()))
-            self.store_record()
-            self.response.out.write(self.success_output % self.id)
-        else:
-            self.response.out.write('Error - Invalid replacement values or no plant types specified!')
+        self.id = str(int(time.time()))
+        self.store_record()
+        self.response.out.write(self.success_output % self.id)
         self.response.out.write(page.footer)
-
-    def valid_input(self):
-        for x in range(6):
-            for y in range(6):
-                if (x != y):
-                    test_value = self.request.get('replace_%s_%s' % (x, y))
-                    try:
-                        test_value = float(test_value)
-                    except:
-                        return False
-                    if ((test_value < 0.0) or (test_value > 1.0)):
-                        return False
-        return True
 
     def store_record(self):
         # Get a db record instance to hold the form data
         record = MeadowRecordObject()
         # Store a timestamp as the record id
         record.id = self.id
-        # Store the matrix xy sizes, position, spacing, and appearance
-        x_size = int(self.request.get('x_size'))
-        y_size = int(self.request.get('y_size'))
+        # Store the disturbance_only, matrix xy sizes, position, spacing, appearance, terrain, salinity, drainage, and fertility maps.
+        disturbance_only = self.request.get('disturbance_only')
+        if (disturbance_only == 'on'):
+            record.disturbance_only = 1
+        else:
+            record.disturbance_only = 0
+        record.x_size = int(self.request.get('x_size'))
+        record.y_size = int(self.request.get('y_size'))
+        record.x_location = float(self.request.get('x_location'))
+        record.y_location = float(self.request.get('y_location'))
+        record.spacing = float(self.request.get('spacing'))
         appearance = self.request.get('natural')
         if (appearance == "on"):
-            appearance = 1
+            record.natural = 1
         else:
-            appearance = 0
-        record.other_info = "%s,%s,%s,%s,%s,%s" % (x_size, y_size, self.request.get('x_location'), self.request.get('y_location'), self.request.get('spacing'), appearance)
+            record.natural = 0
+        record.terrain = int(self.request.get('terrain'))
+        record.salinity = int(self.request.get('salinity'))
+        record.drainage = int(self.request.get('drainage'))
+        record.fertility = int(self.request.get('fertility'))
+        record.ongoing_disturbance = self.request.get('ongoing_disturbance')
         # Store the plant types
         record.plant_types = '%s,%s,%s,%s,%s' % (self.request.get('plant_code_1'), self.request.get('plant_code_2'), self.request.get('plant_code_3'), self.request.get('plant_code_4'), self.request.get('plant_code_5'))
+        #Store the plant lifespans
+        record.lifespans = '%s,%s,%s,%s,%s' % (self.request.get('lifespan_1'), self.request.get('lifespan_2'), self.request.get('lifespan_3'), self.request.get('lifespan_4'), self.request.get('lifespan_5'))
+        #Store the environmental parameters
+        record.altitude_optimums = '%s,%s,%s,%s,%s' % (self.request.get('altitude_optimum_1'), self.request.get('altitude_optimum_2'), self.request.get('altitude_optimum_3'), self.request.get('altitude_optimum_4'), self.request.get('altitude_optimum_5'))
+        record.altitude_effects = '%s,%s,%s,%s,%s' % (self.request.get('altitude_effect_1'), self.request.get('altitude_effect_2'), self.request.get('altitude_effect_3'), self.request.get('altitude_effect_4'), self.request.get('altitude_effect_5'))
+        record.salinity_optimums = '%s,%s,%s,%s,%s' % (self.request.get('salinity_optimum_1'), self.request.get('salinity_optimum_2'), self.request.get('salinity_optimum_3'), self.request.get('salinity_optimum_4'), self.request.get('salinity_optimum_5'))
+        record.salinity_effects = '%s,%s,%s,%s,%s' % (self.request.get('salinity_effect_1'), self.request.get('salinity_effect_2'), self.request.get('salinity_effect_3'), self.request.get('salinity_effect_4'), self.request.get('salinity_effect_5'))
+        record.drainage_optimums = '%s,%s,%s,%s,%s' % (self.request.get('drainage_optimum_1'), self.request.get('drainage_optimum_2'), self.request.get('drainage_optimum_3'), self.request.get('drainage_optimum_4'), self.request.get('drainage_optimum_5'))
+        record.drainage_effects = '%s,%s,%s,%s,%s' % (self.request.get('drainage_effect_1'), self.request.get('drainage_effect_2'), self.request.get('drainage_effect_3'), self.request.get('drainage_effect_4'), self.request.get('drainage_effect_5'))
+        record.fertility_optimums = '%s,%s,%s,%s,%s' % (self.request.get('fertility_optimum_1'), self.request.get('fertility_optimum_2'), self.request.get('fertility_optimum_3'), self.request.get('fertility_optimum_4'), self.request.get('fertility_optimum_5'))
+        record.fertility_effects = '%s,%s,%s,%s,%s' % (self.request.get('fertility_effect_1'), self.request.get('fertility_effect_2'), self.request.get('fertility_effect_3'), self.request.get('fertility_effect_4'), self.request.get('fertility_effect_5'))
         # Store the replacement probabilities
         replacement_strings = {}
-        for x in range(6):
+        for x in range(1,6):
             row_string = ""
             for y in range(6):
-                if (x != y):
-                    row_string += self.request.get('replace_%s_%s' % (x, y))
-                else:
-                    row_string += '0'
+                row_string += self.request.get('replace_%s_%s' % (x, y))
                 if (y < 5):
                     row_string += ','
             replacement_strings[str(x)] = row_string
-        record.replacement_0 = replacement_strings['0']
         record.replacement_1 = replacement_strings['1']
         record.replacement_2 = replacement_strings['2']
         record.replacement_3 = replacement_strings['3']
@@ -295,8 +417,8 @@ class CreateCommunityRecord(webapp.RequestHandler):
         record.replacement_5 = replacement_strings['5']
         # Store the community matrix
         matrix_string = ""
-        for y in range(y_size):
-            for x in range(x_size):
+        for y in range(record.y_size):
+            for x in range(record.x_size):
                 matrix_string += self.request.get('community_%s_%s' % (x, y))
         record.starting_matrix = matrix_string
         record.put()
@@ -304,26 +426,69 @@ class CreateCommunityRecord(webapp.RequestHandler):
 
 class GetCommunityRecord(webapp.RequestHandler):
     def get(self):
-        # Don't write any html header or footer info.  Just serve up the raw data.
         data = db.GqlQuery("SELECT * FROM MeadowRecordObject WHERE id=:1", self.request.get('id'))
-        self.response.out.write(data[0].other_info + '<br>\n')
-        self.response.out.write(data[0].plant_types + '<br>\n')
-        self.response.out.write(data[0].replacement_0 + '<br>\n')
-        self.response.out.write(data[0].replacement_1 + '<br>\n')
-        self.response.out.write(data[0].replacement_2 + '<br>\n')
-        self.response.out.write(data[0].replacement_3 + '<br>\n')
-        self.response.out.write(data[0].replacement_4 + '<br>\n')
-        self.response.out.write(data[0].replacement_5 + '<br>\n')
-        other_info = data[0].other_info.split(',')
-        x_size = int(other_info[0])
-        y_size = int(other_info[1])
-        for y in range(y_size):
-            line_index = y * x_size
-            output_line = data[0].starting_matrix[line_index:line_index + x_size]
-            self.response.out.write(output_line + '<br>\n')
+        self.response.out.write(data[0].to_xml())
 
 
-application = webapp.WSGIApplication([('/', ChooseMatrixSizePage), ('/matrixform', SetupMatrixPage), ('/created', CreateCommunityRecord),('/data', GetCommunityRecord)], debug=True)
+class ShowPlantPicturesPage(webapp.RequestHandler):
+    def get(self):
+        page = HtmlPage()
+        self.response.out.write(page.header)
+        picture_table = """
+            <table border="0"><tbody>
+                <tr>
+                    <th>Pine1</th><th>Pine2</th><th>Pine3</th><th>Pine4</th><th>Oak</th>
+                </tr>
+                <tr>
+                    <td><img src="/images/Pine1.png" height="100" width="125"/></td>
+                    <td><img src="/images/Pine2.png" height="100" width="125"/></td>
+                    <td><img src="/images/Pine3.png" height="100" width="125"/></td>
+                    <td><img src="/images/Pine4.png" height="100" width="125"/></td>
+                    <td><img src="/images/Oak.png" height="100" width="125"/></td>
+                </tr><tr><td><br></td></tr>
+                <tr>
+                    <th>Bush1</th><th>Bush2</th><th>Palm1</th><th>Palm2</th><th>Dogwood</th>
+                </tr>
+                <tr>
+                    <td><img src="/images/Bush1.png" height="100" width="125"/></td>
+                    <td><img src="/images/Bush2.png" height="100" width="125"/></td>
+                    <td><img src="/images/Palm1.png" height="100" width="125"/></td>
+                    <td><img src="/images/Palm2.png" height="100" width="125"/></td>
+                    <td><img src="/images/Dogwood.png" height="100" width="125"/></td>
+                </tr><tr><td><br></td></tr>
+                <tr>
+                    <th>Cypress1</th><th>Cypress2</th><th>Plumeria</th><th>Aspen</th><th>Eucalyptus</th>
+                </tr>
+                <tr>
+                    <td><img src="/images/Cypress1.png" height="100" width="125"/></td>
+                    <td><img src="/images/Cypress2.png" height="100" width="125"/></td>
+                    <td><img src="/images/Plumeria.png" height="100" width="125"/></td>
+                    <td><img src="/images/Aspen.png" height="100" width="125"/></td>
+                    <td><img src="/images/Eucalyptus.png" height="100" width="125"/></td>
+                </tr><tr><td><br></td></tr>
+                <tr>
+                    <th>Fern</th><th>Eelgrass</th><th>Seasword</th><th>Beachgrass</th><th>Kelp1</th>
+                </tr>
+                <tr>
+                    <td><img src="/images/Fern.png" height="100" width="125"/></td>
+                    <td><img src="/images/Eelgrass.png" height="100" width="125"/></td>
+                    <td><img src="/images/Seasword.png" height="100" width="125"/></td>
+                    <td><img src="/images/Beachgrass.png" height="100" width="125"/></td>
+                    <td><img src="/images/Kelp1.png" height="100" width="125"/></td>
+                </tr><tr><td><br></td></tr>
+                <tr>
+                    <th>Kelp2</th>
+                </tr>
+                <tr>
+                    <td><img src="/images/Kelp2.png" height="100" width="125"/></td>
+                </tr>
+            </tbody></table>
+            """
+        self.response.out.write(picture_table)
+        self.response.out.write(page.footer)
+
+
+application = webapp.WSGIApplication([('/', ChooseMatrixSizePage), ('/matrixform', SetupMatrixPage), ('/created', CreateCommunityRecord),('/data', GetCommunityRecord),('/plants', ShowPlantPicturesPage)], debug=True)
 
 def main():
     run_wsgi_app(application)
