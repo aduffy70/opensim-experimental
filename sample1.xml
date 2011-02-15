@@ -1,147 +1,32 @@
-<?xml version="1.0" encoding="UTF-8"?>
-
-<disturbanceonly>1</disturbanceonly>
-
-<xcells>50</xcells>
-<ycells>50</ycells>
-
-<xstart>30</xstart>
-<ystart>30</ystart>
-
-<spacing>4</spacing>
-
-<croplike>0</croplike>
-
-<terrainmap>0</terrainmap>
-<salinitymap>1</salinitymap>
-<drainagemap>0</drainagemap>
-<fertilitymap>2</fertilitymap>
-
-<allspecies>
-    <species>
-        <type>1</type>
-        <agemaximum>M</agemaximum>
-        <altitudeopt>L</altitudeopt>
-        <altitudeshape>N</altitudeshape>
-        <salinityopt>H</salinityopt>
-        <salinityshape>M</salinityshape>
-        <drainageopt>M</drainageopt>
-        <drainageshape>L</drainageshape>
-        <fertilityopt>H</fertilityopt>
-        <fertilityshape>H</fertilityshape>
-    </species>
-        <species>
-        <type>12</type>
-        <agemaximum>M</agemaximum>
-        <altitudeopt>L</altitudeopt>
-        <altitudeshape>N</altitudeshape>
-        <salinityopt>H</salinityopt>
-        <salinityshape>M</salinityshape>
-        <drainageopt>M</drainageopt>
-        <drainageshape>L</drainageshape>
-        <fertilityopt>H</fertilityopt>
-        <fertilityshape>H</fertilityshape>
-    </species>
-        <species>
-        <type>5</type>
-        <agemaximum>M</agemaximum>
-        <altitudeopt>L</altitudeopt>
-        <altitudeshape>N</altitudeshape>
-        <salinityopt>H</salinityopt>
-        <salinityshape>M</salinityshape>
-        <drainageopt>M</drainageopt>
-        <drainageshape>L</drainageshape>
-        <fertilityopt>H</fertilityopt>
-        <fertilityshape>H</fertilityshape>
-    </species>
-        <species>
-        <type>16</type>
-        <agemaximum>M</agemaximum>
-        <altitudeopt>L</altitudeopt>
-        <altitudeshape>N</altitudeshape>
-        <salinityopt>H</salinityopt>
-        <salinityshape>M</salinityshape>
-        <drainageopt>M</drainageopt>
-        <drainageshape>L</drainageshape>
-        <fertilityopt>H</fertilityopt>
-        <fertilityshape>H</fertilityshape>
-    </species>
-        <species>
-        <type>18</type>
-        <agemaximum>M</agemaximum>
-        <altitudeopt>L</altitudeopt>
-        <altitudeshape>N</altitudeshape>
-        <salinityopt>H</salinityopt>
-        <salinityshape>M</salinityshape>
-        <drainageopt>M</drainageopt>
-        <drainageshape>L</drainageshape>
-        <fertilityopt>H</fertilityopt>
-        <fertilityshape>H</fertilityshape>
-    </species>
-</allspecies>
-
-<replacementrows>
-    <replacementrow>H,L,L,L,M,L</replacementrow>
-    <replacementrow>H,L,L,L,M,L</replacementrow>
-    <replacementrow>H,L,L,L,M,L</replacementrow>
-    <replacementrow>H,L,L,L,M,L</replacementrow>
-    <replacementrow>H,L,L,L,M,L</replacementrow>
-</replacementrows>
-
-<disturbanceonly>1</disturbanceonly>
-
-<ongoingdisturbance>L</ongoingdisturbance>
-
-<plantrows>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>NNNNNNNNNNRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>NNNNNNNNNNRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>NNNNNNNNNNRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>NNNNNNNNNNRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-    <plantrow>NNNNNNNNNNRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</plantrow>
-</plantrows>
-
+<entity kind="MeadowRecordObject" key="agl2bWVhZG93Z2FyGAsSEk1lYWRvd1JlY29yZE9iamVjdBgXDA"> 
+  <key>tag:vmeadowga.gmail.com,2011-02-14:MeadowRecordObject[agl2bWVhZG93Z2FyGAsSEk1lYWRvd1JlY29yZE9iamVjdBgXDA]</key> 
+  <property name="altitude_effects" type="string">N,N,N,N,N</property> 
+  <property name="altitude_optimums" type="string">L,L,L,L,L</property> 
+  <property name="disturbance_only" type="int">0</property> 
+  <property name="drainage" type="int">1</property> 
+  <property name="drainage_effects" type="string">N,N,N,N,N</property> 
+  <property name="drainage_optimums" type="string">L,L,L,L,L</property> 
+  <property name="fertility" type="int">2</property> 
+  <property name="fertility_effects" type="string">N,N,N,N,N</property> 
+  <property name="fertility_optimums" type="string">L,L,L,L,L</property> 
+  <property name="id" type="string">1297726681</property> 
+  <property name="lifespans" type="string">S,S,S,S,S</property> 
+  <property name="natural" type="int">1</property> 
+  <property name="ongoing_disturbance" type="string">N</property> 
+  <property name="plant_types" type="string">1,1,1,1,1</property> 
+  <property name="replacement_1" type="string">L,L,L,L,L,L</property> 
+  <property name="replacement_2" type="string">L,L,L,L,L,L</property> 
+  <property name="replacement_3" type="string">L,L,L,L,L,L</property> 
+  <property name="replacement_4" type="string">L,L,L,L,L,L</property> 
+  <property name="replacement_5" type="string">L,L,L,L,L,L</property> 
+  <property name="salinity" type="int">0</property> 
+  <property name="salinity_effects" type="string">N,N,N,N,N</property> 
+  <property name="salinity_optimums" type="string">L,L,L,L,L</property> 
+  <property name="spacing" type="float">5.0</property> 
+  <property name="starting_matrix" type="text">RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR</property> 
+  <property name="terrain" type="int">0</property> 
+  <property name="x_location" type="float">5.0</property> 
+  <property name="x_size" type="int">50</property> 
+  <property name="y_location" type="float">5.0</property> 
+  <property name="y_size" type="int">50</property> 
+</entity> 
