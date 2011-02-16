@@ -30,6 +30,8 @@ using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Timers;
+using System.Xml;
+using System.Collections.Generic;
 
 using log4net;
 using Nini.Config;
@@ -93,16 +95,24 @@ namespace vMeadowModule
                                                        {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f}};
 
         //TODO: These need to come from the webtool!
-        int[] m_ageMaximum = new int[6] {0, 20, 20, 20, 20, 20}; //Maximum age for each species
+        int[] m_lifespans = new int[6] {0, 20, 20, 20, 20, 20}; //Maximum age for each species
         //Optimal values and shape parameters for each species
-        float[] m_altitudeOptimal = new float[6] {0f, 20f, 20f, 20f, 20f, 20f};
-        float[] m_altitudeShape = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
-        float[] m_salinityOptimal = new float[6] {0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-        float[] m_salinityShape = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
-        float[] m_drainageOptimal = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
-        float[] m_drainageShape = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
-        float[] m_fertilityOptimal = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
-        float[] m_fertilityShape = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_altitudeOptimums = new float[6] {0f, 20f, 20f, 20f, 20f, 20f};
+        float[] m_altitudeEffects = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_salinityOptimums = new float[6] {0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+        float[] m_salinityEffects = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_drainageOptimums = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_drainageEffects = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_fertilityOptimums = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_fertilityEffects = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        bool m_disturbanceOnly = false;
+        float m_ongoingDisturbanceRate = 0.0f;
+        string m_simulationId = "defaults";
+        //TODO: These map values are being read from the webform but we aren't using them for anything
+        int m_terrainMap = 0;
+        int m_salinityMap = 0;
+        int m_drainageMap = 0;
+        int m_fertilityMap = 0;
 
         int m_currentGeneration = 0; //The currently displayed generation
         bool m_isReverse = false; //Whether we are stepping backward through the simulation
@@ -875,104 +885,169 @@ namespace vMeadowModule
 
         bool ReadConfigs(string url)
         {
-            //Read configuration data from a url.  This works with the vMeadowGA google app.
-            //TODO: Split this function up into separate steps: Read data, parse data, generate starting matrix.
-            //TODO: Could I import easier using xml instead of raw text? It would make the parsing easier as I start having webforms to change only part of the configs at a time.
-            string[] configInfo = new string[58];
+            //Conversion tables for the "None", "Low", "Mid", "High" values on the webform
+            //TODO: Should these be global?
+            //Log("Entered ReadConfigs()"); //DEBUG
+            Dictionary<string, float> convertReplacement = new Dictionary<string, float>(){
+                {"N", 0.0f}, {"L", 0.1f}, {"M", 0.25f}, {"H", 0.5f}};
+            Dictionary<string, int> convertLifespans = new Dictionary<string, int>(){
+                {"S", 1}, {"M", 10}, {"L", 25}};
+            Dictionary<string, float> convertAltitudeOptimums = new Dictionary<string, float>(){
+                {"L", 20.0f}, {"M", 35.0f}, {"H", 50.0f}};
+            Dictionary<string, float> convertAltitudeEffects = new Dictionary<string, float>(){
+                {"N", 0.0f}, {"L", 0.5f}, {"M", 1.0f}, {"H", 2.0f}};
+            Dictionary<string, float> convertSoilOptimums = new Dictionary<string, float>(){
+                {"L", 0.0f}, {"M", 0.5f}, {"H", 1.0f}};
+            Dictionary<string, float> convertSoilEffects = new Dictionary<string, float>(){
+                {"N", 0.0f}, {"L", 0.1f}, {"M", 0.5f}, {"H", 1.0f}};
+            Dictionary<string, float> convertOngoingDisturbance = new Dictionary<string, float>(){
+                {"N", 0.0f}, {"L", 0.0001f}, {"M", 0.01f}, {"H", 0.1f}};
+            //Read configuration data from a url.  This works with the vMeadowGA google app version2 (the xml version).
             WebRequest configUrl = WebRequest.Create(url);
+            //Log("Sent WebRequest"); //DEBUG
             AlertAndLog(String.Format("Reading data from url.  This may take a minute..."));
             try
             {
-                StreamReader urlData = new StreamReader(configUrl.GetResponse().GetResponseStream());
-                string line;
-                int lineCount = 0;
-                while ((line = urlData.ReadLine()) != null)
+                //Read the xml data from the webform into a dictionary of parameters
+                Dictionary<string, string> newParameters = new Dictionary<string, string>();
+                XmlTextReader reader = new XmlTextReader(url);
+                reader.WhitespaceHandling = WhitespaceHandling.Significant;
+                while (reader.Read())
                 {
-                    //Chop off the <br> at the end of the line
-                    //TODO: What if there is not <br>? The <br> is only there for human readability of the webapp output and if I generate the files some other way it would not be necessary
-                    configInfo[lineCount] = line.Substring(0, line.LastIndexOf("<"));
-                    lineCount++;
-                }
-                //Parse the data
-                //Size, position, and spacing of the community matrix
-                string[] matrixInfo = new string[6];
-                matrixInfo = configInfo[0].Split(',');
-                m_xCells = Int32.Parse(matrixInfo[0]);
-                m_yCells = Int32.Parse(matrixInfo[1]);
-                m_xPosition = float.Parse(matrixInfo[2]);
-                m_yPosition = float.Parse(matrixInfo[3]);
-                m_cellSpacing = float.Parse(matrixInfo[4]);
-                //Natural or crop-like appearance
-                if (matrixInfo[5] == "1")
-                {
-                    m_naturalAppearance = true;
-                }
-                else
-                {
-                    m_naturalAppearance = false;
-                }
-                //Which 5 species to include in the community
-                string[] plants = new string[5];
-                plants = configInfo[1].Split(',');
-                for (int i = 1; i<6; i++) //Start at index 1 so index 0 stays "None" to represent gaps
-                {
-                    m_communityMembers[i] = Int32.Parse(plants[i - 1]);
-                }
-                //Replacement probabilities
-                //TODO: make this 5 rows instead of 6 because the first row should always be zeros.  We don't allow for a gap to replace a plant through competition so we shouldn't be letting them enter anything in the first row on the webform either.  Currently anything they enter there ends up in the probabilities table here but is ignored later.
-                for (int i=0; i<6; i++)
-                {
-                    string[] probabilities = new string[6];
-                    probabilities = configInfo[i + 2].Split(',');
-                    for(int j=0; j<6; j++)
+                    if (reader.Name == "property")
                     {
-                        m_replacementMatrix[i,j] = float.Parse(probabilities[j]);
+
+                        string parameterName = reader.GetAttribute("name");
+                        string parameterValue = reader.ReadString();
+                        newParameters.Add(parameterName, parameterValue);
                     }
                 }
-                m_cellStatus = new int[m_generations, m_xCells, m_yCells];
-                m_totalSpeciesCounts = new int[m_generations, 6];
-                m_coordinates = new Vector3[m_xCells, m_yCells];
-                for (int y=0; y<m_yCells; y++)
-                {
-                    char[] startingPlants = new char[m_xCells];
-                    startingPlants = configInfo[y + 8].ToCharArray();
-                    for (int x=0; x<m_xCells; x++)
+                //Log("Read XML to Dictionary"); //DEBUG
+                //foreach(var pair in newParameters) //DEBUG
+                //{ //DEBUG
+                //    Log(pair.Key + " " + pair.Value); //DEBUG
+                //}  //DEBUG
+                if (newParameters["disturbance_only"] == "1")
                     {
-                        float xRandomOffset = 0;
-                        float yRandomOffset = 0;
-                        if (m_naturalAppearance)
+                        m_disturbanceOnly = true;
+                    }
+                    else
+                    {
+                        m_disturbanceOnly = false;
+                    }
+                if (m_disturbanceOnly == false)
+                {
+                    //Log("Not DisturbanceOnly"); //DEBUG
+                    //Store all parameters
+                    //Matrix parameters
+                    m_simulationId = newParameters["id"]; //TODO: Display this on vpcHUD
+                    m_xCells = Int32.Parse(newParameters["x_size"]);
+                    m_yCells = Int32.Parse(newParameters["y_size"]);
+                    m_xPosition = float.Parse(newParameters["x_location"]);
+                    m_yPosition = float.Parse(newParameters["y_location"]);
+                    m_cellSpacing = float.Parse(newParameters["spacing"]);
+                    if (newParameters["natural"] == "1")
+                    {
+                        m_naturalAppearance = true;
+                    }
+                    else
+                    {
+                        m_naturalAppearance = false;
+                    }
+                    m_terrainMap = Int32.Parse(newParameters["terrain"]);
+                    m_salinityMap = Int32.Parse(newParameters["salinity"]);
+                    m_drainageMap = Int32.Parse(newParameters["drainage"]);
+                    m_fertilityMap = Int32.Parse(newParameters["fertility"]);
+                    //Log("Stored matrix parameters"); //DEBUG
+                    //Plant characteristics parameters
+                    string[] communityMembers = newParameters["plant_types"].Split(',');
+                    string[] lifespans = newParameters["lifespans"].Split(',');
+                    string[] altitudeOptimums = newParameters["altitude_optimums"].Split(',');
+                    string[] altitudeEffects = newParameters["altitude_effects"].Split(',');
+                    string[] salinityOptimums = newParameters["salinity_optimums"].Split(',');
+                    string[] salinityEffects = newParameters["salinity_effects"].Split(',');
+                    string[] drainageOptimums = newParameters["drainage_optimums"].Split(',');
+                    string[] drainageEffects = newParameters["drainage_effects"].Split(',');
+                    string[] fertilityOptimums = newParameters["fertility_optimums"].Split(',');
+                    string[] fertilityEffects = newParameters["fertility_effects"].Split(',');
+                    for (int i = 1; i<6; i++) //Start at index 1 so index 0 stays "None" to represent gaps
+                    {
+                        m_communityMembers[i] = Int32.Parse(communityMembers[i - 1]);
+                        m_lifespans[i] = convertLifespans[lifespans[i-1]];
+                        m_altitudeOptimums[i] = convertAltitudeOptimums[altitudeOptimums[i-1]];
+                        m_altitudeEffects[i] = convertAltitudeEffects[altitudeEffects[i-1]];
+                        m_salinityOptimums[i] = convertSoilOptimums[salinityOptimums[i-1]];
+                        m_salinityEffects[i] = convertSoilEffects[salinityEffects[i-1]];
+                        m_drainageOptimums[i] = convertSoilOptimums[drainageOptimums[i-1]];
+                        m_drainageEffects[i] = convertSoilEffects[drainageEffects[i-1]];
+                        m_fertilityOptimums[i] = convertSoilOptimums[fertilityOptimums[i-1]];
+                        m_fertilityEffects[i] = convertSoilEffects[fertilityEffects[i-1]];
+                    }
+                    //Log("Stored plant characteristics"); //DEBUG
+                    //Replacement probability parameters
+                    for (int i=1; i<6; i++) //Start at index 1 so the gap replacement probabilities stay 0 (since gaps have no replacement probability)
+                    {
+                        string[] probabilities = newParameters["replacement_" + i.ToString()].Split(',');
+                        for(int j=0; j<6; j++)
                         {
-                            //Randomize around the matrix coordinates
-                            xRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
-                            yRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
+                            m_replacementMatrix[i,j] = convertReplacement[probabilities[j]];
                         }
-                        Vector3 position = new Vector3(m_xPosition + (x * m_cellSpacing) + xRandomOffset, m_yPosition + (y * m_cellSpacing) + yRandomOffset, 0.0f);
-                        //Only calculate ground level if the x,y position is within the region boundaries
-                        if ((position.X >= 0) && (position.X <= 256) && (position.Y >= 0) && (position.Y <=256))
+                    }
+                    //Log("Stored replacement matrix"); //DEBUG
+                    //Disturbance parameters and starting matrix
+                    m_ongoingDisturbanceRate = convertOngoingDisturbance[newParameters["ongoing_disturbance"]];
+                    char[] startingPlants = new char[m_xCells];
+                    startingPlants = newParameters["starting_matrix"].ToCharArray();
+                    m_cellStatus = new int[m_generations, m_xCells, m_yCells];
+                    m_totalSpeciesCounts = new int[m_generations, 6];
+                    m_coordinates = new Vector3[m_xCells, m_yCells];
+                    for (int y=0; y<m_yCells; y++)
+                    {
+                        for (int x=0; x<m_xCells; x++)
                         {
-                            position.Z = GroundLevel(position);
-                            //Store the coordinates so we don't have to do this again
-                            m_coordinates[x, y] = position;
-                            //Only assign a cellStatus if it is above water- otherwise -1 so no plant will ever be placed.
-                            if (position.Z >= WaterLevel(position))
+                            float xRandomOffset = 0;
+                            float yRandomOffset = 0;
+                            if (m_naturalAppearance)
                             {
-                                if (startingPlants[x] == 'R')
+                                //Randomize around the matrix coordinates
+                                xRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
+                                yRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
+                            }
+                            //TODO: We need to have loaded any new terrain file before doing this
+                            Vector3 position = new Vector3(m_xPosition + (x * m_cellSpacing) + xRandomOffset, m_yPosition + (y * m_cellSpacing) + yRandomOffset, 0.0f);
+                            //Only calculate ground level if the x,y position is within the region boundaries
+                            if ((position.X >= 0) && (position.X <= 256) && (position.Y >= 0) && (position.Y <=256))
+                            {
+                                position.Z = GroundLevel(position);
+                                //Store the coordinates so we don't have to do this again
+                                m_coordinates[x, y] = position;
+                                //Only assign a cellStatus if it is above water- otherwise -1 so no plant will ever be placed.
+                                if (position.Z >= WaterLevel(position))
                                 {
-                                    //Randomly select a plant type
-                                    int newSpecies = m_random.Next(6);
-                                    m_cellStatus[0, x, y] = newSpecies;
-                                    m_totalSpeciesCounts[0, newSpecies]++;
-                                }
-                                else if (startingPlants[x] == 'N')
-                                {
-                                    //There will never be a plant here
-                                    m_cellStatus[0, x, y] = -1;
+                                    int currentCell = (y * m_xCells) + x;
+                                    if (startingPlants[currentCell] == 'R')
+                                    {
+                                        //Randomly select a plant type
+                                        int newSpecies = m_random.Next(6);
+                                        m_cellStatus[0, x, y] = newSpecies;
+                                        m_totalSpeciesCounts[0, newSpecies]++;
+                                    }
+                                    else if (startingPlants[currentCell] == 'N')
+                                    {
+                                        //TODO: This needs to be handled differently.  There should be a permanentDisturbanceMap to store these and their cell status should be set to 0, not -1.  -1 should be just for underwater plants.  That way I can display the count of 0's as the gaps (both manmade and natural). The CalculateDisturbance function should use the permanentDisturbanceMap as a starting point and randomly generate temporary disturbance based on the ongoing disturbance rate.
+                                        //There will never be a plant here
+                                        m_cellStatus[0, x, y] = -1;
+                                    }
+                                    else
+                                    {
+                                        int newSpecies = Int32.Parse(startingPlants[currentCell].ToString());
+                                        m_cellStatus[0, x, y] = newSpecies;
+                                        m_totalSpeciesCounts[0, newSpecies]++;
+                                    }
                                 }
                                 else
                                 {
-                                    int newSpecies = Int32.Parse(startingPlants[x].ToString());
-                                    m_cellStatus[0, x, y] = newSpecies;
-                                    m_totalSpeciesCounts[0, newSpecies]++;
+                                    m_cellStatus[0, x, y] = -1;
                                 }
                             }
                             else
@@ -980,14 +1055,41 @@ namespace vMeadowModule
                                 m_cellStatus[0, x, y] = -1;
                             }
                         }
-                        else
+                    }
+                    m_totalActiveCells = m_totalSpeciesCounts[0, 0] + m_totalSpeciesCounts[0, 1] + m_totalSpeciesCounts[0, 2] + m_totalSpeciesCounts[0, 3] + m_totalSpeciesCounts[0, 4] + m_totalSpeciesCounts[0, 5]; //This count only changes when we load new parameters from the webform.
+                    AlertAndLog(String.Format("Read from \"{0}\".  Clearing all plants and generating a new community.  This may take a minute...", url));
+                }
+                else
+                {
+                    //Log("Disturbance Only"); //DEBUG
+                    //Store just the 'disturbance-related parameters
+                    m_ongoingDisturbanceRate = convertOngoingDisturbance[newParameters["ongoing_disturbance"]];
+                    char[] startingPlants = new char[m_xCells];
+                    startingPlants = newParameters["starting_matrix"].ToCharArray();
+                    for (int y=0; y<m_yCells; y++)
+                    {
+                        for (int x=0; x<m_xCells; x++)
                         {
-                            m_cellStatus[0, x, y] = -1;
+                            if (m_coordinates[x, y].Z >= WaterLevel(m_coordinates[x, y]))
+                            {
+                                //We only care about disturbances above water
+                                int currentCell = (y * m_xCells) + x;
+                                if (startingPlants[currentCell] == 'N')
+                                {
+                                    //TODO: This needs to be handled differently.  There should be a permanentDisturbanceMap to store these and their cell status should be set to 0, not -1.  -1 should be just for underwater plants.  That way I can display the count of 0's as the gaps (both manmade and natural). The CalculateDisturbance function should use the permanentDisturbanceMap as a starting point and randomly generate temporary disturbance based on the ongoing disturbance rate.
+                                    //There will never be a plant here
+                                    int oldCellStatus = m_cellStatus[0, x, y];
+                                    if (oldCellStatus != -1)
+                                    {
+                                        //Update the total species counts
+                                        m_totalSpeciesCounts[0, oldCellStatus]--;
+                                        m_cellStatus[0, x, y] = -1;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-                m_totalActiveCells = m_totalSpeciesCounts[0, 0] + m_totalSpeciesCounts[0, 1] + m_totalSpeciesCounts[0, 2] + m_totalSpeciesCounts[0, 3] + m_totalSpeciesCounts[0, 4] + m_totalSpeciesCounts[0, 5]; //This count only changes when we load new parameters from the webform.
-                AlertAndLog(String.Format("Read from \"{0}\".  Clearing all plants and generating a new community.  This may take a minute...", url));
                 return true;
             }
             catch
@@ -1104,13 +1206,13 @@ namespace vMeadowModule
             else
             {
                 //Generate a float from 0-1.0 representing the probability of survival based on plant age, and altitude
-                float ageHealth = CalculateAgeHealth(age, m_ageMaximum[species]);
-                float altitudeHealth = CalculateAltitudeHealth(coordinates.Z, m_altitudeOptimal[species], m_altitudeShape[species]);
+                float ageHealth = CalculateAgeHealth(age, m_lifespans[species]);
+                float altitudeHealth = CalculateAltitudeHealth(coordinates.Z, m_altitudeOptimums[species], m_altitudeEffects[species]);
                 //Get the soil values for the plant's coordinates and calculate a probability of survival based on those values
                 Vector3 soilType = GetSoilType(coordinates);
-                float salinityHealth = CalculateSoilHealth(soilType.X, m_salinityOptimal[species], m_salinityShape[species]);
-                float drainageHealth = CalculateSoilHealth(soilType.Y, m_drainageOptimal[species], m_drainageShape[species]);
-                float fertilityHealth = CalculateSoilHealth(soilType.Z, m_fertilityOptimal[species], m_fertilityShape[species]);
+                float salinityHealth = CalculateSoilHealth(soilType.X, m_salinityOptimums[species], m_salinityEffects[species]);
+                float drainageHealth = CalculateSoilHealth(soilType.Y, m_drainageOptimums[species], m_drainageEffects[species]);
+                float fertilityHealth = CalculateSoilHealth(soilType.Z, m_fertilityOptimums[species], m_fertilityEffects[species]);
                 //Overall survival probability is the product of these separate survival probabilities
                 float survivalProbability = ageHealth * altitudeHealth * salinityHealth * drainageHealth * fertilityHealth;
                 //Select a random float from 0-1.0.  Plant survives if random number <= probability of survival
