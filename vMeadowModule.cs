@@ -53,48 +53,46 @@ namespace vMeadowModule
         //Set up logging and dialog messages
         private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         IDialogModule m_dialogmod;
-        //Configurable settings
+
+        //Configurable settings (in vMeadow.ini only)
         bool m_enabled = false;
         int m_channel;  //Channel for chat commands
         int m_cycleTime; //Time in milliseconds between cycles
+        int m_generations; //Number of generations to simulate
+        string m_configPath; //Url path to community config settings
+        string m_logPath; //Local path to folder where logs will be stored
+        string m_instanceTag; //Unique identifier for logs from this region
+
+        //Configurable settings (in vMeadow.ini & vMeadowGA webform)
         float m_xPosition; //inworld x coordinate for the 0,0 cell position
         float m_yPosition;  //inworld y coordinate for the 0,0 cell position
         int m_xCells;
         int m_yCells;
-        int m_generations; //Number of generations to simulate
         float m_cellSpacing; //Space in meters between cell positions
         bool m_naturalAppearance; //Whether the plants are placed in neat rows or randomized a bit
-        string m_configPath; //Url path to community config settings
-        string m_logPath; //Local path to folder where logs will be stored
-        string m_instanceTag; //Unique identifier for logs from this region
-        SceneObjectGroup[,] m_prims; //list of objects managed by this module
-        int[,,] m_cellStatus; // plant type for each cell in each generation [gen,x,y]
-        string[] m_omvTrees = new string[22] {"None", "Pine1", "Pine2", "WinterPine1", "WinterPine2", "Oak", "TropicalBush1", "TropicalBush2", "Palm1", "Palm2", "Dogwood", "Cypress1", "Cypress2", "Plumeria", "WinterAspen", "Eucalyptus", "Fern", "Eelgrass", "SeaSword", "BeachGrass1", "Kelp1", "Kelp2"};
 
+        //Configurable settings (in vMeadowGA webform only)
+        int[,,] m_cellStatus; // plant type for each cell in each generation [gen,x,y]
         //int[] m_communityMembers = new int[6] {0, 1, 2, 5, 16, 18}; //Default plants to include in the community
         int[] m_communityMembers = new int[6] {0, 16, 17, 18, 19, 20}; //DEBUG- smaller plants
-        bool m_isRunning = false; //Keep track of whether the visualization is running
-        bool m_isSimulated = false; //Whether a simulation has been run.
-        Timer m_cycleTimer = new Timer(); //Timer to replace the region heartbeat
-        Timer m_pauseTimer = new Timer(); //Timer to delay trying to delete objects before the region has loaded completely
-        Scene m_scene;
-        Random m_random = new Random(); //A Random Class object to use throughout this module
-        //Replacement Matrix.  The probability of replacement of one species by a surrounding species.  Example [0,1] is the probability that species 1 will be replaced by species 0, if all 8 of species 1's neighbors are species 0.
+        //Replacement Matrix.  The probability of replacement of one species by a surrounding species.  Example [1,2] is the probability that species 2 will be replaced by species 1, if species 2 is entirely surrounded by species 1.
+        //NOTE: Row zero is always 0's and does not effect the simulation because gaps (species 0's) do not 'replace' plants.  Gaps occur when an individual dies due to its environment/age or through disturbance.  Row zero only exists to keep the array indexes meaningful (row index 1= species 1, row index 2 = species 2, etc).  Column zero IS significant.  It represents the probability that a species with colonize a gap if the gap is entirely surrounded by that species.
         /*//Values from Thorhallsdottir 1990 as presented by Silvertown et al 1992.
-        float[,] m_replacementMatrix = new float[6,6] {{0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 0.00f},
-                                                       {0.00f, 0.00f, 0.02f, 0.06f, 0.05f, 0.03f},
-                                                       {0.00f, 0.23f, 0.00f, 0.09f, 0.32f, 0.37f},
-                                                       {0.00f, 0.06f, 0.08f, 0.00f, 0.16f, 0.09f},
-                                                       {0.00f, 0.44f, 0.06f, 0.06f, 0.00f, 0.11f},
-                                                       {0.00f, 0.03f, 0.02f, 0.03f, 0.05f, 0.00f}};*/
-        float[,] m_replacementMatrix = new float[6,6] {{0f, 0f, 0f, 0f, 0f, 0f},
-                                                       {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
-                                                       {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
-                                                       {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
-                                                       {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
-                                                       {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f}};
-
-        //TODO: These need to come from the webtool!
+        float[,] m_replacementMatrix = new float[6,6] {
+            {0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 0.00f},
+            {0.00f, 0.00f, 0.02f, 0.06f, 0.05f, 0.03f},
+            {0.00f, 0.23f, 0.00f, 0.09f, 0.32f, 0.37f},
+            {0.00f, 0.06f, 0.08f, 0.00f, 0.16f, 0.09f},
+            {0.00f, 0.44f, 0.06f, 0.06f, 0.00f, 0.11f},
+            {0.00f, 0.03f, 0.02f, 0.03f, 0.05f, 0.00f}};
+        */
+        float[,] m_replacementMatrix = new float[6,6] {
+            {0f, 0f, 0f, 0f, 0f, 0f},
+            {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
+            {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
+            {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
+            {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
+            {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f}};
         int[] m_lifespans = new int[6] {0, 20, 20, 20, 20, 20}; //Maximum age for each species
         //Optimal values and shape parameters for each species
         float[] m_altitudeOptimums = new float[6] {0f, 20f, 20f, 20f, 20f, 20f};
@@ -114,6 +112,14 @@ namespace vMeadowModule
         int m_drainageMap = 0;
         int m_fertilityMap = 0;
 
+        SceneObjectGroup[,] m_prims; //list of objects managed by this module
+        string[] m_omvTrees = new string[22] {"None", "Pine1", "Pine2", "WinterPine1", "WinterPine2", "Oak", "TropicalBush1", "TropicalBush2", "Palm1", "Palm2", "Dogwood", "Cypress1", "Cypress2", "Plumeria", "WinterAspen", "Eucalyptus", "Fern", "Eelgrass", "SeaSword", "BeachGrass1", "Kelp1", "Kelp2"};
+        bool m_isRunning = false; //Keep track of whether the visualization is running
+        bool m_isSimulated = false; //Whether a simulation has been run.
+        Timer m_cycleTimer = new Timer(); //Timer to replace the region heartbeat
+        Timer m_pauseTimer = new Timer(); //Timer to delay trying to delete objects before the region has loaded completely
+        Scene m_scene;
+        Random m_random = new Random(); //A Random Class object to use throughout this module
         int m_currentGeneration = 0; //The currently displayed generation
         bool m_isReverse = false; //Whether we are stepping backward through the simulation
         int[,] m_displayedPlants; //Tracks the currently displayed plants
@@ -498,7 +504,7 @@ namespace vMeadowModule
         void CalculateStatistics(int generation, int lastVisualizedGeneration, bool needToLog)
         {
             //Generates data to send to the log and the hud.
-            //TODO: The logging should probably happen during the simulation, not during the visualization?
+            //NOTE: We could log every step during the simulation but by only logging the steps that are visualized, it forces the students to choose which steps they are interested in, involving them more in the data collection.  If they jump around in the visualization they will have data points out of order in the log, but learning to sort those out in a spreadsheet has some value.
             string[] hudString = new string[5];
             hudString[0] = String.Format("Generation: {0}", generation);
             hudString[1] = "Species";
@@ -506,10 +512,16 @@ namespace vMeadowModule
             hudString[3] = "Change";
             hudString[4] = "%";
             string logString = generation.ToString();
-            int totalPlants = m_totalActiveCells - m_totalSpeciesCounts[generation, 0];
-            for (int i=1; i<6; i++)
+            for (int i=0; i<6; i++)
             {
-                hudString[1] += "\n" + i;
+                if (i == 0)
+                {
+                    hudString[1] += "\ngap";
+                }
+                else
+                {
+                    hudString[1] += "\n" + i;
+                }
                 hudString[2] += "\n" + m_totalSpeciesCounts[generation, i];
                 int qtyChange = m_totalSpeciesCounts[generation, i] - m_totalSpeciesCounts[lastVisualizedGeneration, i];
                 string direction = "";
@@ -519,9 +531,9 @@ namespace vMeadowModule
                 }
                 hudString[3] += "\n" + direction + qtyChange;
                 float percent;
-                if (totalPlants > 0) //Avoid divide-by-zero errors
+                if (m_totalActiveCells > 0) //Avoid divide-by-zero errors
                 {
-                    percent = (float)(Math.Round((double)((m_totalSpeciesCounts[generation, i] / (float)totalPlants) * 100), 1));
+                    percent = (float)(Math.Round((double)((m_totalSpeciesCounts[generation, i] / (float)m_totalActiveCells) * 100), 1));
                 }
                 else
                 {
@@ -886,7 +898,6 @@ namespace vMeadowModule
         bool ReadConfigs(string url)
         {
             //Conversion tables for the "None", "Low", "Mid", "High" values on the webform
-            //TODO: Should these be global?
             //Log("Entered ReadConfigs()"); //DEBUG
             Dictionary<string, float> convertReplacement = new Dictionary<string, float>(){
                 {"N", 0.0f}, {"L", 0.1f}, {"M", 0.25f}, {"H", 0.5f}};
