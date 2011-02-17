@@ -73,6 +73,7 @@ namespace vMeadowModule
 
         //Configurable settings (in vMeadowGA webform only)
         int[,,] m_cellStatus; // plant type for each cell in each generation [gen,x,y]
+        bool[,] m_permanentDisturbanceMap; //Whether each cell is marked as permanently disturbed
         //int[] m_communityMembers = new int[6] {0, 1, 2, 5, 16, 18}; //Default plants to include in the community
         int[] m_communityMembers = new int[6] {0, 16, 17, 18, 19, 20}; //DEBUG- smaller plants
         //Replacement Matrix.  The probability of replacement of one species by a surrounding species.  Example [1,2] is the probability that species 2 will be replaced by species 1, if species 2 is entirely surrounded by species 1.
@@ -505,12 +506,13 @@ namespace vMeadowModule
         {
             //Generates data to send to the log and the hud.
             //NOTE: We could log every step during the simulation but by only logging the steps that are visualized, it forces the students to choose which steps they are interested in, involving them more in the data collection.  If they jump around in the visualization they will have data points out of order in the log, but learning to sort those out in a spreadsheet has some value.
-            string[] hudString = new string[5];
-            hudString[0] = String.Format("Generation: {0}", generation);
+            string[] hudString = new string[6];
+            hudString[0] = String.Format("Step: {0}", generation);
             hudString[1] = "Species";
             hudString[2] = "Qty";
             hudString[3] = "Change";
             hudString[4] = "%";
+            hudString[5] = String.Format("Simulation ID: {0}", m_simulationId);
             string logString = generation.ToString();
             for (int i=0; i<6; i++)
             {
@@ -660,7 +662,7 @@ namespace vMeadowModule
                                         labeledPart.SetText(hudString[3], textColor, 1.0);
                                     else if (labeledPart.Name == "PercentvpcHUD")
                                         labeledPart.SetText(hudString[4], textColor, 1.0);
-                                    else if (labeledPart.Name == "PercentChangevpcHUD")
+                                    else if (labeledPart.Name == "SimIDvpcHUD")
                                         labeledPart.SetText(hudString[5], textColor, 1.0);
                                 }
                             }
@@ -851,6 +853,7 @@ namespace vMeadowModule
         {
             //Generate starting matrix of random plant types and determine the region x,y,z coordinates where each plant will be placed
             m_cellStatus = new int[m_generations, m_xCells, m_yCells];
+            m_permanentDisturbanceMap = new bool[m_xCells, m_yCells];
             m_totalSpeciesCounts = new int[m_generations, 6];
             m_coordinates = new Vector3[m_xCells, m_yCells];
             for (int y=0; y<m_yCells; y++)
@@ -1010,6 +1013,7 @@ namespace vMeadowModule
                     char[] startingPlants = new char[m_xCells];
                     startingPlants = newParameters["starting_matrix"].ToCharArray();
                     m_cellStatus = new int[m_generations, m_xCells, m_yCells];
+                    m_permanentDisturbanceMap = new bool[m_xCells, m_yCells];
                     m_totalSpeciesCounts = new int[m_generations, 6];
                     m_coordinates = new Vector3[m_xCells, m_yCells];
                     for (int y=0; y<m_yCells; y++)
@@ -1045,9 +1049,9 @@ namespace vMeadowModule
                                     }
                                     else if (startingPlants[currentCell] == 'N')
                                     {
-                                        //TODO: This needs to be handled differently.  There should be a permanentDisturbanceMap to store these and their cell status should be set to 0, not -1.  -1 should be just for underwater plants.  That way I can display the count of 0's as the gaps (both manmade and natural). The CalculateDisturbance function should use the permanentDisturbanceMap as a starting point and randomly generate temporary disturbance based on the ongoing disturbance rate.
                                         //There will never be a plant here
-                                        m_cellStatus[0, x, y] = -1;
+                                        m_cellStatus[0, x, y] = 0;
+                                        m_permanentDisturbanceMap[x,y] = true;
                                     }
                                     else
                                     {
@@ -1084,18 +1088,23 @@ namespace vMeadowModule
                             if (m_coordinates[x, y].Z >= WaterLevel(m_coordinates[x, y]))
                             {
                                 //We only care about disturbances above water
+
                                 int currentCell = (y * m_xCells) + x;
                                 if (startingPlants[currentCell] == 'N')
                                 {
-                                    //TODO: This needs to be handled differently.  There should be a permanentDisturbanceMap to store these and their cell status should be set to 0, not -1.  -1 should be just for underwater plants.  That way I can display the count of 0's as the gaps (both manmade and natural). The CalculateDisturbance function should use the permanentDisturbanceMap as a starting point and randomly generate temporary disturbance based on the ongoing disturbance rate.
                                     //There will never be a plant here
                                     int oldCellStatus = m_cellStatus[0, x, y];
-                                    if (oldCellStatus != -1)
+                                    if (oldCellStatus != 0)
                                     {
                                         //Update the total species counts
                                         m_totalSpeciesCounts[0, oldCellStatus]--;
-                                        m_cellStatus[0, x, y] = -1;
+                                        m_cellStatus[0, x, y] = 0;
+                                        m_permanentDisturbanceMap[x, y] = true;
                                     }
+                                }
+                                else
+                                {
+                                    m_permanentDisturbanceMap[x, y] = false;
                                 }
                             }
                         }
@@ -1127,7 +1136,6 @@ namespace vMeadowModule
                 int rowbelow;
                 int colleft;
                 int colright;
-                //TODO: Do we really need to get the disturbance values every generation?  It depends on if we are using only permanent disturbance defined on the webform or if we also want to have some underlying level of ongoing new disturbance (perhaps with the level set via the webform too).  If we don't have ongoing new disturbance we could move the disturbance array declaration outside of the generation loop so the function only gets called once (or better yet, make it global and set its values when we start the region or import new parameters from the webform.
                 bool[,] disturbance = CalculateDisturbance();
                 for (int y=0; y<m_yCells; y++)
                 {
@@ -1296,21 +1304,20 @@ namespace vMeadowModule
 
         bool[,] CalculateDisturbance()
         {
-            //Returns a matrix of true and false values representing 'disturbed' areas where no plants will be allowed to grow, and 'undisturbed' locations where plants will grow normally.
-            //TODO: This needs to generate a disturbance matrix based on settings from the webform. Atul is working on the user interface for the webform. For now, this function just returns a random matrix with a 100:1 false:true ratio.
-            bool[,] disturbanceMatrix = new bool[m_xCells, m_yCells];
+            //Returns a matrix of true and false values representing 'disturbed' areas where no plants will be allowed to grow, and 'undisturbed' locations where plants will grow normally.  Combines the permanent disturbance sites with sites generated randomly based on the ongoing disturbance rate.
+            bool[,] disturbanceMatrix = new bool[m_xCells, m_yCells]; //Defaults to all false values
             for (int y=0; y<m_yCells; y++)
             {
                 for (int x=0; x<m_xCells; x++)
                 {
-                    if (m_random.Next(100) == 0)
+                    if (m_permanentDisturbanceMap[x, y] == true)
+                    {
+                        disturbanceMatrix[x, y] = true;
+                    }
+                    else if (m_random.NextDouble() <= m_ongoingDisturbanceRate)
                     {
                         disturbanceMatrix[x, y] = true;
                         //Log("Disturbance at (" + x.ToString() + ", " + y.ToString() + ")"); //DEBUG
-                    }
-                    else
-                    {
-                        disturbanceMatrix[x, y] = false;
                     }
                 }
             }
