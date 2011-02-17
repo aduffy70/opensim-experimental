@@ -127,7 +127,7 @@ namespace vMeadowModule
         int[,] m_totalSpeciesCounts; //Total species counts for each generation.
         int m_totalActiveCells; //The total number of possible plant locations (plants + gaps + disturbed areas ... or ... xCells * yCells - cells-below-water). This shouldn't change over the course of a simulation.
         Vector3[,] m_coordinates; //Keeps track of the region coordinates and groundlevel where each plant will be placed so we only have to calculate them once.
-
+        int[,,] m_age; //Tracks the age of each plant in each generation.  We need to store age in each generation for when we run a new simulation from a particular starting step.
 
         #region INonSharedRegionModule interface
 
@@ -855,6 +855,7 @@ namespace vMeadowModule
             //Generate starting matrix of random plant types and determine the region x,y,z coordinates where each plant will be placed
             m_cellStatus = new int[m_generations, m_xCells, m_yCells];
             m_permanentDisturbanceMap = new bool[m_xCells, m_yCells];
+            m_age = new int[m_generations, m_xCells, m_yCells];
             m_totalSpeciesCounts = new int[m_generations, 6];
             m_coordinates = new Vector3[m_xCells, m_yCells];
             for (int y=0; y<m_yCells; y++)
@@ -881,6 +882,7 @@ namespace vMeadowModule
                             //Assign a random plant type if the coordinates are above water
                             int newSpecies = m_random.Next(6);
                             m_cellStatus[0, x, y] = newSpecies;
+                            m_age[0, x, y] = m_random.Next(m_lifespans[newSpecies]); //Assign a random age to each plant so there isn't a massive dieoff early in the simulation
                             m_totalSpeciesCounts[0, newSpecies]++;
                         }
                         else
@@ -1015,6 +1017,7 @@ namespace vMeadowModule
                     startingPlants = newParameters["starting_matrix"].ToCharArray();
                     m_cellStatus = new int[m_generations, m_xCells, m_yCells];
                     m_permanentDisturbanceMap = new bool[m_xCells, m_yCells];
+                    m_age = new int[m_generations, m_xCells, m_yCells];
                     m_totalSpeciesCounts = new int[m_generations, 6];
                     m_coordinates = new Vector3[m_xCells, m_yCells];
                     for (int y=0; y<m_yCells; y++)
@@ -1046,6 +1049,7 @@ namespace vMeadowModule
                                         //Randomly select a plant type
                                         int newSpecies = m_random.Next(6);
                                         m_cellStatus[0, x, y] = newSpecies;
+                                        m_age[0, x, y] = m_random.Next(m_lifespans[newSpecies]);
                                         m_totalSpeciesCounts[0, newSpecies]++;
                                     }
                                     else if (startingPlants[currentCell] == 'N')
@@ -1058,6 +1062,7 @@ namespace vMeadowModule
                                     {
                                         int newSpecies = Int32.Parse(startingPlants[currentCell].ToString());
                                         m_cellStatus[0, x, y] = newSpecies;
+                                        m_age[0, x, y] = m_random.Next(m_lifespans[newSpecies]);
                                         m_totalSpeciesCounts[0, newSpecies]++;
                                     }
                                 }
@@ -1100,6 +1105,7 @@ namespace vMeadowModule
                                         //Update the total species counts
                                         m_totalSpeciesCounts[0, oldCellStatus]--;
                                         m_cellStatus[0, x, y] = 0;
+                                        m_age[0, x, y] = 0;
                                         m_permanentDisturbanceMap[x, y] = true;
                                     }
                                 }
@@ -1124,7 +1130,6 @@ namespace vMeadowModule
         void RunSimulation()
         {
             //Generate the simulation data
-            int[,] age = new int[m_xCells, m_yCells];
             for (int generation=0; generation<m_generations - 1; generation++)
             {
                 if (generation % 1000 == 0)
@@ -1153,14 +1158,14 @@ namespace vMeadowModule
                             {
                                 m_cellStatus[nextGeneration, x, y] = 0;
                                 m_totalSpeciesCounts[nextGeneration, 0]++;
-                                age[x, y] = 0;
+                                m_age[nextGeneration, x, y] = 0;
                             }
                             else
                             {
                                 //Get species counts of neighbors
                                 int[] neighborSpeciesCounts = GetNeighborSpeciesCounts(x, y, rowabove, rowbelow, colright, colleft, generation);
                                 //Determine plant survival based on age and environment
-                                bool plantSurvives = CalculateSurvival(currentSpecies, age[x, y], m_coordinates[x, y]);
+                                bool plantSurvives = CalculateSurvival(currentSpecies, m_age[generation, x, y], m_coordinates[x, y]);
                                 if (plantSurvives)
                                 {
                                     //Calculate replacement probabilities based on current plant
@@ -1171,7 +1176,7 @@ namespace vMeadowModule
                                     {
                                         //Log("Still there"); //DEBUG
                                         //The old plant is still there
-                                        age[x, y]++;
+                                        m_age[nextGeneration, x, y] = m_age[generation, x, y] + 1;
                                         m_cellStatus[nextGeneration, x, y] = currentSpecies;
                                         m_totalSpeciesCounts[nextGeneration, currentSpecies]++;
                                     }
@@ -1179,7 +1184,7 @@ namespace vMeadowModule
                                     {
                                         //Log("Replaced"); //DEBUG
                                         //The old plant has been replaced (though possibly by another of the same species...)
-                                        age[x, y] = 0;
+                                        m_age[nextGeneration, x, y] = 0;
                                         m_cellStatus[nextGeneration, x, y] = newSpecies;
                                         m_totalSpeciesCounts[nextGeneration, newSpecies]++;
                                     }
@@ -1188,7 +1193,7 @@ namespace vMeadowModule
                                 {
                                     //Calculate replacement probabilities based on a gap
                                     float[] replacementProbability = GetReplacementProbabilities(0, neighborSpeciesCounts, generation);
-                                    age[x, y] = 0;
+                                    m_age[nextGeneration, x, y] = 0;
                                     //Determine the next generation plant based on those probabilities
                                     int newSpecies = SelectNextGenerationSpecies(replacementProbability, 0);
                                     if (newSpecies == -1)
