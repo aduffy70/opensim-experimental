@@ -285,7 +285,7 @@ namespace vMeadowModule
                 RunSimulation();
                 Alert("Simulation complete.  Generating plants...");
                 VisualizeGeneration(0);
-                AlertAndLog("Community reset. Loaded step 0...");
+                Alert("Community reset. Loaded step 0...");
                 m_isSimulated = true;
                 m_isBusy = false;
             }
@@ -300,12 +300,12 @@ namespace vMeadowModule
                     }
                     else
                     {
-                        AlertAndLog("Already running. Stop first to change direction...");
+                        Alert("Already running. Stop first to change direction...");
                     }
                 }
                 else
                 {
-                    AlertAndLog("Cannot start.  Please reset the community first...");
+                    Alert("Cannot start.  Please reset the community first...");
                 }
             }
             else if (chat.Message.ToLower() == "reverse")
@@ -319,12 +319,12 @@ namespace vMeadowModule
                     }
                     else
                     {
-                        AlertAndLog("Already running. Stop first to change direction...");
+                        Alert("Already running. Stop first to change direction...");
                     }
                 }
                 else
                 {
-                    AlertAndLog("Cannot start.  Please reset the community first...");
+                    Alert("Cannot start.  Please reset the community first...");
                 }
             }
             else if (chat.Message.ToLower() == "stop")
@@ -336,7 +336,7 @@ namespace vMeadowModule
                 }
                 else
                 {
-                    AlertAndLog("Already stopped...");
+                    Alert("Already stopped...");
                 }
             }
             else if (chat.Message.ToLower() == "clear")
@@ -346,7 +346,7 @@ namespace vMeadowModule
                 {
                     StopVisualization();
                 }
-                AlertAndLog("Clearing all plants.  This may take a minute...");
+                Alert("Clearing all plants.  This may take a minute...");
                 ClearAllPlants();
                 m_isBusy = false;
             }
@@ -355,7 +355,7 @@ namespace vMeadowModule
                 m_isBusy = true;
                 if (m_isRunning)
                 {
-                   AlertAndLog("Already running. Stop first...");
+                   Alert("Already running. Stop first...");
                 }
                 else
                 {
@@ -376,7 +376,7 @@ namespace vMeadowModule
                 m_isBusy = true;
                 if (m_isRunning)
                 {
-                   AlertAndLog("Already running. Stop first...");
+                   Alert("Already running. Stop first...");
                 }
                 else
                 {
@@ -407,20 +407,20 @@ namespace vMeadowModule
                     m_isBusy = true;
                     if (m_isRunning)
                     {
-                        AlertAndLog("Already running. Stop first...");
+                        Alert("Already running. Stop first...");
                     }
                     else
                     {
                         try
                         {
                             int generation = Convert.ToInt32(chat.Message.Substring(5));
-                            AlertAndLog(String.Format("Loading step {0}.  This may take a minute..", generation));
+                            Alert(String.Format("Loading step {0}.  This may take a minute..", generation));
                             VisualizeGeneration(generation);
-                            AlertAndLog(String.Format("Displaying step {0}...", generation));
+                            Alert(String.Format("Displaying step {0}...", generation));
                         }
                         catch
                         {
-                            AlertAndLog("Invalid step number...");
+                            Alert("Invalid step number...");
                         }
                     }
                     m_isBusy = false;
@@ -455,7 +455,7 @@ namespace vMeadowModule
             else
             {
                 //Invalid command
-                AlertAndLog("Invalid command...");
+                Alert("Invalid command...");
             }
         }
 
@@ -465,12 +465,6 @@ namespace vMeadowModule
             {
                 m_dialogmod.SendGeneralAlert(String.Format("{0}: {1}", Name, message));
             }
-        }
-
-        public void AlertAndLog(string message)
-        {
-            m_log.DebugFormat("[{0}] {1}", Name, message);
-            Alert(message);
         }
 
         public void Log(string message)
@@ -498,7 +492,7 @@ namespace vMeadowModule
                 {
                     //Stop stepping through the visualization if we can't go back further.
                     m_isRunning = false;
-                    AlertAndLog("Reached step 0.  Stopping...");
+                    Alert("Reached step 0.  Stopping...");
                     return;
                 }
             }
@@ -512,7 +506,7 @@ namespace vMeadowModule
                 {
                     //Stop stepping through the visualization if we can't go further.
                     m_isRunning = false;
-                    AlertAndLog(String.Format("Reached step {0}.  Stopping...", m_currentGeneration));
+                    Alert(String.Format("Reached step {0}.  Stopping...", m_currentGeneration));
                     return;
                 }
             }
@@ -943,7 +937,7 @@ namespace vMeadowModule
             //Read configuration data from a url.  This works with the vMeadowGA google app version2 (the xml version).
             WebRequest configUrl = WebRequest.Create(url);
             //Log("Sent WebRequest"); //DEBUG
-            AlertAndLog(String.Format("Reading data from url.  This may take a minute..."));
+            Alert(String.Format("Reading data from url.  This may take a minute..."));
             try
             {
                 //Read the xml data from the webform into a dictionary of parameters
@@ -1099,7 +1093,7 @@ namespace vMeadowModule
                         }
                     }
                     m_totalActiveCells = m_totalSpeciesCounts[0, 0] + m_totalSpeciesCounts[0, 1] + m_totalSpeciesCounts[0, 2] + m_totalSpeciesCounts[0, 3] + m_totalSpeciesCounts[0, 4] + m_totalSpeciesCounts[0, 5]; //This count only changes when we load new parameters from the webform.
-                    AlertAndLog(String.Format("Read from \"{0}\".  Clearing all plants and generating a new community.  This may take a minute...", url));
+                    Alert(String.Format("Read from \"{0}\". Clearing all plants.  This may take a minute...", url));
                 }
                 else
                 {
@@ -1166,7 +1160,7 @@ namespace vMeadowModule
             catch
             {
                 //Failed to get the data for some reason
-                AlertAndLog(String.Format("Error loading from \"{0}\"...", url));
+                Alert(String.Format("Error loading from \"{0}\"...", url));
                 return false;
             }
         }
