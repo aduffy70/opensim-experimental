@@ -23,8 +23,8 @@
     ;simulation outcome - only the appearance.
     natural_appearance = true;
 
-    ;Number of generations to run in the simulation.
-    generations = 10000
+    ;Number of steps or cycles to run in the simulation.
+    simulation_steps = 10000
 
     ;Url path to community configuration info (The vMeadowGA Google AppEngine
     ;tool can be used).

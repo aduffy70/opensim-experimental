@@ -146,7 +146,7 @@ namespace vMeadowModule
                 m_cellSpacing = vMeadowConfig.GetFloat("cell_spacing", 2);
                 m_naturalAppearance = vMeadowConfig.GetBoolean("natural_appearance", true);
                 m_configPath = vMeadowConfig.GetString("config_path", "http://fernseed.usu.edu/vMeadowInfo/");
-                m_generations = vMeadowConfig.GetInt("generations", 10000);
+                m_generations = vMeadowConfig.GetInt("simulation_steps", 10000) + 1;
                 m_logPath = vMeadowConfig.GetString("log_path", "addon-modules/vMeadow/logs/");
                 m_instanceTag = vMeadowConfig.GetString("instance_tag", "myregion");
             }
@@ -278,7 +278,7 @@ namespace vMeadowModule
                 RunSimulation();
                 Alert("Simulation complete.  Generating plants...");
                 VisualizeGeneration(0);
-                AlertAndLog("Community reset. Loaded generation 0...");
+                AlertAndLog("Community reset. Loaded step 0...");
                 m_isSimulated = true;
             }
             else if (chat.Message.ToLower() == "forward")
@@ -400,12 +400,13 @@ namespace vMeadowModule
                         try
                         {
                             int generation = Convert.ToInt32(chat.Message.Substring(5));
+                            AlertAndLog(String.Format("Loading step {0}.  This may take a minute..", generation));
                             VisualizeGeneration(generation);
-                            AlertAndLog(String.Format("Displaying generation {0}...", generation));
+                            AlertAndLog(String.Format("Displaying step {0}...", generation));
                         }
                         catch
                         {
-                            AlertAndLog("Invalid generation number...");
+                            AlertAndLog("Invalid step number...");
                         }
                     }
                 }
@@ -476,7 +477,7 @@ namespace vMeadowModule
                 {
                     //Stop stepping through the visualization if we can't go back further.
                     m_isRunning = false;
-                    AlertAndLog("Reached generation 0.  Stopping...");
+                    AlertAndLog("Reached step 0.  Stopping...");
                     return;
                 }
             }
@@ -490,7 +491,7 @@ namespace vMeadowModule
                 {
                     //Stop stepping through the visualization if we can't go further.
                     m_isRunning = false;
-                    AlertAndLog(String.Format("Reached generation {0}.  Stopping...", m_currentGeneration));
+                    AlertAndLog(String.Format("Reached step {0}.  Stopping...", m_currentGeneration));
                     return;
                 }
             }
@@ -954,7 +955,7 @@ namespace vMeadowModule
                     //Log("Not DisturbanceOnly"); //DEBUG
                     //Store all parameters
                     //Matrix parameters
-                    m_simulationId = newParameters["id"]; //TODO: Display this on vpcHUD
+                    m_simulationId = newParameters["id"];
                     m_xCells = Int32.Parse(newParameters["x_size"]);
                     m_yCells = Int32.Parse(newParameters["y_size"]);
                     m_xPosition = float.Parse(newParameters["x_location"]);
