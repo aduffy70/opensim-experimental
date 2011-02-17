@@ -116,7 +116,8 @@ namespace vMeadowModule
         SceneObjectGroup[,] m_prims; //list of objects managed by this module
         string[] m_omvTrees = new string[22] {"None", "Pine1", "Pine2", "WinterPine1", "WinterPine2", "Oak", "TropicalBush1", "TropicalBush2", "Palm1", "Palm2", "Dogwood", "Cypress1", "Cypress2", "Plumeria", "WinterAspen", "Eucalyptus", "Fern", "Eelgrass", "SeaSword", "BeachGrass1", "Kelp1", "Kelp2"};
         bool m_isRunning = false; //Keep track of whether the visualization is running
-        bool m_isSimulated = false; //Whether a simulation has been run.
+        bool m_isSimulated = false; //Whether a simulation has been run
+        bool m_isBusy = false; //Keep track of whether we are in the middle of something that should not be disturbed
         Timer m_cycleTimer = new Timer(); //Timer to replace the region heartbeat
         Timer m_pauseTimer = new Timer(); //Timer to delay trying to delete objects before the region has loaded completely
         Scene m_scene;
@@ -264,8 +265,14 @@ namespace vMeadowModule
                 //Message is not for this module
                 return;
             }
+            else if (m_isBusy)
+            {
+                //Some previous request is still being processed
+                Alert("Busy.  Please wait a few moments and try again...");
+            }
             else if (chat.Message.ToLower() == "reset")
             {
+                m_isBusy = true;
                 Alert("Resetting community. This may take a minute...");
                 if (m_isRunning)
                 {
@@ -280,6 +287,7 @@ namespace vMeadowModule
                 VisualizeGeneration(0);
                 AlertAndLog("Community reset. Loaded step 0...");
                 m_isSimulated = true;
+                m_isBusy = false;
             }
             else if (chat.Message.ToLower() == "forward")
             {
@@ -333,15 +341,18 @@ namespace vMeadowModule
             }
             else if (chat.Message.ToLower() == "clear")
             {
+                m_isBusy = true;
                 if (m_isRunning)
                 {
                     StopVisualization();
                 }
                 AlertAndLog("Clearing all plants.  This may take a minute...");
                 ClearAllPlants();
+                m_isBusy = false;
             }
             else if (chat.Message.ToLower() == "+")
             {
+                m_isBusy = true;
                 if (m_isRunning)
                 {
                    AlertAndLog("Already running. Stop first...");
@@ -358,9 +369,11 @@ namespace vMeadowModule
                         Alert("Already at the last step...");
                     }
                 }
+                m_isBusy = false;
             }
             else if (chat.Message.ToLower() == "-")
             {
+                m_isBusy = true;
                 if (m_isRunning)
                 {
                    AlertAndLog("Already running. Stop first...");
@@ -377,6 +390,7 @@ namespace vMeadowModule
                         Alert("Already at step 0...");
                     }
                 }
+                m_isBusy = false;
             }
             else if (chat.Message.ToLower() == "now")
             {
@@ -384,13 +398,13 @@ namespace vMeadowModule
             }
             else if (chat.Message.ToLower() == "test")
             {
-                //TEMP: Just a place to plug in temporary test code.
-
+                //DEBUG: Just a place to plug in temporary test code.
             }
             else if (chat.Message.Length > 5)
             {
                 if (chat.Message.ToLower().Substring(0,4) == "step")
                 {
+                    m_isBusy = true;
                     if (m_isRunning)
                     {
                         AlertAndLog("Already running. Stop first...");
@@ -409,10 +423,12 @@ namespace vMeadowModule
                             AlertAndLog("Invalid step number...");
                         }
                     }
+                    m_isBusy = false;
                 }
                 else
                 {
                     //Try to read configuration info from a url
+                    m_isBusy = true;
                     bool readSuccess = ReadConfigs(System.IO.Path.Combine(m_configPath, "data?id=" + chat.Message));
                     if (readSuccess)
                     {
@@ -420,8 +436,12 @@ namespace vMeadowModule
                         {
                             StopVisualization();
                         }
-                        ClearAllPlants();
-                        Alert("Cleared existing plants...");
+                        if (m_disturbanceOnly == false)
+                        {
+                            //Don't clear the plants if we are only changing the disturbance settings
+                            ClearAllPlants();
+                            Alert("Cleared existing plants...");
+                        }
                         ClearLogs();
                         Alert("Cleared logs...");
                         RunSimulation();
@@ -429,6 +449,7 @@ namespace vMeadowModule
                         VisualizeGeneration(0);
                         m_isSimulated = true;
                     }
+                    m_isBusy = false;
                 }
             }
             else
@@ -1083,7 +1104,30 @@ namespace vMeadowModule
                 else
                 {
                     //Log("Disturbance Only"); //DEBUG
-                    //Store just the 'disturbance-related parameters
+                    //Copy the currently visualized generation into generation 0 so we can run a new simulation from that starting point using new disturbance parameters.
+                    if (m_currentGeneration != 0) //If the current generation is already generation 0 we don't have to copy anything
+                    {
+                        for (int y=0; y<m_yCells; y++)
+                        {
+                            for (int x=0; x<m_xCells; x++)
+                            {
+                                m_cellStatus[0, x, y] = m_cellStatus[m_currentGeneration, x, y];
+                                m_age[0, x, y] = m_age[m_currentGeneration, x, y];
+                            }
+                        }
+                        //NOTE: We can leave the m_age and m_cellStatus arrays populated with the old data because it will be overwritten before it is read again.  The species counts get incremented rather than overwritten, so we need to clear that array.
+                        int[] currentSpeciesCounts = new int[6];
+                        for (int i=0; i<6; i++)
+                        {
+                            currentSpeciesCounts[i] = m_totalSpeciesCounts[m_currentGeneration, i];
+                        }
+                        m_totalSpeciesCounts = new int[m_generations, 6];
+                        for (int i=0; i<6; i++)
+                        {
+                            m_totalSpeciesCounts[0, i] = currentSpeciesCounts[i];
+                        }
+                    }
+                    //Store just the 'disturbance-related parameters.
                     m_ongoingDisturbanceRate = convertOngoingDisturbance[newParameters["ongoing_disturbance"]];
                     char[] startingPlants = new char[m_xCells];
                     startingPlants = newParameters["starting_matrix"].ToCharArray();
@@ -1094,7 +1138,6 @@ namespace vMeadowModule
                             if (m_coordinates[x, y].Z >= WaterLevel(m_coordinates[x, y]))
                             {
                                 //We only care about disturbances above water
-
                                 int currentCell = (y * m_xCells) + x;
                                 if (startingPlants[currentCell] == 'N')
                                 {
@@ -1104,6 +1147,7 @@ namespace vMeadowModule
                                     {
                                         //Update the total species counts
                                         m_totalSpeciesCounts[0, oldCellStatus]--;
+                                        m_totalSpeciesCounts[0, 0]++;
                                         m_cellStatus[0, x, y] = 0;
                                         m_age[0, x, y] = 0;
                                         m_permanentDisturbanceMap[x, y] = true;
