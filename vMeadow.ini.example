@@ -26,12 +26,9 @@
     ;Number of steps or cycles to run in the simulation.
     simulation_steps = 10000
 
-    ;Url path to community configuration info (The vMeadowGA Google AppEngine
+    ;Url path to community configuration and logging tool (The vMeadowGA Google AppEngine
     ;tool can be used).
     config_path = "http://vmeadowga.aduffy70.org/"
-
-    ;Path to the folder where logs will be stored.  This folder must exist.
-    log_path = "addon-modules/vMeadow/logs/"
 
     ;A unique identifier for the logs from this region.
     instance_tag = "myregion"
