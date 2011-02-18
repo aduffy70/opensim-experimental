@@ -754,9 +754,7 @@ class DeleteLogRecords(webapp.RequestHandler):
         if (records.count(1) > 0):
             for record in records:
                 record.delete()
-            self.response.out.write('SUCCESS')
-        else:
-            self.response.out.write('FAILED')
+        self.response.out.write('SUCCESS')
 
 
 """
