@@ -526,7 +526,7 @@ namespace vMeadowModule
             hudString[2] = "Qty";
             hudString[3] = "Change";
             hudString[4] = "%";
-            hudString[5] = String.Format("Simulation ID: {0}", m_simulationId);
+            hudString[5] = String.Format("Simulation ID: {0}\nRegion Tag: {1}", m_simulationId, m_instanceTag);
             string logString = generation.ToString();
             for (int i=0; i<6; i++)
             {
