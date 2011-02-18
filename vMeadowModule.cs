@@ -106,7 +106,7 @@ namespace vMeadowModule
         float[] m_fertilityEffects = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
         bool m_disturbanceOnly = false;
         float m_ongoingDisturbanceRate = 0.0f;
-        string m_simulationId = "defaults";
+        string m_simulationId = "1234567890";
         //TODO: These map values are being read from the webform but we aren't using them for anything
         int m_terrainMap = 0;
         int m_salinityMap = 0;
@@ -281,7 +281,6 @@ namespace vMeadowModule
                 ClearAllPlants();
                 Alert("Cleared existing plants...");
                 ClearLogs();
-                Alert("Cleared logs...");
                 RunSimulation();
                 Alert("Simulation complete.  Generating plants...");
                 VisualizeGeneration(0);
@@ -443,7 +442,6 @@ namespace vMeadowModule
                             Alert("Cleared existing plants...");
                         }
                         ClearLogs();
-                        Alert("Cleared logs...");
                         RunSimulation();
                         Alert("Simulation complete.  Generating plants...");
                         VisualizeGeneration(0);
@@ -589,8 +587,36 @@ namespace vMeadowModule
 
         void ClearLogs()
         {
-            string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
-            System.IO.File.Delete(logFile);
+            //Send http request to clear logs on vMeadowGA webapp
+            WebRequest deleteLogUrl = WebRequest.Create(System.IO.Path.Combine(m_configPath, "deletelog?sim_id=" + m_simulationId + "&region_tag=" + m_instanceTag));
+            //Log("Deleting Log"); //DEBUG
+            try
+            {
+                StreamReader urlData = new StreamReader(deleteLogUrl.GetResponse().GetResponseStream());
+                string line;
+                bool isSuccess = false;
+                while ((line = urlData.ReadLine()) != null)
+                    if (line == "SUCCESS")
+                    {
+                        isSuccess = true;
+                    }
+                if (isSuccess)
+                {
+                    Alert("Cleared logs...");
+                }
+                else
+                {
+                    Alert("Warning: Failed to clear log data");
+                }
+            }
+            catch
+            {
+                Alert("Warning: Failed to clear log data");
+                //Log("caught exception reading url stream"); //DEBUG
+            }
+            //We are no longer logging locally.  Using the webapp instead
+            //string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
+            //System.IO.File.Delete(logFile);
         }
 
         SceneObjectGroup CreatePlant(int xPos, int yPos, int plantTypeIndex)
@@ -617,10 +643,33 @@ namespace vMeadowModule
 
         void LogData(string logString)
         {
-            string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
-            System.IO.StreamWriter dataLog = System.IO.File.AppendText(logFile);
-            dataLog.WriteLine(logString);
-            dataLog.Close();
+            WebRequest logStepUrl = WebRequest.Create(System.IO.Path.Combine(m_configPath, "addlog?sim_id=" + m_simulationId + "&region_tag=" + m_instanceTag + "&data=" + logString));
+            //Log("Logging data"); //DEBUG
+            try
+            {
+                StreamReader urlData = new StreamReader(logStepUrl.GetResponse().GetResponseStream());
+                string line;
+                bool isSuccess = false;
+                while ((line = urlData.ReadLine()) != null)
+                    if (line == "SUCCESS")
+                    {
+                        isSuccess = true;
+                    }
+                if (!isSuccess)
+                {
+                    Alert("Warning: Failed to log data");
+                }
+            }
+            catch
+            {
+                Alert("Warning: Failed to log data");
+                //Log("caught exception logging data"); //DEBUG
+            }
+
+            //string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
+            //System.IO.StreamWriter dataLog = System.IO.File.AppendText(logFile);
+            //dataLog.WriteLine(logString);
+            //dataLog.Close();
         }
 
         void StartVisualization(bool isReverse)
