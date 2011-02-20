@@ -37,10 +37,14 @@ class HtmlPage():
     Class containing basic html page layout.  #TODO- Either go all the way with this structure or just drop it
     """
     header = '<html><body>'
+
     instructions = """
-        <p>This form generates virtual plants in a simulated plant community growing in the 3D virtual world, ScienceSim. Changes made here will not take effect until they are enabled there.<br></p>
+        <p>
+            This form generates virtual plants in a simulated plant community growing in the 3D virtual world, ScienceSim. Changes made here will not take effect until they are enabled there.<br>
+        </p>
         <hr>
         """
+
     footer = '</body></html>'
 
 
@@ -84,57 +88,74 @@ class MeadowRecordObject(db.Model):
     """
     # Timestamp id for this record
     id = db.StringProperty()
+
     # CSV integers represeting the OpenMetaverse Tree types for each of the 5 species in the community
     plant_types = db.StringProperty()
+
     # CSV replacement probabilities for each species
     replacement_1 = db.StringProperty()
     replacement_2 = db.StringProperty()
     replacement_3 = db.StringProperty()
     replacement_4 = db.StringProperty()
     replacement_5 = db.StringProperty()
+
     #Lifespans for each species (S=short, M=mid, L=long)
     lifespans = db.StringProperty()
+
     #Altitude optimum for each species (L=low, M=mid, H=high)
     altitude_optimums = db.StringProperty()
+
     #Altitude effects for each species (N=None, L=Low, M=mid, H=high)
     altitude_effects = db.StringProperty()
+
     #Salinity optimum for each species (L=low, M=mid, H=high)
     salinity_optimums = db.StringProperty()
+
     #Salinity effects for each species (N=None, L=Low, M=mid, H=high)
     salinity_effects = db.StringProperty()
+
     #Drainage optimum for each species (L=low, M=mid, H=high)
     drainage_optimums = db.StringProperty()
+
     #Drainage effects for each species (N=None, L=Low, M=mid, H=high)
     drainage_effects = db.StringProperty()
+
     #Fertility optimum for each species (L=low, M=mid, H=high)
     fertility_optimums = db.StringProperty()
+
     #Fertility effects for each species (N=None, L=Low, M=mid, H=high)
     fertility_effects = db.StringProperty()
-    # All other matrix info (disturbance_only, x_cells, y_cells, x_position, y_position, spacing, natural, terrain, salinity, drainage, and fertility maps)
+
     #Whether to only change the disturbance settings
     disturbance_only = db.IntegerProperty()
-    #X,Y dimensions of the community matrix.
-    #NOTE- currently locked at 50x50
-    x_size = db.IntegerProperty()
-    y_size = db.IntegerProperty()
-    #Region coordinates of the southwest cell of the community matrix.
-    #Note- currently locked at 5,5
-    x_location = db.FloatProperty()
-    y_location = db.FloatProperty()
-    #Distance between community matrix cells
-    #Note- currently locked a 5
-    spacing = db.FloatProperty()
+
     #Whether to display a natural vs crop-like community
     natural = db.IntegerProperty()
+
     #Terrain, salinity, drainage, and fertility maps to use for the region
     terrain = db.IntegerProperty()
     salinity = db.IntegerProperty()
     drainage = db.IntegerProperty()
     fertility = db.IntegerProperty()
+
     #Matrix representing the starting values for each position in the matrix (R=random, N=disturbance, 0=gap, 1-5=plant types)
     starting_matrix = db.TextProperty()
+
     #Ongoing disturbance rate (random temporary disturbance each generation in addition to the permanent disturbance on the starting matrix) (N=none, L=low, M=mid, H=high)
     ongoing_disturbance = db.StringProperty()
+
+    #NOTE- These values are no longer adjustable but they are expected by the region module so we still include them here and provide the locked values when we create a record.
+    #XY dimensions of the community matrix
+    #currently locked at 50x50
+    x_size = db.IntegerProperty()
+    y_size = db.IntegerProperty()
+    #Region coordinates of the southwest cell of the community matrix.
+    #currently locked at 5,5
+    x_location = db.FloatProperty()
+    y_location = db.FloatProperty()
+    #Distance between community matrix cells
+    #Note- currently locked a 5
+    spacing = db.FloatProperty()
 
 
 class ParametersFormPageOne(webapp.RequestHandler):
@@ -148,27 +169,21 @@ class ParametersFormPageOne(webapp.RequestHandler):
         self.response.out.write(self.form)
         self.response.out.write(page.footer)
 
-    #Note- The matrix parameters are hidden for simplicity.  The matrix will always be 50*50 stretching acrossed an entire region.  The parameters are still there in case I decide to change back later.
     form = """
         <form enctype="multipart/form-data" action="/parametersform2" method="post">
-            <p>
-                <b>Modify disturbance settings only:</b> Check this box to only modify the disturbance settings.  Any other changes to the form will be ignored.<br>
-                Disturbance only:<input name="disturbance_only" type="checkbox">
-            </p>
-            <input type="hidden" name="x_size" value="50" maxlength="2" size="3">
-            <input type="hidden" name="y_size" value="50" maxlength="2" size="3">
-            <input type="hidden" name="x_location" value="5" maxlength="5" size="5">
-            <input type="hidden" name="y_location" value="5" maxlength="5" size="5">
-            <input type="hidden" name="spacing" value="5" maxlength="4" size="4">
-            <p>
-                <b>Community appearance:</b> Specify whether the community should appear natural (plants randomly placed near the coordinates) or crop-like (plants placed exactly on the matrix coordinates).  This does not effect the simulation results - only the appearance.<br>
-                Natural: <input name="natural" checked="checked" type="checkbox">
-            </p>
             <p>
                 <b>Terrain map:</b> Select the terrain<br>
                 <input type="radio" name="terrain" value="0" checked>
                 <img src="/images/FS23map.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
+            </p>
+            <p>
+                <b>Modify disturbance settings only:</b> Check this box to only modify the disturbance settings.  Any other changes to the form will be ignored.<br>
+                Disturbance only:<input name="disturbance_only" type="checkbox">
+            </p>
+            <p>
+                <b>Community appearance:</b> Specify whether the community should appear natural (plants randomly placed near the coordinates) or crop-like (plants placed exactly on the matrix coordinates).  This does not effect the simulation results - only the appearance.<br>
+                Natural: <input name="natural" checked="checked" type="checkbox">
             </p>
             <p>
                 <b>Soil salinity map:</b> Select the pattern of soil salinity on the landscape<br>
@@ -206,7 +221,7 @@ class ParametersFormPageOne(webapp.RequestHandler):
                 <img src="/images/SoilZmap.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
             </p>
-            <input type="submit" value="Setup Matrix">
+            <input type="submit" value="Continue...">
         </form>
         """
 
@@ -217,11 +232,6 @@ class ParametersFormPageTwo(webapp.RequestHandler):
     """
     def post(self):
         self.disturbance_only = self.request.get('disturbance_only')
-        self.x_size = self.request.get('x_size')
-        self.y_size = self.request.get('y_size')
-        self.x_location = self.request.get('x_location')
-        self.y_location = self.request.get('y_location')
-        self.spacing = self.request.get('spacing')
         self.natural = self.request.get('natural')
         self.terrain = self.request.get('terrain')
         self.salinity = self.request.get('salinity')
@@ -229,10 +239,7 @@ class ParametersFormPageTwo(webapp.RequestHandler):
         self.fertility = self.request.get('fertility')
         page = HtmlPage()
         self.response.out.write(page.header)
-        if (self.valid_inputs()):
-            self.response.out.write(self.generate_form())
-        else:
-            self.response.out.write('Error - matrix settings out of range!')
+        self.response.out.write(self.generate_form())
         self.response.out.write(page.footer)
 
     form = """
@@ -331,7 +338,7 @@ class ParametersFormPageTwo(webapp.RequestHandler):
     replacement_matrix_form = """
         <p>
             <b>Replacement Matrix</b><br>
-            Specify the probability <i>(0-1)</i> that each plant type A will be replaced by each plant type B<br>
+            Specify the probability that an individual plant type A will be replaced by plant type B<br>
             when surrounded on all sides.
         </p>
         <table border="0"><tbody>
@@ -347,14 +354,8 @@ class ParametersFormPageTwo(webapp.RequestHandler):
 
 
     def generate_form(self):
-        page_width = int(self.x_size) * 48
-        if (page_width < 750):
-            page_width = 750
-        assembled_form = '<div style="width:%s">' % page_width
-        assembled_form += self.form
-        assembled_form += '<input type="submit" value="Submit">'
+        assembled_form = self.form
         # Plant type form section
-        #assembled_form += self.plant_type_form
         for i in range(1,6):
             assembled_form += self.plant_data_form % (i, i, i, i, i, i, i, i, i, i, i)
         assembled_form += '</p>'
@@ -381,44 +382,15 @@ class ParametersFormPageTwo(webapp.RequestHandler):
         # Pass along items from the first form page
         assembled_form += """
             <input type="hidden" name="disturbance_only" value="%s">
-            <input type="hidden" name="x_size" value="%s">
-            <input type="hidden" name="y_size" value="%s">
-            <input type="hidden" name="x_location" value="%s">
-            <input type="hidden" name="y_location" value="%s">
-            <input type="hidden" name="spacing" value="%s">
             <input type="hidden" name="natural" value="%s">
             <input type="hidden" name="terrain" value="%s">
             <input type="hidden" name="salinity" value="%s">
             <input type="hidden" name="drainage" value="%s">
             <input type="hidden" name="fertility" value="%s">
-            """ % (self.disturbance_only, self.x_size, self.y_size,
-                   self.x_location, self.y_location, self.spacing,
-                   self.natural, self.terrain, self.salinity, self.drainage,
-                   self.fertility)
-        assembled_form += '</p><input type="submit" value="Submit"></div></form>'
+            """ % (self.disturbance_only, self.natural, self.terrain,
+                   self.salinity, self.drainage, self.fertility)
+        assembled_form += '</p><input type="submit" value="Continue..."></form>'
         return assembled_form
-
-    def valid_inputs(self):
-        #Verify that the input values are valid and within limits
-        x_dim = 0
-        y_dim = 0
-        x_loc = 0.0
-        y_loc = 0.0
-        spacing = 0.0
-        try:
-            x_dim = int(self.x_size)
-            y_dim = int(self.y_size)
-            x_loc = float(self.x_location)
-            y_loc = float(self.y_location)
-            spac = float(self.spacing)
-        except:
-            return False
-        if ((x_dim < 1) or (x_dim > 50) or (y_dim < 1) or (y_dim > 50) or
-            (x_loc < 0) or (x_loc > 256) or (y_loc < 0) or (y_loc > 256) or
-            (spac < 0) or (spac > 20)):
-            return False
-        else:
-            return True
 
 
 class GetParameters(webapp.RequestHandler):
@@ -576,20 +548,15 @@ class ParametersFormPageThree(webapp.RequestHandler):
             self.response.out.write(self.form_assign_cells_button)
             if (len(selected) == 2):
                 self.response.out.write(self.form_assign_area_button)
-            else:
-                self.response.out.write('<br>')
         else:
-            self.response.out.write('<br><br><br>')
+            self.response.out.write('<br>')
         self.response.out.write(self.form_submit_button)
+        #Pass the list of selected cells and the current starting matrix
         self.response.out.write(self.form_active_hidden_fields % (
             ','.join(selected),
             ''.join(starting_matrix)))
+        #Pass the values from previous form pages
         self.response.out.write(self.form_passive_hidden_fields % (
-            self.request.get('x_size'),
-            self.request.get('y_size'),
-            self.request.get('x_location'),
-            self.request.get('y_location'),
-            self.request.get('spacing'),
             self.request.get('natural'),
             self.request.get('terrain'),
             self.request.get('salinity'),
@@ -610,7 +577,6 @@ class ParametersFormPageThree(webapp.RequestHandler):
             for y in range(6):
                 self.response.out.write(self.form_replace_hidden_field % (x, y, self.request.get('replace_%s_%s' % (x, y))))
         self.response.out.write(self.form_footer)
-        self.response.out.write('<br>' + ','.join(selected)) # DEBUG
         self.response.out.write(page.footer)
 
     def get_area_list_from_corners(self, corner1, corner2):
@@ -645,11 +611,11 @@ class ParametersFormPageThree(webapp.RequestHandler):
             record.disturbance_only = 1
         else:
             record.disturbance_only = 0
-        record.x_size = int(self.request.get('x_size'))
-        record.y_size = int(self.request.get('y_size'))
-        record.x_location = float(self.request.get('x_location'))
-        record.y_location = float(self.request.get('y_location'))
-        record.spacing = float(self.request.get('spacing'))
+        record.x_size = 50
+        record.y_size = 50
+        record.x_location = 5.0
+        record.y_location = 5.0
+        record.spacing = 5.0
         appearance = self.request.get('natural')
         if (appearance == 'on'):
             record.natural = 1
@@ -781,19 +747,17 @@ class ParametersFormPageThree(webapp.RequestHandler):
     form_table_footer = '</td></tbody></table>'
 
     form_cell_value_selector = """
-        <p>
-            <b>Cell value:</b>
-            <select name="cell_value">
-                <option value = "R">Random plant type</option>
-                <option value = "N">Permanent disturbance</option>
-                <option value = "0">Gap (temporary)</option>
-                <option value = "1">Plant type 1</option>
-                <option value = "2">Plant type 2</option>
-                <option value = "3">Plant type 3</option>
-                <option value = "4">Plant type 4</option>
-                <option value = "5">Plant type 5</option>
-            </select>
-        </p>
+        <b>Cell value:</b>
+        <select name="cell_value">
+            <option value = "R">Random plant type</option>
+            <option value = "N">Permanent disturbance</option>
+            <option value = "0">Gap (temporary)</option>
+            <option value = "1">Plant type 1</option>
+            <option value = "2">Plant type 2</option>
+            <option value = "3">Plant type 3</option>
+            <option value = "4">Plant type 4</option>
+            <option value = "5">Plant type 5</option>
+        </select>
         """
 
     form_assign_cells_button = """
@@ -801,7 +765,7 @@ class ParametersFormPageThree(webapp.RequestHandler):
         """
 
     form_assign_area_button = """
-        <br><input type="submit" name="submit_value" value="Apply cell value to area">
+        <input type="submit" name="submit_value" value="Apply cell value to area">
         """
 
     form_submit_button = """
@@ -814,11 +778,6 @@ class ParametersFormPageThree(webapp.RequestHandler):
         """
 
     form_passive_hidden_fields = """
-        <input type="hidden" name="x_size" value="%s">
-        <input type="hidden" name="y_size" value="%s">
-        <input type="hidden" name="x_location" value="%s">
-        <input type="hidden" name="y_location" value="%s">
-        <input type="hidden" name="spacing" value="%s">
         <input type="hidden" name="natural" value="%s">
         <input type="hidden" name="terrain" value="%s">
         <input type="hidden" name="salinity" value="%s">
