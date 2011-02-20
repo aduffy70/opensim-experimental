@@ -44,6 +44,34 @@ class HtmlPage():
     footer = '</body></html>'
 
 
+class LogOrParametersPage(webapp.RequestHandler):
+    """
+    Page to select either the parameters form or log form.
+    """
+    def get(self):
+        page = HtmlPage()
+        self.response.out.write(page.header)
+        self.response.out.write(self.instructions)
+        self.response.out.write(self.form)
+        self.response.out.write(page.footer)
+
+    instructions = """
+        <p>
+            <b>Welcome to the virtual plant community simulations (vpcSim) web application.</b><br>
+            From this page you can change the parameters controlling a virtual plant community or view data logged by the plant community.<br>
+        </p>
+        <hr>
+        """
+
+    form = """
+        <form enctype="multipart/form-data" action="/parametersform1" method="get">
+           <input type="submit" value="Change parameters" style="width: 175px">
+        </form>
+        <form enctype="multipart/form-data" action="/log" method="get">
+            <input type="submit" value="View log data" style="width: 175px">
+        </form>
+        """
+
 """
 START SECTION: Community parameters
 """
@@ -108,7 +136,7 @@ class MeadowRecordObject(db.Model):
     ongoing_disturbance = db.StringProperty()
 
 
-class ChooseMatrixSizePage(webapp.RequestHandler):
+class ParametersFormPageOne(webapp.RequestHandler):
     """
     First page of the two page community parameters form.  Accessed by the user by url or hyperlink.
     """
@@ -121,7 +149,7 @@ class ChooseMatrixSizePage(webapp.RequestHandler):
 
     #Note- The matrix parameters are hidden for simplicity.  The matrix will always be 50*50 stretching acrossed an entire region.  The parameters are still there in case I decide to change back later.
     form = """
-        <form enctype="multipart/form-data" action="/matrixform" method="post">
+        <form enctype="multipart/form-data" action="/parametersform2" method="post">
             <p>
                 <b>Modify disturbance settings only:</b> Check this box to only modify the disturbance settings.  Any other changes to the form will be ignored.<br>
                 Disturbance only:<input name="disturbance_only" type="checkbox">
@@ -182,7 +210,7 @@ class ChooseMatrixSizePage(webapp.RequestHandler):
         """
 
 
-class SetupMatrixPage(webapp.RequestHandler):
+class ParametersFormPageTwo(webapp.RequestHandler):
     """
     Second page of the two page community parameters form.  Accessed by the user by submitting the ChooseMatrixSize page.
     """
@@ -207,7 +235,7 @@ class SetupMatrixPage(webapp.RequestHandler):
         self.response.out.write(page.footer)
 
     form = """
-        <form enctype="multipart/form-data" action="/created" method="post">
+        <form enctype="multipart/form-data" action="/storeparameters" method="post">
         """
 
     plant_data_form = """
@@ -428,7 +456,7 @@ class SetupMatrixPage(webapp.RequestHandler):
             return True
 
 
-class CreateCommunityRecord(webapp.RequestHandler):
+class StoreParameters(webapp.RequestHandler):
     """
     Creates and stores a community record based on inputs from the 2 page
     community parameters form.  Accessed by submitting the SetupMatrix page form.
@@ -568,7 +596,7 @@ class CreateCommunityRecord(webapp.RequestHandler):
         record.put()
 
 
-class GetCommunityRecord(webapp.RequestHandler):
+class GetParameters(webapp.RequestHandler):
     """
     Returns the community record with a particular timestamp as XML.  Accessed by the vMeadow opensim module.
     """
@@ -578,7 +606,7 @@ class GetCommunityRecord(webapp.RequestHandler):
         self.response.out.write(data[0].to_xml())
 
 
-class ShowPlantPicturesPage(webapp.RequestHandler):
+class PlantPicturesPage(webapp.RequestHandler):
     """
     Displays a page with photos of the different plant types in a new browser window.  Accessed through links on the SetupMatrix page form.
     """
@@ -700,7 +728,7 @@ class AddLogRecord(webapp.RequestHandler):
             self.response.out.write('FAILED')
 
 
-class LogPage(webapp.RequestHandler):
+class LogFormPage(webapp.RequestHandler):
     """
     A page to request log data by simulation id and region tag.  Accessed by the user by url or hyperlink.
     """
@@ -723,7 +751,7 @@ class LogPage(webapp.RequestHandler):
 
 class GetLogRecords(webapp.RequestHandler):
     """
-    Retrieves the log data requested on the log page.  Accessed by submitting the LogPage form.
+    Retrieves the log data requested on the log page.  Accessed by submitting the LogFormPage.
     """
     def post(self):
         page = HtmlPage()
@@ -763,13 +791,14 @@ END SECTION: Community logging
 
 
 # url to class mapping
-application = webapp.WSGIApplication([('/', ChooseMatrixSizePage),
-                                      ('/matrixform', SetupMatrixPage),
-                                      ('/created', CreateCommunityRecord),
-                                      ('/data', GetCommunityRecord),
-                                      ('/plants', ShowPlantPicturesPage),
+application = webapp.WSGIApplication([('/', LogOrParametersPage),
+                                      ('/parametersform1', ParametersFormPageOne),
+                                      ('/parametersform2', ParametersFormPageTwo),
+                                      ('/storeparameters', StoreParameters),
+                                      ('/data', GetParameters),
+                                      ('/plants', PlantPicturesPage),
                                       ('/addlog', AddLogRecord),
-                                      ('/log', LogPage),
+                                      ('/log', LogFormPage),
                                       ('/getlog', GetLogRecords),
                                       ('/deletelog', DeleteLogRecords)], debug=True)
 
