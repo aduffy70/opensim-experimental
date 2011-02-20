@@ -38,7 +38,7 @@ class HtmlPage():
     """
     header = '<html><body>'
     instructions = """
-        <p>This form generates virtual plants in a simulated plant community growing in the 3D virtual world, ScienceSim. This form is meant to be accessed from within the 3D simulation, and changes made here will not take effect until they are enabled there.<br></p>
+        <p>This form generates virtual plants in a simulated plant community growing in the 3D virtual world, ScienceSim. Changes made here will not take effect until they are enabled there.<br></p>
         <hr>
         """
     footer = '</body></html>'
@@ -71,6 +71,7 @@ class LogOrParametersPage(webapp.RequestHandler):
             <input type="submit" value="View log data" style="width: 175px">
         </form>
         """
+
 
 """
 START SECTION: Community parameters
@@ -138,7 +139,7 @@ class MeadowRecordObject(db.Model):
 
 class ParametersFormPageOne(webapp.RequestHandler):
     """
-    First page of the two page community parameters form.  Accessed by the user by url or hyperlink.
+    First page of the three page community parameters form.  Accessed by the user by url or hyperlink. Controls terrain and environment parameters (and includes some hidden matrix parameters).
     """
     def get(self):
         page = HtmlPage()
@@ -212,7 +213,7 @@ class ParametersFormPageOne(webapp.RequestHandler):
 
 class ParametersFormPageTwo(webapp.RequestHandler):
     """
-    Second page of the two page community parameters form.  Accessed by the user by submitting the ChooseMatrixSize page.
+    Second page of the three page community parameters form.  Accessed by the user by submitting ParametersFormPageOne.  Controls plant settings
     """
     def post(self):
         self.disturbance_only = self.request.get('disturbance_only')
@@ -235,7 +236,7 @@ class ParametersFormPageTwo(webapp.RequestHandler):
         self.response.out.write(page.footer)
 
     form = """
-        <form enctype="multipart/form-data" action="/storeparameters" method="post">
+        <form enctype="multipart/form-data" action="/parametersform3" method="post">
         """
 
     plant_data_form = """
@@ -344,26 +345,6 @@ class ParametersFormPageTwo(webapp.RequestHandler):
             </tr>
         """
 
-    community_matrix_form = """
-        <p>
-            <b>Starting Community Matrix</b><br>
-            Specify the initial plant type to place at each position of the community matrix.<br>
-            <i>(R = randomly selected, N = Permanently disturbed area, 0 = Temporary gap)</i>
-        </p>
-        """
-
-    community_matrix_field = """
-        <select name="community_%s_%s">
-            <option value = "R">R</option>
-            <option value = "N">N</option>
-            <option value = "0">0</option>
-            <option value = "1">1</option>
-            <option value = "2">2</option>
-            <option value = "3">3</option>
-            <option value = "4">4</option>
-            <option value = "5">5</option>
-        </select>
-        """
 
     def generate_form(self):
         page_width = int(self.x_size) * 48
@@ -397,22 +378,6 @@ class ParametersFormPageTwo(webapp.RequestHandler):
                     """ % (row, column)
             assembled_form += assembled_row + '</tr>'
         assembled_form += '</tbody></table></p>'
-        assembled_form += """
-            <p>
-                <b>Ongoing disturbance rate: <b>
-                <select name="ongoing_disturbance">
-                    <option value = "N">None</option>
-                    <option value = "L">Low</option>
-                    <option value = "M">Mid</option>
-                    <option value = "H">High</option>
-                    </select>
-            """
-        # Community matrix form section
-        assembled_form += self.community_matrix_form
-        for y in range(int(self.y_size) - 1, -1, -1):
-            for x in range(int(self.x_size)):
-                assembled_form += self.community_matrix_field % (x, y)
-            assembled_form += """<br>"""
         # Pass along items from the first form page
         assembled_form += """
             <input type="hidden" name="disturbance_only" value="%s">
@@ -456,38 +421,218 @@ class ParametersFormPageTwo(webapp.RequestHandler):
             return True
 
 
-class StoreParameters(webapp.RequestHandler):
+class GetParameters(webapp.RequestHandler):
     """
-    Creates and stores a community record based on inputs from the 2 page
-    community parameters form.  Accessed by submitting the SetupMatrix page form.
+    Returns the community record with a particular timestamp as XML.  Accessed by the vMeadow opensim module.
     """
-    def post(self):
+    def get(self):
+        data = db.GqlQuery("SELECT * FROM MeadowRecordObject WHERE id=:1",
+                            self.request.get('id'))
+        self.response.out.write(data[0].to_xml())
+
+
+class PlantPicturesPage(webapp.RequestHandler):
+    """
+    Displays a page with photos of the different plant types in a new browser window.  Accessed through links on the SetupMatrix page form.
+    """
+    def get(self):
         page = HtmlPage()
         self.response.out.write(page.header)
-        self.id = str(int(time.time()))
-        self.store_record()
-        self.response.out.write(self.success_output % self.id)
+        picture_table = """
+            <table border="0">
+                <tbody>
+                    <tr>
+                        <th>Pine1</th><th>Pine2</th><th>Pine3</th>
+                        <th>Pine4</th><th>Oak</th>
+                    </tr>
+                    <tr>
+                        <td><img src="/images/Pine1.png" height="100" width="125"/></td>
+                        <td><img src="/images/Pine2.png" height="100" width="125"/></td>
+                        <td><img src="/images/Pine3.png" height="100" width="125"/></td>
+                        <td><img src="/images/Pine4.png" height="100" width="125"/></td>
+                        <td><img src="/images/Oak.png" height="100" width="125"/></td>
+                    </tr>
+                    <tr>
+                        <td><br></td>
+                    </tr>
+                    <tr>
+                        <th>Bush1</th><th>Bush2</th><th>Palm1</th>
+                        <th>Palm2</th><th>Dogwood</th>
+                    </tr>
+                    <tr>
+                        <td><img src="/images/Bush1.png" height="100" width="125"/></td>
+                        <td><img src="/images/Bush2.png" height="100" width="125"/></td>
+                        <td><img src="/images/Palm1.png" height="100" width="125"/></td>
+                        <td><img src="/images/Palm2.png" height="100" width="125"/></td>
+                        <td><img src="/images/Dogwood.png" height="100" width="125"/></td>
+                    </tr>
+                    <tr>
+                        <td><br></td>
+                    </tr>
+                    <tr>
+                        <th>Cypress1</th><th>Cypress2</th><th>Plumeria</th>
+                        <th>Aspen</th><th>Eucalyptus</th>
+                    </tr>
+                    <tr>
+                        <td><img src="/images/Cypress1.png" height="100" width="125"/></td>
+                        <td><img src="/images/Cypress2.png" height="100" width="125"/></td>
+                        <td><img src="/images/Plumeria.png" height="100" width="125"/></td>
+                        <td><img src="/images/Aspen.png" height="100" width="125"/></td>
+                        <td><img src="/images/Eucalyptus.png" height="100" width="125"/></td>
+                    </tr>
+                    <tr>
+                        <td><br></td>
+                    </tr>
+                    <tr>
+                        <th>Fern</th><th>Eelgrass</th><th>Seasword</th>
+                        <th>Beachgrass</th><th>Kelp1</th>
+                    </tr>
+                    <tr>
+                        <td><img src="/images/Fern.png" height="100" width="125"/></td>
+                        <td><img src="/images/Eelgrass.png" height="100" width="125"/></td>
+                        <td><img src="/images/Seasword.png" height="100" width="125"/></td>
+                        <td><img src="/images/Beachgrass.png" height="100" width="125"/></td>
+                        <td><img src="/images/Kelp1.png" height="100" width="125"/></td>
+                    </tr>
+                    <tr>
+                        <td><br></td>
+                    </tr>
+                    <tr>
+                        <th>Kelp2</th>
+                    </tr>
+                    <tr>
+                        <td><img src="/images/Kelp2.png" height="100" width="125"/></td>
+                    </tr>
+                </tbody>
+            </table>
+            """
+        self.response.out.write(picture_table)
         self.response.out.write(page.footer)
 
-    success_output = """
-        <p>
-            <span style="font-size: larger;">
-                The community is ready to load.
-            </span>
-        </p>
-        <p>
-            To generate the community:
-        </p>
-        <p>
-            <ul>
-                <li>Move your avatar into the region where you would like it to load.</li>
-                <li>Paste the following text into the chat window:</li>
-            </ul>
-        </p>
-        <p>
-            <blockquote style="font-size: larger;"><b>/18 %s</b></blockquote>
-        </p>
-        """
+
+class ParametersFormPageThree(webapp.RequestHandler):
+    """
+    Page 3 of the three page parameters request form.  Accessed by submitting ParametersFormPagetwo.  Controls starting matrix and disturbance settings and stores the output from all three pages.
+    """
+    def post(self):
+        submit_value = self.request.get('submit_value')
+        if (submit_value == 'Submit parameters'):
+            page = HtmlPage()
+            self.response.out.write(page.header)
+            self.id = str(int(time.time()))
+            self.store_record()
+            self.response.out.write(self.success_output % self.id)
+            self.response.out.write(page.footer)
+        else:
+            self.redraw_form(submit_value)
+
+    def redraw_form(self, submit_value):
+        page = HtmlPage()
+        starting_matrix = list(self.request.get('starting_matrix'))
+        if (len(starting_matrix) == 0):
+            #Set up the default starting matrix with all Rs
+            starting_matrix = []
+            for i in range(2500):
+                starting_matrix.append('R')
+        clicked = self.request.get('clicked')
+        submit_value = self.request.get('submit_value')
+        selected = []
+        selected_string = self.request.get('selected')
+        if (selected_string != ''):
+            selected = selected_string.split(',')
+        if (submit_value == 'Apply cell value to cells'):
+            cell_value = self.request.get('cell_value')
+            for cell in selected:
+                starting_matrix[int(cell)] = cell_value
+            selected = []
+        elif (submit_value == 'Apply cell value to area'):
+            cell_value = self.request.get('cell_value')
+            selected_area = self.get_area_list_from_corners(int(selected[0]), int(selected[1]))
+            for cell in selected_area:
+                starting_matrix[int(cell)] = cell_value
+            selected = []
+        elif (clicked in selected):
+            selected.remove(clicked)
+        else:
+            selected.append(clicked)
+        self.response.out.write(page.header)
+        self.response.out.write(self.form_header)
+        self.response.out.write(self.form_ongoing_disturbance_selector)
+        self.response.out.write(self.form_starting_matrix_map_label)
+        self.response.out.write(self.form_table_header)
+        for j in range(50):
+            for i in range(50):
+                index = (j * 50) + i
+                if (str(index) in selected):
+                    image = 'selected'
+                else:
+                    image = starting_matrix[index]
+                self.response.out.write(self.form_button % (index, image))
+            if (j != 49):
+                self.response.out.write('<br>')
+        self.response.out.write(self.form_table_footer)
+        if (len(selected) > 0):
+            self.response.out.write(self.form_cell_value_selector)
+            self.response.out.write(self.form_assign_cells_button)
+            if (len(selected) == 2):
+                self.response.out.write(self.form_assign_area_button)
+            else:
+                self.response.out.write('<br>')
+        else:
+            self.response.out.write('<br><br><br>')
+        self.response.out.write(self.form_submit_button)
+        self.response.out.write(self.form_active_hidden_fields % (
+            ','.join(selected),
+            ''.join(starting_matrix)))
+        self.response.out.write(self.form_passive_hidden_fields % (
+            self.request.get('x_size'),
+            self.request.get('y_size'),
+            self.request.get('x_location'),
+            self.request.get('y_location'),
+            self.request.get('spacing'),
+            self.request.get('natural'),
+            self.request.get('terrain'),
+            self.request.get('salinity'),
+            self.request.get('drainage'),
+            self.request.get('fertility'),
+            self.request.get('ongoing_disturbance')))
+        for x in range(1, 6):
+            self.response.out.write(self.form_plant_code_hidden_field % (x, self.request.get('plant_code_%s' % x)))
+            self.response.out.write(self.form_lifespan_hidden_field % (x, self.request.get('lifespan_%s' % x)))
+            self.response.out.write(self.form_altitude_optimum_hidden_field % (x, self.request.get('altitude_optimum_%s' % x)))
+            self.response.out.write(self.form_altitude_effect_hidden_field % (x, self.request.get('altitude_effect_%s' % x)))
+            self.response.out.write(self.form_drainage_optimum_hidden_field % (x, self.request.get('drainage_optimum_%s' % x)))
+            self.response.out.write(self.form_drainage_effect_hidden_field % (x, self.request.get('drainage_effect_%s' % x)))
+            self.response.out.write(self.form_salinity_optimum_hidden_field % (x, self.request.get('salinity_optimum_%s' % x)))
+            self.response.out.write(self.form_salinity_effect_hidden_field % (x, self.request.get('salinity_effect_%s' % x)))
+            self.response.out.write(self.form_fertility_optimum_hidden_field % (x, self.request.get('fertility_optimum_%s' % x)))
+            self.response.out.write(self.form_fertility_effect_hidden_field % (x, self.request.get('fertility_effect_%s' % x)))
+            for y in range(6):
+                self.response.out.write(self.form_replace_hidden_field % (x, y, self.request.get('replace_%s_%s' % (x, y))))
+        self.response.out.write(self.form_footer)
+        self.response.out.write('<br>' + ','.join(selected)) # DEBUG
+        self.response.out.write(page.footer)
+
+    def get_area_list_from_corners(self, corner1, corner2):
+        y1 = corner1 / 50
+        x1 = corner1 % 50
+        y2 = corner2 / 50
+        x2 = corner2 % 50
+        lower_x = x1
+        upper_x = x2
+        lower_y = y1
+        upper_y = y2
+        if (x1 >= x2):
+            lower_x = x2
+            upper_x = x1
+        if (y1 >= y2):
+            lower_y = y2
+            upper_y = y1
+        area_list = []
+        for y in range(lower_y, upper_y + 1):
+            for x in range(lower_x, upper_x + 1):
+                area_list.append(y * 50 + x)
+        return area_list
 
     def store_record(self):
         # Get a db record instance to hold the form data
@@ -588,101 +733,145 @@ class StoreParameters(webapp.RequestHandler):
         record.replacement_4 = replacement_strings['4']
         record.replacement_5 = replacement_strings['5']
         # Store the community matrix
-        matrix_string = ''
-        for y in range(record.y_size):
-            for x in range(record.x_size):
-                matrix_string += self.request.get('community_%s_%s' % (x, y))
-        record.starting_matrix = matrix_string
+        record.starting_matrix = self.request.get('starting_matrix')
         record.put()
 
+    success_output = """
+        <p>
+            <span style="font-size: larger;">
+                The community is ready to load.
+            </span>
+        </p>
+        <p>
+            To generate the community:
+        </p>
+        <p>
+            <ul>
+                <li>Move your avatar into the region where you would like it to load.</li>
+                <li>Paste the following text into the chat window:</li>
+            </ul>
+        </p>
+        <p>
+            <blockquote style="font-size: larger;"><b>/18 %s</b></blockquote>
+        </p>
+        """
 
-class GetParameters(webapp.RequestHandler):
-    """
-    Returns the community record with a particular timestamp as XML.  Accessed by the vMeadow opensim module.
-    """
-    def get(self):
-        data = db.GqlQuery("SELECT * FROM MeadowRecordObject WHERE id=:1",
-                            self.request.get('id'))
-        self.response.out.write(data[0].to_xml())
+    form_header = '<form enctype="multipart/form-data" action="/parametersform3" method="post">'
 
+    form_ongoing_disturbance_selector= """
+        <p>
+            <b>Ongoing disturbance rate: <b>
+            <select name="ongoing_disturbance">
+                <option value = "N">None</option>
+                <option value = "L">Low</option>
+                <option value = "M">Mid</option>
+                <option value = "H">High</option>
+            </select>
+        <p>
+        """
 
-class PlantPicturesPage(webapp.RequestHandler):
+    form_starting_matrix_map_label = """
+        <b>Click on the map to select one or more cells to set the starting status:</b>
+        """
+
+    form_table_header = '<table background="/images/Terrain1-500x500.gif"><tbody><td>'
+
+    form_button = '<input type="image" name="clicked" value="%s" src="/images/%sbutton.png" style="width: 10px; height=10px;">'
+
+    form_table_footer = '</td></tbody></table>'
+
+    form_cell_value_selector = """
+        <p>
+            <b>Cell value:</b>
+            <select name="cell_value">
+                <option value = "R">Random plant type</option>
+                <option value = "N">Permanent disturbance</option>
+                <option value = "0">Gap (temporary)</option>
+                <option value = "1">Plant type 1</option>
+                <option value = "2">Plant type 2</option>
+                <option value = "3">Plant type 3</option>
+                <option value = "4">Plant type 4</option>
+                <option value = "5">Plant type 5</option>
+            </select>
+        </p>
+        """
+
+    form_assign_cells_button = """
+        <input type="submit" name="submit_value" value="Apply cell value to cells">
+        """
+
+    form_assign_area_button = """
+        <br><input type="submit" name="submit_value" value="Apply cell value to area">
+        """
+
+    form_submit_button = """
+        <br><br><input type="submit" name="submit_value" value="Submit parameters">
+        """
+
+    form_active_hidden_fields = """
+        <input type="hidden" name="selected" value="%s">
+        <input type="hidden" name="starting_matrix" value="%s">
+        """
+
+    form_passive_hidden_fields = """
+        <input type="hidden" name="x_size" value="%s">
+        <input type="hidden" name="y_size" value="%s">
+        <input type="hidden" name="x_location" value="%s">
+        <input type="hidden" name="y_location" value="%s">
+        <input type="hidden" name="spacing" value="%s">
+        <input type="hidden" name="natural" value="%s">
+        <input type="hidden" name="terrain" value="%s">
+        <input type="hidden" name="salinity" value="%s">
+        <input type="hidden" name="drainage" value="%s">
+        <input type="hidden" name="fertility" value="%s">
+        <input type="hidden" name="ongoing_disturbance" value="%s">
+        """
+
+    form_plant_code_hidden_field = """
+        <input type="hidden" name="plant_code_%s" value="%s">
+        """
+
+    form_lifespan_hidden_field = """
+        <input type="hidden" name="lifespan_%s" value="%s">
+        """
+
+    form_altitude_optimum_hidden_field = """
+        <input type="hidden" name="altitude_optimum_%s" value="%s">
     """
-    Displays a page with photos of the different plant types in a new browser window.  Accessed through links on the SetupMatrix page form.
+
+    form_altitude_effect_hidden_field = """
+        <input type="hidden" name="altitude_effect_%s" value="%s">
+        """
+
+    form_salinity_optimum_hidden_field = """
+        <input type="hidden" name="salinity_optimum_%s" value="%s">
+        """
+
+    form_salinity_effect_hidden_field = """
+        <input type="hidden" name="salinity_effect_%s" value="%s">
+        """
+
+    form_drainage_optimum_hidden_field = """
+        <input type="hidden" name="drainage_optimum_%s" value="%s">
+        """
+
+    form_drainage_effect_hidden_field= """
+        <input type="hidden" name="drainage_effect_%s" value="%s">
+        """
+
+    form_fertility_optimum_hidden_field = """
+        <input type="hidden" name="fertility_optimum_%s" value="%s">
+        """
+
+    form_fertility_effect_hidden_field= """
+        <input type="hidden" name="fertility_effect_%s" value="%s">
+        """
+
+    form_replace_hidden_field = """
+        <input type="hidden" name="replace_%s_%s" value="%s">
     """
-    def get(self):
-        page = HtmlPage()
-        self.response.out.write(page.header)
-        picture_table = """
-            <table border="0">
-                <tbody>
-                    <tr>
-                        <th>Pine1</th><th>Pine2</th><th>Pine3</th>
-                        <th>Pine4</th><th>Oak</th>
-                    </tr>
-                    <tr>
-                        <td><img src="/images/Pine1.png" height="100" width="125"/></td>
-                        <td><img src="/images/Pine2.png" height="100" width="125"/></td>
-                        <td><img src="/images/Pine3.png" height="100" width="125"/></td>
-                        <td><img src="/images/Pine4.png" height="100" width="125"/></td>
-                        <td><img src="/images/Oak.png" height="100" width="125"/></td>
-                    </tr>
-                    <tr>
-                        <td><br></td>
-                    </tr>
-                    <tr>
-                        <th>Bush1</th><th>Bush2</th><th>Palm1</th>
-                        <th>Palm2</th><th>Dogwood</th>
-                    </tr>
-                    <tr>
-                        <td><img src="/images/Bush1.png" height="100" width="125"/></td>
-                        <td><img src="/images/Bush2.png" height="100" width="125"/></td>
-                        <td><img src="/images/Palm1.png" height="100" width="125"/></td>
-                        <td><img src="/images/Palm2.png" height="100" width="125"/></td>
-                        <td><img src="/images/Dogwood.png" height="100" width="125"/></td>
-                    </tr>
-                    <tr>
-                        <td><br></td>
-                    </tr>
-                    <tr>
-                        <th>Cypress1</th><th>Cypress2</th><th>Plumeria</th>
-                        <th>Aspen</th><th>Eucalyptus</th>
-                    </tr>
-                    <tr>
-                        <td><img src="/images/Cypress1.png" height="100" width="125"/></td>
-                        <td><img src="/images/Cypress2.png" height="100" width="125"/></td>
-                        <td><img src="/images/Plumeria.png" height="100" width="125"/></td>
-                        <td><img src="/images/Aspen.png" height="100" width="125"/></td>
-                        <td><img src="/images/Eucalyptus.png" height="100" width="125"/></td>
-                    </tr>
-                    <tr>
-                        <td><br></td>
-                    </tr>
-                    <tr>
-                        <th>Fern</th><th>Eelgrass</th><th>Seasword</th>
-                        <th>Beachgrass</th><th>Kelp1</th>
-                    </tr>
-                    <tr>
-                        <td><img src="/images/Fern.png" height="100" width="125"/></td>
-                        <td><img src="/images/Eelgrass.png" height="100" width="125"/></td>
-                        <td><img src="/images/Seasword.png" height="100" width="125"/></td>
-                        <td><img src="/images/Beachgrass.png" height="100" width="125"/></td>
-                        <td><img src="/images/Kelp1.png" height="100" width="125"/></td>
-                    </tr>
-                    <tr>
-                        <td><br></td>
-                    </tr>
-                    <tr>
-                        <th>Kelp2</th>
-                    </tr>
-                    <tr>
-                        <td><img src="/images/Kelp2.png" height="100" width="125"/></td>
-                    </tr>
-                </tbody>
-            </table>
-            """
-        self.response.out.write(picture_table)
-        self.response.out.write(page.footer)
+
+    form_footer = '</form>'
 
 
 """
@@ -791,16 +980,17 @@ END SECTION: Community logging
 
 
 # url to class mapping
-application = webapp.WSGIApplication([('/', LogOrParametersPage),
-                                      ('/parametersform1', ParametersFormPageOne),
-                                      ('/parametersform2', ParametersFormPageTwo),
-                                      ('/storeparameters', StoreParameters),
-                                      ('/data', GetParameters),
-                                      ('/plants', PlantPicturesPage),
-                                      ('/addlog', AddLogRecord),
-                                      ('/log', LogFormPage),
-                                      ('/getlog', GetLogRecords),
-                                      ('/deletelog', DeleteLogRecords)], debug=True)
+application = webapp.WSGIApplication([
+    ('/', LogOrParametersPage),
+    ('/parametersform1', ParametersFormPageOne),
+    ('/parametersform2', ParametersFormPageTwo),
+    ('/parametersform3', ParametersFormPageThree),
+    ('/data', GetParameters),
+    ('/plants', PlantPicturesPage),
+    ('/addlog', AddLogRecord),
+    ('/log', LogFormPage),
+    ('/getlog', GetLogRecords),
+    ('/deletelog', DeleteLogRecords)], debug=True)
 
 def main():
     run_wsgi_app(application)
