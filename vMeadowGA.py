@@ -61,15 +61,23 @@ class LogOrParametersPage(webapp.RequestHandler):
 
     instructions = """
         <p>
-            <b>Welcome to the virtual plant community simulations (vpcSim) web application.</b><br>
-            From this page you can change the parameters controlling a virtual plant community or view data logged by the plant community.<br>
+            <b>Welcome to the virtual plant community simulations (vpcSim) web application.</b>
         </p>
+        From this page you can:
+        <ul>
+            <li>change the parameters controlling a virtual plant community,</li>
+            <li>change only the disturbance pattern, or </li>
+            <li>view data logged by the plant community.</li>
+        </ul>
         <hr>
         """
 
     form = """
         <form enctype="multipart/form-data" action="/parametersform1" method="get">
-           <input type="submit" value="Change parameters" style="width: 175px">
+           <input type="submit" value="Change all parameters" style="width: 175px">
+        </form>
+        <form enctype="multipart/form-data" action="/selectmap" method="get">
+           <input type="submit" value="Change disturbance only" style="width: 175px">
         </form>
         <form enctype="multipart/form-data" action="/log" method="get">
             <input type="submit" value="View log data" style="width: 175px">
@@ -172,14 +180,19 @@ class ParametersFormPageOne(webapp.RequestHandler):
     form = """
         <form enctype="multipart/form-data" action="/parametersform2" method="post">
             <p>
-                <b>Terrain map:</b> Select the terrain<br>
+                <b>Terrain map:</b> Select the terrain<br>0
                 <input type="radio" name="terrain" value="0" checked>
-                <img src="/images/FS23map.jpg" height="100" width="100" />
+                <img src="/images/Terrain0_map.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
-            </p>
-            <p>
-                <b>Modify disturbance settings only:</b> Check this box to only modify the disturbance settings.  Any other changes to the form will be ignored.<br>
-                Disturbance only:<input name="disturbance_only" type="checkbox">
+                <input type="radio" name="terrain" value="1">1
+                <img src="/images/Terrain1_map.jpg" height="100" width="100" />
+                &nbsp;&nbsp;
+                <input type="radio" name="terrain" value="2">2
+                <img src="/images/Terrain2_map.jpg" height="100" width="100" />
+                &nbsp;&nbsp;
+                <input type="radio" name="terrain" value="3">3
+                <img src="/images/Terrain3_map.jpg" height="100" width="100" />
+                &nbsp;&nbsp;
             </p>
             <p>
                 <b>Community appearance:</b> Specify whether the community should appear natural (plants randomly placed near the coordinates) or crop-like (plants placed exactly on the matrix coordinates).  This does not effect the simulation results - only the appearance.<br>
@@ -187,37 +200,37 @@ class ParametersFormPageOne(webapp.RequestHandler):
             </p>
             <p>
                 <b>Soil salinity map:</b> Select the pattern of soil salinity on the landscape<br>
-                <input type="radio" name="salinity" value="0" checked>
+                <input type="radio" name="salinity" value="0" checked>0
                 <img src="/images/SoilXmap.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
-                <input type="radio" name="salinity" value="1">
+                <input type="radio" name="salinity" value="1">1
                 <img src="/images/SoilYmap.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
-                <input type="radio" name="salinity" value="2">
+                <input type="radio" name="salinity" value="2">2
                 <img src="/images/SoilZmap.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
             </p>
             <p>
                 <b>Soil drainage map:</b> Select the pattern of soil drainage on the landscape<br>
-                <input type="radio" name="drainage" value="0">
+                <input type="radio" name="drainage" value="0">0
                 <img src="/images/SoilXmap.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
-                <input type="radio" name="drainage" value="1" checked>
+                <input type="radio" name="drainage" value="1" checked>1
                 <img src="/images/SoilYmap.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
-                <input type="radio" name="drainage" value="2">
+                <input type="radio" name="drainage" value="2">2
                 <img src="/images/SoilZmap.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
             </p>
             <p>
                 <b>Soil fertility map:</b> Select the pattern of soil fertility on the landscape<br>
-                <input type="radio" name="fertility" value="0" checked>
+                <input type="radio" name="fertility" value="0" checked>0
                 <img src="/images/SoilXmap.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
-                <input type="radio" name="fertility" value="1">
+                <input type="radio" name="fertility" value="1">1
                 <img src="/images/SoilYmap.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
-                <input type="radio" name="fertility" value="2" checked>
+                <input type="radio" name="fertility" value="2" checked>2
                 <img src="/images/SoilZmap.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
             </p>
@@ -246,8 +259,7 @@ class ParametersFormPageTwo(webapp.RequestHandler):
                 self.response.out.write(self.form_replacement_value_select % (row, column))
             self.response.out.write('</tr>')
         self.response.out.write('</tbody></table></p>')
-        self.response.out.write(self.form_hidden_fields % (self.request.get('disturbance_only'),
-            self.request.get('natural'), self.request.get('terrain'), self.request.get('salinity'),
+        self.response.out.write(self.form_hidden_fields % (self.request.get('natural'), self.request.get('terrain'), self.request.get('salinity'),
             self.request.get('drainage'), self.request.get('fertility')))
         self.response.out.write(self.form_submit_button)
         self.response.out.write(page.footer)
@@ -377,7 +389,7 @@ class ParametersFormPageTwo(webapp.RequestHandler):
         """
 
     form_hidden_fields = """
-        <input type="hidden" name="disturbance_only" value="%s">
+        <input type="hidden" name="disturbance_only" value="0">
         <input type="hidden" name="natural" value="%s">
         <input type="hidden" name="terrain" value="%s">
         <input type="hidden" name="salinity" value="%s">
@@ -477,6 +489,56 @@ class PlantPicturesPage(webapp.RequestHandler):
         </table>
         """
 
+
+class SelectTerrainMap(webapp.RequestHandler):
+    """
+    Select the map for the background on ParametersFormPageThree.  Accessed by selecting Change disturbance only from LogOrParameters.
+    """
+    def get(self):
+        page = HtmlPage()
+        self.response.out.write(page.header)
+        self.response.out.write(self.form_header)
+        self.response.out.write(self.form_terrain_radio_buttons)
+        self.response.out.write(self.form_hidden_fields)
+        self.response.out.write(self.form_submit_button)
+
+        self.response.out.write(self.form_footer)
+        self.response.out.write(page.footer)
+
+    form_header = """
+        <form enctype="multipart/form-data" action="/parametersform3" method="post">
+        """
+
+    form_terrain_radio_buttons = """
+        <p>
+            <b>Select the terrain used in the region:</b><br>
+            <input type="radio" name="terrain" value="0" checked>0
+            <img src="/images/Terrain0_map.jpg" height="100" width="100" />
+            &nbsp;&nbsp;
+            <input type="radio" name="terrain" value="1">1
+            <img src="/images/Terrain1_map.jpg" height="100" width="100" />
+            &nbsp;&nbsp;
+            <input type="radio" name="terrain" value="2">2
+            <img src="/images/Terrain2_map.jpg" height="100" width="100" />
+            &nbsp;&nbsp;
+            <input type="radio" name="terrain" value="3">3
+            <img src="/images/Terrain3_map.jpg" height="100" width="100" />
+            &nbsp;&nbsp;
+        </p>
+        """
+
+    form_hidden_fields = """
+        <input type="hidden" name="disturbance_only" value="1">
+        """
+
+    form_submit_button = """
+        <input type="submit" value="Continue...">
+        """
+
+    form_footer = '</form>'
+
+
+
 class ParametersFormPageThree(webapp.RequestHandler):
     """
     Page 3 of the three page parameters request form.  Accessed by submitting ParametersFormPagetwo.  Controls starting matrix and disturbance settings and stores the output from all three pages.
@@ -495,6 +557,8 @@ class ParametersFormPageThree(webapp.RequestHandler):
 
     def redraw_form(self, submit_value):
         page = HtmlPage()
+        disturbance_only = self.request.get('disturbance_only')
+        terrain = self.request.get('terrain')
         starting_matrix = list(self.request.get('starting_matrix'))
         if (len(starting_matrix) == 0):
             #Set up the default starting matrix with all Rs
@@ -526,7 +590,7 @@ class ParametersFormPageThree(webapp.RequestHandler):
         self.response.out.write(self.form_header)
         self.response.out.write(self.form_ongoing_disturbance_selector)
         self.response.out.write(self.form_starting_matrix_map_label)
-        self.response.out.write(self.form_table_header)
+        self.response.out.write(self.form_table_header % terrain)
         for j in range(50):
             for i in range(50):
                 index = (j * 50) + i
@@ -539,38 +603,43 @@ class ParametersFormPageThree(webapp.RequestHandler):
                 self.response.out.write('<br>')
         self.response.out.write(self.form_table_footer)
         if (len(selected) > 0):
-            self.response.out.write(self.form_cell_value_selector)
+            if (disturbance_only == "0"):
+                self.response.out.write(self.form_cell_value_selector)
+            else:
+                self.response.out.write(self.form_cell_value_selector_disturbance_only)
             self.response.out.write(self.form_assign_cells_button)
             if (len(selected) == 2):
                 self.response.out.write(self.form_assign_area_button)
         else:
             self.response.out.write('<br>')
         self.response.out.write(self.form_submit_button)
-        #Pass the list of selected cells and the current starting matrix
+        #Pass the list of selected cells, the current starting matrix, whether we are only changing disturbance, ongoing disturbance value and which terrain we are using.
         self.response.out.write(self.form_active_hidden_fields % (
             ','.join(selected),
-            ''.join(starting_matrix)))
-        #Pass the values from previous form pages
-        self.response.out.write(self.form_passive_hidden_fields % (
-            self.request.get('natural'),
-            self.request.get('terrain'),
-            self.request.get('salinity'),
-            self.request.get('drainage'),
-            self.request.get('fertility'),
-            self.request.get('ongoing_disturbance')))
-        for x in range(1, 6):
-            self.response.out.write(self.form_plant_code_hidden_field % (x, self.request.get('plant_code_%s' % x)))
-            self.response.out.write(self.form_lifespan_hidden_field % (x, self.request.get('lifespan_%s' % x)))
-            self.response.out.write(self.form_altitude_optimum_hidden_field % (x, self.request.get('altitude_optimum_%s' % x)))
-            self.response.out.write(self.form_altitude_effect_hidden_field % (x, self.request.get('altitude_effect_%s' % x)))
-            self.response.out.write(self.form_drainage_optimum_hidden_field % (x, self.request.get('drainage_optimum_%s' % x)))
-            self.response.out.write(self.form_drainage_effect_hidden_field % (x, self.request.get('drainage_effect_%s' % x)))
-            self.response.out.write(self.form_salinity_optimum_hidden_field % (x, self.request.get('salinity_optimum_%s' % x)))
-            self.response.out.write(self.form_salinity_effect_hidden_field % (x, self.request.get('salinity_effect_%s' % x)))
-            self.response.out.write(self.form_fertility_optimum_hidden_field % (x, self.request.get('fertility_optimum_%s' % x)))
-            self.response.out.write(self.form_fertility_effect_hidden_field % (x, self.request.get('fertility_effect_%s' % x)))
-            for y in range(6):
-                self.response.out.write(self.form_replace_hidden_field % (x, y, self.request.get('replace_%s_%s' % (x, y))))
+            ''.join(starting_matrix),
+            disturbance_only,
+            self.request.get('ongoing_disturbance'),
+            terrain))
+        #Pass the values from previous form pages (if we used those previous pages)
+        if (disturbance_only == '0'):
+            self.response.out.write(self.form_passive_hidden_fields % (
+                self.request.get('natural'),
+                self.request.get('salinity'),
+                self.request.get('drainage'),
+                self.request.get('fertility')))
+            for x in range(1, 6):
+                self.response.out.write(self.form_plant_code_hidden_field % (x, self.request.get('plant_code_%s' % x)))
+                self.response.out.write(self.form_lifespan_hidden_field % (x, self.request.get('lifespan_%s' % x)))
+                self.response.out.write(self.form_altitude_optimum_hidden_field % (x, self.request.get('altitude_optimum_%s' % x)))
+                self.response.out.write(self.form_altitude_effect_hidden_field % (x, self.request.get('altitude_effect_%s' % x)))
+                self.response.out.write(self.form_drainage_optimum_hidden_field % (x, self.request.get('drainage_optimum_%s' % x)))
+                self.response.out.write(self.form_drainage_effect_hidden_field % (x, self.request.get('drainage_effect_%s' % x)))
+                self.response.out.write(self.form_salinity_optimum_hidden_field % (x, self.request.get('salinity_optimum_%s' % x)))
+                self.response.out.write(self.form_salinity_effect_hidden_field % (x, self.request.get('salinity_effect_%s' % x)))
+                self.response.out.write(self.form_fertility_optimum_hidden_field % (x, self.request.get('fertility_optimum_%s' % x)))
+                self.response.out.write(self.form_fertility_effect_hidden_field % (x, self.request.get('fertility_effect_%s' % x)))
+                for y in range(6):
+                    self.response.out.write(self.form_replace_hidden_field % (x, y, self.request.get('replace_%s_%s' % (x, y))))
         self.response.out.write(self.form_footer)
         self.response.out.write(page.footer)
 
@@ -601,64 +670,61 @@ class ParametersFormPageThree(webapp.RequestHandler):
         # Store a timestamp as the record id
         record.id = self.id
         # Store the disturbance_only, matrix xy sizes, position, spacing, appearance, terrain, salinity, drainage, and fertility maps.
-        disturbance_only = self.request.get('disturbance_only')
-        if (disturbance_only == 'on'):
-            record.disturbance_only = 1
-        else:
-            record.disturbance_only = 0
-        record.x_size = 50
-        record.y_size = 50
-        record.x_location = 5.0
-        record.y_location = 5.0
-        record.spacing = 5.0
-        appearance = self.request.get('natural')
-        if (appearance == 'on'):
-            record.natural = 1
-        else:
-            record.natural = 0
-        record.terrain = int(self.request.get('terrain'))
-        record.salinity = int(self.request.get('salinity'))
-        record.drainage = int(self.request.get('drainage'))
-        record.fertility = int(self.request.get('fertility'))
+        record.disturbance_only = int(self.request.get('disturbance_only'))
+        if (record.disturbance_only == 0):
+            record.x_size = 50
+            record.y_size = 50
+            record.x_location = 5.0
+            record.y_location = 5.0
+            record.spacing = 5.0
+            appearance = self.request.get('natural')
+            if (appearance == 'on'):
+                record.natural = 1
+            else:
+                record.natural = 0
+            record.terrain = int(self.request.get('terrain'))
+            record.salinity = int(self.request.get('salinity'))
+            record.drainage = int(self.request.get('drainage'))
+            record.fertility = int(self.request.get('fertility'))
+            record.plant_types = ''
+            record.lifespans = ''
+            record.altitude_optimums = ''
+            record.altitude_effects = ''
+            record.salinity_optimums = ''
+            record.salinity_effects = ''
+            record.drainage_optimums = ''
+            record.drainage_effects = ''
+            record.fertility_optimums = ''
+            record.fertility_effects = ''
+            for i in range(1, 6):
+                comma = ','
+                if (i == 5):
+                    comma = ''
+                record.plant_types += self.request.get('plant_code_%s' % i) + comma
+                record.lifespans += self.request.get('lifespan_%s' % i) + comma
+                record.altitude_optimums += self.request.get('altitude_optimum_%s' % i) + comma
+                record.altitude_effects += self.request.get('altitude_effect_%s' % i) + comma
+                record.salinity_optimums += self.request.get('salinity_optimum_%s' % i) + comma
+                record.salinity_effects += self.request.get('salinity_effect_%s' % i) + comma
+                record.drainage_optimums += self.request.get('drainage_optimum_%s' % i) + comma
+                record.drainage_effects += self.request.get('drainage_effect_%s' % i) + comma
+                record.fertility_optimums += self.request.get('fertility_optimum_%s' % i) + comma
+                record.fertility_effects += self.request.get('fertility_effect_%s' % i) + comma
+            # Store the replacement probabilities
+            replacement_strings = {}
+            for x in range(1,6):
+                row_string = ''
+                for y in range(6):
+                    row_string += self.request.get('replace_%s_%s' % (x, y))
+                    if (y < 5):
+                        row_string += ','
+                replacement_strings[str(x)] = row_string
+            record.replacement_1 = replacement_strings['1']
+            record.replacement_2 = replacement_strings['2']
+            record.replacement_3 = replacement_strings['3']
+            record.replacement_4 = replacement_strings['4']
+            record.replacement_5 = replacement_strings['5']
         record.ongoing_disturbance = self.request.get('ongoing_disturbance')
-        record.plant_types = ''
-        record.lifespans = ''
-        record.altitude_optimums = ''
-        record.altitude_effects = ''
-        record.salinity_optimums = ''
-        record.salinity_effects = ''
-        record.drainage_optimums = ''
-        record.drainage_effects = ''
-        record.fertility_optimums = ''
-        record.fertility_effects = ''
-        for i in range(1, 6):
-            comma = ','
-            if (i == 5):
-                comma = ''
-            record.plant_types += self.request.get('plant_code_%s' % i) + comma
-            record.lifespans += self.request.get('lifespan_%s' % i) + comma
-            record.altitude_optimums += self.request.get('altitude_optimum_%s' % i) + comma
-            record.altitude_effects += self.request.get('altitude_effect_%s' % i) + comma
-            record.salinity_optimums += self.request.get('salinity_optimum_%s' % i) + comma
-            record.salinity_effects += self.request.get('salinity_effect_%s' % i) + comma
-            record.drainage_optimums += self.request.get('drainage_optimum_%s' % i) + comma
-            record.drainage_effects += self.request.get('drainage_effect_%s' % i) + comma
-            record.fertility_optimums += self.request.get('fertility_optimum_%s' % i) + comma
-            record.fertility_effects += self.request.get('fertility_effect_%s' % i) + comma
-        # Store the replacement probabilities
-        replacement_strings = {}
-        for x in range(1,6):
-            row_string = ''
-            for y in range(6):
-                row_string += self.request.get('replace_%s_%s' % (x, y))
-                if (y < 5):
-                    row_string += ','
-            replacement_strings[str(x)] = row_string
-        record.replacement_1 = replacement_strings['1']
-        record.replacement_2 = replacement_strings['2']
-        record.replacement_3 = replacement_strings['3']
-        record.replacement_4 = replacement_strings['4']
-        record.replacement_5 = replacement_strings['5']
         # Store the community matrix
         #This matrix starts with 0 in the NW corner and I need 0 in the SW corner
         temp_starting_matrix = self.request.get('starting_matrix')
@@ -713,11 +779,19 @@ class ParametersFormPageThree(webapp.RequestHandler):
         <b>Click on the map to select one or more cells to set the starting status:</b>
         """
 
-    form_table_header = '<table background="/images/Terrain1-500x500.gif"><tbody><td>'
+    form_table_header = '<table background="/images/Terrain%s_map.jpg"><tbody><td>'
 
     form_button = '<input type="image" name="clicked" value="%s" src="/images/%sbutton.png" style="width: 10px; height=10px;">'
 
     form_table_footer = '</td></tbody></table>'
+
+    form_cell_value_selector_disturbance_only = """
+        <b>Cell value:</b>
+        <select name="cell_value">
+            <option value = "R">Not disturbed</option>
+            <option value = "N">Permanent disturbance</option>
+        </select>
+        """
 
     form_cell_value_selector = """
         <b>Cell value:</b>
@@ -748,15 +822,16 @@ class ParametersFormPageThree(webapp.RequestHandler):
     form_active_hidden_fields = """
         <input type="hidden" name="selected" value="%s">
         <input type="hidden" name="starting_matrix" value="%s">
+        <input type="hidden" name="disturbance_only" value="%s">
+        <input type="hidden" name="ongoing_disturbance" value="%s">
+        <input type="hidden" name="terrain" value="%s">
         """
 
     form_passive_hidden_fields = """
         <input type="hidden" name="natural" value="%s">
-        <input type="hidden" name="terrain" value="%s">
         <input type="hidden" name="salinity" value="%s">
         <input type="hidden" name="drainage" value="%s">
         <input type="hidden" name="fertility" value="%s">
-        <input type="hidden" name="ongoing_disturbance" value="%s">
         """
 
     form_plant_code_hidden_field = """
@@ -931,6 +1006,7 @@ application = webapp.WSGIApplication([
     ('/parametersform2', ParametersFormPageTwo),
     ('/parametersform3', ParametersFormPageThree),
     ('/data', GetParameters),
+    ('/selectmap', SelectTerrainMap),
     ('/plants', PlantPicturesPage),
     ('/addlog', AddLogRecord),
     ('/log', LogFormPage),
