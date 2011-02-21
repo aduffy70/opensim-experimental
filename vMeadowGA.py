@@ -660,7 +660,17 @@ class ParametersFormPageThree(webapp.RequestHandler):
         record.replacement_4 = replacement_strings['4']
         record.replacement_5 = replacement_strings['5']
         # Store the community matrix
-        record.starting_matrix = self.request.get('starting_matrix')
+        #This matrix starts with 0 in the NW corner and I need 0 in the SW corner
+        temp_starting_matrix = self.request.get('starting_matrix')
+        upside_down_matrix = []
+        for y in range(50):
+            row = ''
+            for x in range(50):
+                row += temp_starting_matrix[y * 50 + x]
+            upside_down_matrix.append(row)
+        record.starting_matrix = ''
+        for y in range(50):
+            record.starting_matrix += upside_down_matrix[49 - y]
         record.put()
 
     success_output = """
