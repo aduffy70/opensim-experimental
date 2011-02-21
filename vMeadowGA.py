@@ -292,20 +292,18 @@ class ParametersFormPageTwo(webapp.RequestHandler):
                 <option value = "17">Eelgrass</option>
                 <option value = "18">SeaSword</option>
                 <option value = "19">BeachGrass</option>
-                <option value = "20">Kelp1</option>
-                <option value = "21">Kelp2</option>
             </select>
             <a href="/plants" target="_blank">View examples</a><br>&nbsp;&nbsp;
             <b>Lifespan: </b>
             <select name="lifespan_%s">
                 <option value = "S">Short</option>
-                <option value = "M">Medium</option>
+                <option selected value = "M">Medium</option>
                 <option value = "L">Long</option>
             </select><br>&nbsp;&nbsp;
             <b>Altitude- </b> Optimum:
             <select name="altitude_optimum_%s">
                 <option value = "L">Low</option>
-                <option value = "M">Mid</option>
+                <option  selected value = "M">Mid</option>
                 <option value = "H">High</option>
             </select>&nbsp;&nbsp;&nbsp;&nbsp;
             Effect:
@@ -318,7 +316,7 @@ class ParametersFormPageTwo(webapp.RequestHandler):
             <b>Salinity- </b> Optimum:
             <select name="salinity_optimum_%s">
                 <option value = "L">Low</option>
-                <option value = "M">Mid</option>
+                <option selected value = "M">Mid</option>
                 <option value = "H">High</option>
             </select>&nbsp;&nbsp;&nbsp;&nbsp;
             Effect:
@@ -331,7 +329,7 @@ class ParametersFormPageTwo(webapp.RequestHandler):
             <b>Drainage- </b> Optimum:
             <select name="drainage_optimum_%s">
                 <option value = "L">Low</option>
-                <option value = "M">Mid</option>
+                <option selected value = "M">Mid</option>
                 <option value = "H">High</option>
             </select>&nbsp;&nbsp;&nbsp;&nbsp;
             Effect:
@@ -344,7 +342,7 @@ class ParametersFormPageTwo(webapp.RequestHandler):
             <b>Fertility- </b> Optimum:
             <select name="fertility_optimum_%s">
                 <option value = "L">Low</option>
-                <option value = "M">Mid</option>
+                <option selected value = "M">Mid</option>
                 <option value = "H">High</option>
             </select>&nbsp;&nbsp;&nbsp;&nbsp;
             Effect:
@@ -382,7 +380,7 @@ class ParametersFormPageTwo(webapp.RequestHandler):
         <td>
             <select name="replace_%s_%s">
                 <option value = "L">Low</option>
-                <option value = "M">Mid</option>
+                <option selected value = "M">Mid</option>
                 <option value = "H">High</option>
             </select>
         </td>
@@ -467,23 +465,14 @@ class PlantPicturesPage(webapp.RequestHandler):
                 </tr>
                 <tr>
                     <th>Fern</th><th>Eelgrass</th><th>Seasword</th>
-                    <th>Beachgrass</th><th>Kelp1</th>
+                    <th>Beachgrass</th><th></th>
                 </tr>
                 <tr>
                     <td><img src="/images/Fern.png" height="100" width="125"/></td>
                     <td><img src="/images/Eelgrass.png" height="100" width="125"/></td>
                     <td><img src="/images/Seasword.png" height="100" width="125"/></td>
                     <td><img src="/images/Beachgrass.png" height="100" width="125"/></td>
-                    <td><img src="/images/Kelp1.png" height="100" width="125"/></td>
-                </tr>
-                <tr>
-                    <td><br></td>
-                </tr>
-                <tr>
-                    <th>Kelp2</th>
-                </tr>
-                <tr>
-                    <td><img src="/images/Kelp2.png" height="100" width="125"/></td>
+                    <td></td>
                 </tr>
             </tbody>
         </table>
