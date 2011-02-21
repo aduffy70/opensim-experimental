@@ -144,7 +144,7 @@ class MeadowRecordObject(db.Model):
     #Ongoing disturbance rate (random temporary disturbance each generation in addition to the permanent disturbance on the starting matrix) (N=none, L=low, M=mid, H=high)
     ongoing_disturbance = db.StringProperty()
 
-    #NOTE- These values are no longer adjustable but they are expected by the region module so we still include them here and provide the locked values when we create a record.
+    #TODO- These values are no longer adjustable but they are expected by the region module so we still include them here and provide the locked values when we create a record.  Update the region module to not require them and remove them completely here.
     #XY dimensions of the community matrix
     #currently locked at 50x50
     x_size = db.IntegerProperty()
@@ -231,22 +231,32 @@ class ParametersFormPageTwo(webapp.RequestHandler):
     Second page of the three page community parameters form.  Accessed by the user by submitting ParametersFormPageOne.  Controls plant settings
     """
     def post(self):
-        self.disturbance_only = self.request.get('disturbance_only')
-        self.natural = self.request.get('natural')
-        self.terrain = self.request.get('terrain')
-        self.salinity = self.request.get('salinity')
-        self.drainage = self.request.get('drainage')
-        self.fertility = self.request.get('fertility')
         page = HtmlPage()
         self.response.out.write(page.header)
-        self.response.out.write(self.generate_form())
+        self.response.out.write(self.form_header)
+        for i in range(1,6):
+            self.response.out.write(self.form_plant_data % (i, i, i, i, i, i, i, i, i, i, i))
+        self.response.out.write(self.form_replacement_matrix)
+        for row in range(1,6):
+            if (row == 3):
+                self.response.out.write(self.form_response_table_row % row)
+            else:
+                self.response.out.write(self.form_response_table_header % row)
+            for  column in range(6):
+                self.response.out.write(self.form_replacement_value_select % (row, column))
+            self.response.out.write('</tr>')
+        self.response.out.write('</tbody></table></p>')
+        self.response.out.write(self.form_hidden_fields % (self.request.get('disturbance_only'),
+            self.request.get('natural'), self.request.get('terrain'), self.request.get('salinity'),
+            self.request.get('drainage'), self.request.get('fertility')))
+        self.response.out.write(self.form_submit_button)
         self.response.out.write(page.footer)
 
-    form = """
+    form_header = """
         <form enctype="multipart/form-data" action="/parametersform3" method="post">
         """
 
-    plant_data_form = """
+    form_plant_data = """
         <p>
             <b>Plant type %s: </b></br>&nbsp;&nbsp;
             <b>Appearance: </b>
@@ -273,8 +283,7 @@ class ParametersFormPageTwo(webapp.RequestHandler):
                 <option value = "20">Kelp1</option>
                 <option value = "21">Kelp2</option>
             </select>
-            <a href="/plants" target="_blank">View examples</a> <br>
-            &nbsp;&nbsp;
+            <a href="/plants" target="_blank">View examples</a><br>&nbsp;&nbsp;
             <b>Lifespan: </b>
             <select name="lifespan_%s">
                 <option value = "S">Short</option>
@@ -335,7 +344,8 @@ class ParametersFormPageTwo(webapp.RequestHandler):
             </select><br>
         """
 
-    replacement_matrix_form = """
+    form_replacement_matrix = """
+        </p>
         <p>
             <b>Replacement Matrix</b><br>
             Specify the probability that an individual plant type A will be replaced by plant type B<br>
@@ -352,45 +362,30 @@ class ParametersFormPageTwo(webapp.RequestHandler):
             </tr>
         """
 
+    form_response_table_row = '<tr><td><b> B &nbsp;&nbsp;&nbsp;</b></td><th> %s </th>'
 
-    def generate_form(self):
-        assembled_form = self.form
-        # Plant type form section
-        for i in range(1,6):
-            assembled_form += self.plant_data_form % (i, i, i, i, i, i, i, i, i, i, i)
-        assembled_form += '</p>'
-        # Replacement matrix form section
-        assembled_form += self.replacement_matrix_form
-        for row in range(1,6):
-            assembled_row = '<tr>'
-            if (row == 3):
-                assembled_row += '<td><b> B &nbsp;&nbsp;&nbsp;</b></td><th> %s </th>' % row
-            else:
-                assembled_row += '<td></td><th> %s </th>' % row
-            for  column in range(6):
-                assembled_row += """
-                    <td>
-                        <select name="replace_%s_%s">
-                            <option value = "L">Low</option>
-                            <option value = "M">Mid</option>
-                            <option value = "H">High</option>
-                        </select>
-                    </td>
-                    """ % (row, column)
-            assembled_form += assembled_row + '</tr>'
-        assembled_form += '</tbody></table></p>'
-        # Pass along items from the first form page
-        assembled_form += """
-            <input type="hidden" name="disturbance_only" value="%s">
-            <input type="hidden" name="natural" value="%s">
-            <input type="hidden" name="terrain" value="%s">
-            <input type="hidden" name="salinity" value="%s">
-            <input type="hidden" name="drainage" value="%s">
-            <input type="hidden" name="fertility" value="%s">
-            """ % (self.disturbance_only, self.natural, self.terrain,
-                   self.salinity, self.drainage, self.fertility)
-        assembled_form += '</p><input type="submit" value="Continue..."></form>'
-        return assembled_form
+    form_response_table_header = '<tr><td></td><th> %s </th>'
+
+    form_replacement_value_select = """
+        <td>
+            <select name="replace_%s_%s">
+                <option value = "L">Low</option>
+                <option value = "M">Mid</option>
+                <option value = "H">High</option>
+            </select>
+        </td>
+        """
+
+    form_hidden_fields = """
+        <input type="hidden" name="disturbance_only" value="%s">
+        <input type="hidden" name="natural" value="%s">
+        <input type="hidden" name="terrain" value="%s">
+        <input type="hidden" name="salinity" value="%s">
+        <input type="hidden" name="drainage" value="%s">
+        <input type="hidden" name="fertility" value="%s">
+        """
+
+    form_submit_button = '</p><input type="submit" value="Continue..."></form>'
 
 
 class GetParameters(webapp.RequestHandler):
@@ -410,77 +405,77 @@ class PlantPicturesPage(webapp.RequestHandler):
     def get(self):
         page = HtmlPage()
         self.response.out.write(page.header)
-        picture_table = """
-            <table border="0">
-                <tbody>
-                    <tr>
-                        <th>Pine1</th><th>Pine2</th><th>Pine3</th>
-                        <th>Pine4</th><th>Oak</th>
-                    </tr>
-                    <tr>
-                        <td><img src="/images/Pine1.png" height="100" width="125"/></td>
-                        <td><img src="/images/Pine2.png" height="100" width="125"/></td>
-                        <td><img src="/images/Pine3.png" height="100" width="125"/></td>
-                        <td><img src="/images/Pine4.png" height="100" width="125"/></td>
-                        <td><img src="/images/Oak.png" height="100" width="125"/></td>
-                    </tr>
-                    <tr>
-                        <td><br></td>
-                    </tr>
-                    <tr>
-                        <th>Bush1</th><th>Bush2</th><th>Palm1</th>
-                        <th>Palm2</th><th>Dogwood</th>
-                    </tr>
-                    <tr>
-                        <td><img src="/images/Bush1.png" height="100" width="125"/></td>
-                        <td><img src="/images/Bush2.png" height="100" width="125"/></td>
-                        <td><img src="/images/Palm1.png" height="100" width="125"/></td>
-                        <td><img src="/images/Palm2.png" height="100" width="125"/></td>
-                        <td><img src="/images/Dogwood.png" height="100" width="125"/></td>
-                    </tr>
-                    <tr>
-                        <td><br></td>
-                    </tr>
-                    <tr>
-                        <th>Cypress1</th><th>Cypress2</th><th>Plumeria</th>
-                        <th>Aspen</th><th>Eucalyptus</th>
-                    </tr>
-                    <tr>
-                        <td><img src="/images/Cypress1.png" height="100" width="125"/></td>
-                        <td><img src="/images/Cypress2.png" height="100" width="125"/></td>
-                        <td><img src="/images/Plumeria.png" height="100" width="125"/></td>
-                        <td><img src="/images/Aspen.png" height="100" width="125"/></td>
-                        <td><img src="/images/Eucalyptus.png" height="100" width="125"/></td>
-                    </tr>
-                    <tr>
-                        <td><br></td>
-                    </tr>
-                    <tr>
-                        <th>Fern</th><th>Eelgrass</th><th>Seasword</th>
-                        <th>Beachgrass</th><th>Kelp1</th>
-                    </tr>
-                    <tr>
-                        <td><img src="/images/Fern.png" height="100" width="125"/></td>
-                        <td><img src="/images/Eelgrass.png" height="100" width="125"/></td>
-                        <td><img src="/images/Seasword.png" height="100" width="125"/></td>
-                        <td><img src="/images/Beachgrass.png" height="100" width="125"/></td>
-                        <td><img src="/images/Kelp1.png" height="100" width="125"/></td>
-                    </tr>
-                    <tr>
-                        <td><br></td>
-                    </tr>
-                    <tr>
-                        <th>Kelp2</th>
-                    </tr>
-                    <tr>
-                        <td><img src="/images/Kelp2.png" height="100" width="125"/></td>
-                    </tr>
-                </tbody>
-            </table>
-            """
-        self.response.out.write(picture_table)
+        self.response.out.write(self.picture_table)
         self.response.out.write(page.footer)
 
+    picture_table = """
+        <table border="0">
+            <tbody>
+                <tr>
+                    <th>Pine1</th><th>Pine2</th><th>Pine3</th>
+                    <th>Pine4</th><th>Oak</th>
+                </tr>
+                <tr>
+                    <td><img src="/images/Pine1.png" height="100" width="125"/></td>
+                    <td><img src="/images/Pine2.png" height="100" width="125"/></td>
+                    <td><img src="/images/Pine3.png" height="100" width="125"/></td>
+                    <td><img src="/images/Pine4.png" height="100" width="125"/></td>
+                    <td><img src="/images/Oak.png" height="100" width="125"/></td>
+                </tr>
+                <tr>
+                    <td><br></td>
+                </tr>
+                <tr>
+                    <th>Bush1</th><th>Bush2</th><th>Palm1</th>
+                    <th>Palm2</th><th>Dogwood</th>
+                </tr>
+                <tr>
+                    <td><img src="/images/Bush1.png" height="100" width="125"/></td>
+                    <td><img src="/images/Bush2.png" height="100" width="125"/></td>
+                    <td><img src="/images/Palm1.png" height="100" width="125"/></td>
+                    <td><img src="/images/Palm2.png" height="100" width="125"/></td>
+                    <td><img src="/images/Dogwood.png" height="100" width="125"/></td>
+                </tr>
+                <tr>
+                    <td><br></td>
+                </tr>
+                <tr>
+                    <th>Cypress1</th><th>Cypress2</th><th>Plumeria</th>
+                    <th>Aspen</th><th>Eucalyptus</th>
+                </tr>
+                <tr>
+                    <td><img src="/images/Cypress1.png" height="100" width="125"/></td>
+                    <td><img src="/images/Cypress2.png" height="100" width="125"/></td>
+                    <td><img src="/images/Plumeria.png" height="100" width="125"/></td>
+                    <td><img src="/images/Aspen.png" height="100" width="125"/></td>
+                    <td><img src="/images/Eucalyptus.png" height="100" width="125"/></td>
+                </tr>
+                <tr>
+                    <td><br></td>
+                </tr>
+                <tr>
+                    <th>Fern</th><th>Eelgrass</th><th>Seasword</th>
+                    <th>Beachgrass</th><th>Kelp1</th>
+                </tr>
+                <tr>
+                    <td><img src="/images/Fern.png" height="100" width="125"/></td>
+                    <td><img src="/images/Eelgrass.png" height="100" width="125"/></td>
+                    <td><img src="/images/Seasword.png" height="100" width="125"/></td>
+                    <td><img src="/images/Beachgrass.png" height="100" width="125"/></td>
+                    <td><img src="/images/Kelp1.png" height="100" width="125"/></td>
+                </tr>
+                <tr>
+                    <td><br></td>
+                </tr>
+                <tr>
+                    <th>Kelp2</th>
+                </tr>
+                <tr>
+                    <td><img src="/images/Kelp2.png" height="100" width="125"/></td>
+                </tr>
+            </tbody>
+        </table>
+        """
 
 class ParametersFormPageThree(webapp.RequestHandler):
     """
@@ -626,64 +621,30 @@ class ParametersFormPageThree(webapp.RequestHandler):
         record.drainage = int(self.request.get('drainage'))
         record.fertility = int(self.request.get('fertility'))
         record.ongoing_disturbance = self.request.get('ongoing_disturbance')
-        # Store the plant types
-        record.plant_types = '%s,%s,%s,%s,%s' % (
-            self.request.get('plant_code_1'), self.request.get('plant_code_2'),
-            self.request.get('plant_code_3'), self.request.get('plant_code_4'),
-            self.request.get('plant_code_5'))
-        #Store the plant lifespans
-        record.lifespans = '%s,%s,%s,%s,%s' % (self.request.get('lifespan_1'),
-            self.request.get('lifespan_2'), self.request.get('lifespan_3'),
-            self.request.get('lifespan_4'), self.request.get('lifespan_5'))
-        #Store the environmental parameters
-        record.altitude_optimums = '%s,%s,%s,%s,%s' % (
-            self.request.get('altitude_optimum_1'),
-            self.request.get('altitude_optimum_2'),
-            self.request.get('altitude_optimum_3'),
-            self.request.get('altitude_optimum_4'),
-            self.request.get('altitude_optimum_5'))
-        record.altitude_effects = '%s,%s,%s,%s,%s' % (
-            self.request.get('altitude_effect_1'),
-            self.request.get('altitude_effect_2'),
-            self.request.get('altitude_effect_3'),
-            self.request.get('altitude_effect_4'),
-            self.request.get('altitude_effect_5'))
-        record.salinity_optimums = '%s,%s,%s,%s,%s' % (
-            self.request.get('salinity_optimum_1'),
-            self.request.get('salinity_optimum_2'),
-            self.request.get('salinity_optimum_3'),
-            self.request.get('salinity_optimum_4'),
-            self.request.get('salinity_optimum_5'))
-        record.salinity_effects = '%s,%s,%s,%s,%s' % (
-            self.request.get('salinity_effect_1'),
-            self.request.get('salinity_effect_2'),
-            self.request.get('salinity_effect_3'),
-            self.request.get('salinity_effect_4'),
-            self.request.get('salinity_effect_5'))
-        record.drainage_optimums = '%s,%s,%s,%s,%s' % (
-            self.request.get('drainage_optimum_1'),
-            self.request.get('drainage_optimum_2'),
-            self.request.get('drainage_optimum_3'),
-            self.request.get('drainage_optimum_4'),
-            self.request.get('drainage_optimum_5'))
-        record.drainage_effects = '%s,%s,%s,%s,%s' % (
-            self.request.get('drainage_effect_1'),
-            self.request.get('drainage_effect_2'),
-            self.request.get('drainage_effect_3'),
-            self.request.get('drainage_effect_4'),
-            self.request.get('drainage_effect_5'))
-        record.fertility_optimums = '%s,%s,%s,%s,%s' % (
-            self.request.get('fertility_optimum_1'),
-            self.request.get('fertility_optimum_2'),
-            self.request.get('fertility_optimum_3'),
-            self.request.get('fertility_optimum_4'),
-            self.request.get('fertility_optimum_5'))
-        record.fertility_effects = '%s,%s,%s,%s,%s' % (
-            self.request.get('fertility_effect_1'),
-            self.request.get('fertility_effect_2'),
-            self.request.get('fertility_effect_3'),
-            self.request.get('fertility_effect_4'),
-            self.request.get('fertility_effect_5'))
+        record.plant_types = ''
+        record.lifespans = ''
+        record.altitude_optimums = ''
+        record.altitude_effects = ''
+        record.salinity_optimums = ''
+        record.salinity_effects = ''
+        record.drainage_optimums = ''
+        record.drainage_effects = ''
+        record.fertility_optimums = ''
+        record.fertility_effects = ''
+        for i in range(1, 6):
+            comma = ','
+            if (i == 5):
+                comma = ''
+            record.plant_types += self.request.get('plant_code_%s' % i) + comma
+            record.lifespans += self.request.get('lifespan_%s' % i) + comma
+            record.altitude_optimums += self.request.get('altitude_optimum_%s' % i) + comma
+            record.altitude_effects += self.request.get('altitude_effect_%s' % i) + comma
+            record.salinity_optimums += self.request.get('salinity_optimum_%s' % i) + comma
+            record.salinity_effects += self.request.get('salinity_effect_%s' % i) + comma
+            record.drainage_optimums += self.request.get('drainage_optimum_%s' % i) + comma
+            record.drainage_effects += self.request.get('drainage_effect_%s' % i) + comma
+            record.fertility_optimums += self.request.get('fertility_optimum_%s' % i) + comma
+            record.fertility_effects += self.request.get('fertility_effect_%s' % i) + comma
         # Store the replacement probabilities
         replacement_strings = {}
         for x in range(1,6):
@@ -718,7 +679,9 @@ class ParametersFormPageThree(webapp.RequestHandler):
             </ul>
         </p>
         <p>
-            <blockquote style="font-size: larger;"><b>/18 %s</b></blockquote>
+            <blockquote style="font-size: larger;">
+                <b>/18 %s</b>
+            </blockquote>
         </p>
         """
 
@@ -849,9 +812,13 @@ class SimulationLogObject(db.Model):
     """
     # Time record was created
     time_stamp = db.DateTimeProperty(auto_now_add=True)
+
     # Simulation ID of the simulation that created this record
     sim_id = db.StringProperty()
+
+    #Region tag of the opensim region that created this record (from vMeadow.ini)
     region_tag = db.StringProperty()
+
     # CSV string of simulation step and counts for each species
     data = db.StringProperty()
 
@@ -891,11 +858,12 @@ class LogFormPage(webapp.RequestHandler):
             <p>
                 <b>View log records for a simulation on a particular region: </b><br>
                 Simulation ID: <input type="text" name="sim_id" maxlength="10" size="11"> &nbsp;&nbsp;&nbsp;&nbsp;
-                Region tag: <input type="text" name="region_tag" maxlength="20" size="21"><br>
+                Region tag: <input type="text" name="region_tag" maxlength="20" size="21"><br><br>
                 <input type="submit" value="Get log records">
             </p>
         </form>
         """
+
 
 class GetLogRecords(webapp.RequestHandler):
     """
@@ -908,15 +876,23 @@ class GetLogRecords(webapp.RequestHandler):
         region_tag = self.request.get('region_tag')
         records = db.GqlQuery("SELECT * FROM SimulationLogObject WHERE sim_id=:1 AND region_tag=:2 ORDER BY time_stamp", sim_id, region_tag)
         if (records.count(1) > 0):
-            self.response.out.write("<p><b>Records for " + sim_id + " in " + region_tag + ":</b></p>")
-            self.response.out.write("<b>Simulation ID, Gap count, Species1 count, Species2 count, Species3 count, Species4 count, Species5 count</b><br>")
+            self.response.out.write(self.record_output_label % (sim_id, region_tag))
             for record in records:
-                self.response.out.write(record.data + ',' +
-                                        str(record.time_stamp) + '<br>')
+                self.response.out.write(self.record_output % (record.data, str(record.time_stamp)))
         else:
-            self.response.out.write('No records for ' + sim_id + " in " +
-                                    region_tag)
+            self.response.out.write(self.no_records_output % (sim_id, region_tag))
         self.response.out.write(page.footer)
+
+    record_output_label = """
+        <p>
+            <b>Records for %s in %s:</b>
+        </p>
+        <b>Simulation ID, Gap count, Species1 count, Species2 count, Species3 count, Species4 count, Species5 count</b><br>
+        """
+
+    record_output = '%s,%s<br>'
+
+    no_records_output = 'No records for %s in %s.'
 
 
 class DeleteLogRecords(webapp.RequestHandler):
