@@ -1138,6 +1138,7 @@ namespace vMeadowModule
                 {
                     //Log("Disturbance Only"); //DEBUG
                     //Copy the currently visualized generation into generation 0 so we can run a new simulation from that starting point using new disturbance parameters.
+                    m_permanentDisturbanceMap = new bool[m_xCells, m_yCells];
                     if (m_currentGeneration != 0) //If the current generation is already generation 0 we don't have to copy anything
                     {
                         for (int y=0; y<m_yCells; y++)
@@ -1175,6 +1176,7 @@ namespace vMeadowModule
                                 if (startingPlants[currentCell] == 'N')
                                 {
                                     //There will never be a plant here
+                                    m_permanentDisturbanceMap[x, y] = true;
                                     int oldCellStatus = m_cellStatus[0, x, y];
                                     if (oldCellStatus != 0)
                                     {
@@ -1183,7 +1185,6 @@ namespace vMeadowModule
                                         m_totalSpeciesCounts[0, 0]++;
                                         m_cellStatus[0, x, y] = 0;
                                         m_age[0, x, y] = 0;
-                                        m_permanentDisturbanceMap[x, y] = true;
                                     }
                                 }
                                 else
