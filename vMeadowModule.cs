@@ -989,7 +989,6 @@ namespace vMeadowModule
             Dictionary<string, float> convertOngoingDisturbance = new Dictionary<string, float>(){
                 {"N", 0.0f}, {"L", 0.0001f}, {"M", 0.01f}, {"H", 0.1f}};
             //Read configuration data from a url.  This works with the vMeadowGA google app version2 (the xml version).
-            WebRequest configUrl = WebRequest.Create(url);
             //Log("Sent WebRequest"); //DEBUG
             Alert(String.Format("Reading data from url.  This may take a minute..."));
             try
@@ -1036,6 +1035,7 @@ namespace vMeadowModule
                         m_naturalAppearance = false;
                     }
                     m_terrainMap = Int32.Parse(newParameters["terrain"]);
+                    LoadTerrain(m_terrainMap);
                     m_salinityMap = Int32.Parse(newParameters["salinity"]);
                     m_drainageMap = Int32.Parse(newParameters["drainage"]);
                     m_fertilityMap = Int32.Parse(newParameters["fertility"]);
@@ -1213,6 +1213,14 @@ namespace vMeadowModule
                 Alert(String.Format("Error loading from \"{0}\"...", url));
                 return false;
             }
+        }
+
+        void LoadTerrain(int terrain)
+        {
+            //Load one of the numbered terrains from file
+            ITerrainModule terrainmod = m_scene.RequestModuleInterface<ITerrainModule>();
+            terrainmod.LoadFromFile(String.Format("Terrain{0}.png", terrain));
+            Alert("Loaded terrain...");
         }
 
         void RunSimulation()
