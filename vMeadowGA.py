@@ -84,11 +84,9 @@ class LogOrParametersPage(webapp.RequestHandler):
         </form>
         """
 
-
 """
 START SECTION: Community parameters
 """
-
 
 class MeadowRecordObject(db.Model):
     """
@@ -479,7 +477,7 @@ class PlantPicturesPage(webapp.RequestHandler):
         """
 
 
-class SelectTerrainMap(webapp.RequestHandler):
+class SelectTerrainMapPage(webapp.RequestHandler):
     """
     Select the map for the background on ParametersFormPageThree.  Accessed by selecting Change disturbance only from LogOrParameters.
     """
@@ -527,10 +525,9 @@ class SelectTerrainMap(webapp.RequestHandler):
     form_footer = '</form>'
 
 
-
 class ParametersFormPageThree(webapp.RequestHandler):
     """
-    Page 3 of the three page parameters request form.  Accessed by submitting ParametersFormPagetwo.  Controls starting matrix and disturbance settings and stores the output from all three pages.
+    Page 3 of the three page parameters request form.  Accessed by submitting ParametersFormPageTwo or by submitting the SelectTerrainMapPage.  Controls starting matrix and disturbance settings and stores the output from all three pages.
     """
     def post(self):
         submit_value = self.request.get('submit_value')
@@ -869,16 +866,13 @@ class ParametersFormPageThree(webapp.RequestHandler):
 
     form_footer = '</form>'
 
-
 """
 END SECTION: Community parameters
 """
 
-
 """
 START SECTION: Community logging.
 """
-
 
 class SimulationLogObject(db.Model):
     """
@@ -982,11 +976,9 @@ class DeleteLogRecords(webapp.RequestHandler):
                 record.delete()
         self.response.out.write('SUCCESS')
 
-
 """
 END SECTION: Community logging
 """
-
 
 # url to class mapping
 application = webapp.WSGIApplication([
@@ -995,7 +987,7 @@ application = webapp.WSGIApplication([
     ('/parametersform2', ParametersFormPageTwo),
     ('/parametersform3', ParametersFormPageThree),
     ('/data', GetParameters),
-    ('/selectmap', SelectTerrainMap),
+    ('/selectmap', SelectTerrainMapPage),
     ('/plants', PlantPicturesPage),
     ('/addlog', AddLogRecord),
     ('/log', LogFormPage),
