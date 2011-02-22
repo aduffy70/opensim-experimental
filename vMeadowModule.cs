@@ -64,11 +64,6 @@ namespace vMeadowModule
         string m_instanceTag; //Unique identifier for logs from this region
 
         //Configurable settings (in vMeadow.ini & vMeadowGA webform)
-        float m_xPosition; //inworld x coordinate for the 0,0 cell position
-        float m_yPosition;  //inworld y coordinate for the 0,0 cell position
-        int m_xCells;
-        int m_yCells;
-        float m_cellSpacing; //Space in meters between cell positions
         bool m_naturalAppearance; //Whether the plants are placed in neat rows or randomized a bit
 
         //Configurable settings (in vMeadowGA webform only)
@@ -113,6 +108,11 @@ namespace vMeadowModule
         int m_drainageMap = 0;
         int m_fertilityMap = 0;
 
+        float m_xPosition = 5.0f; //inworld x coordinate for the 0,0 cell position
+        float m_yPosition = 5.0f;  //inworld y coordinate for the 0,0 cell position
+        int m_xCells = 50;
+        int m_yCells = 50;
+        float m_cellSpacing = 5.0f; //Space in meters between cell positions
         SceneObjectGroup[,] m_prims; //list of objects managed by this module
         string[] m_omvTrees = new string[22] {"None", "Pine1", "Pine2", "WinterPine1", "WinterPine2", "Oak", "TropicalBush1", "TropicalBush2", "Palm1", "Palm2", "Dogwood", "Cypress1", "Cypress2", "Plumeria", "WinterAspen", "Eucalyptus", "Fern", "Eelgrass", "SeaSword", "BeachGrass1", "Kelp1", "Kelp2"};
         bool m_isRunning = false; //Keep track of whether the visualization is running
@@ -140,11 +140,6 @@ namespace vMeadowModule
                 m_enabled = vMeadowConfig.GetBoolean("enabled", false);
                 m_cycleTime = vMeadowConfig.GetInt("cycle_time", 10) * 1000;
                 m_channel = vMeadowConfig.GetInt("chat_channel", 18);
-                m_xCells = vMeadowConfig.GetInt("x_cells", 36);
-                m_yCells = vMeadowConfig.GetInt("y_cells", 36);
-                m_xPosition = vMeadowConfig.GetFloat("x_position", 128);
-                m_yPosition = vMeadowConfig.GetFloat("y_position", 128);
-                m_cellSpacing = vMeadowConfig.GetFloat("cell_spacing", 2);
                 m_naturalAppearance = vMeadowConfig.GetBoolean("natural_appearance", true);
                 m_configPath = vMeadowConfig.GetString("config_path", "http://fernseed.usu.edu/vMeadowInfo/");
                 m_generations = vMeadowConfig.GetInt("simulation_steps", 10000) + 1;
@@ -1022,11 +1017,6 @@ namespace vMeadowModule
                     //Store all parameters
                     //Matrix parameters
                     m_simulationId = newParameters["id"];
-                    m_xCells = Int32.Parse(newParameters["x_size"]);
-                    m_yCells = Int32.Parse(newParameters["y_size"]);
-                    m_xPosition = float.Parse(newParameters["x_location"]);
-                    m_yPosition = float.Parse(newParameters["y_location"]);
-                    m_cellSpacing = float.Parse(newParameters["spacing"]);
                     if (newParameters["natural"] == "1")
                     {
                         m_naturalAppearance = true;

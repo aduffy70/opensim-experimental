@@ -5,30 +5,31 @@
     chat_channel = 18
 
     ;Time in seconds between the end of one update and the start of the next
+    ;when stepping the visualization through a simulation.
     cycle_time = 30
-
-    ;# of rows and columns in the default community matrix
-    x_cells = 50
-    y_cells = 50
-
-    ;Coordinates for the 0,0 cell (SW corner) of the default community matrix
-    x_position = 2
-    y_position = 2
-
-    ;Default distance between matrix cells (average distance between plants)
-    cell_spacing = 5
 
     ;Place the plants near the matrix coordinates for a more natural appearance,
     ;rather than directly on the coordinates.  This does not effect on the
-    ;simulation outcome - only the appearance.
+    ;simulation outcome - only the appearance. This sets the default.  It can
+    ;still be changed using the webform.
     natural_appearance = true;
 
     ;Number of steps or cycles to run in the simulation.
     simulation_steps = 10000
 
-    ;Url path to community configuration and logging tool (The vMeadowGA Google AppEngine
-    ;tool can be used).
+    ;Url path to community configuration tool (The vMeadowGA Google
+    ;AppEngine tool can be used).
     config_path = "http://vmeadowga.aduffy70.org/"
+
+    ;The simulation log can be stored locally or online using a webapp.
+    ;To use local storage, set the path to the local folder where log files
+    ;will be stored.  This folder must exist.
+    ;local_logs = true
+    ;log_path = "addon-modules/vMeadow/logs"
+    ;To use online storage, set the url path to the logging tool (The vMeadowGA
+    ;Google AppEngine tool can be used).
+    local_logs = false
+    log_path = "http://vmeadowga.aduffy70.org/"
 
     ;A unique identifier for the logs from this region.
     instance_tag = "myregion"
