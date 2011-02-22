@@ -1149,17 +1149,17 @@ namespace vMeadowModule
                                 m_age[0, x, y] = m_age[m_currentGeneration, x, y];
                             }
                         }
-                        //NOTE: We can leave the m_age and m_cellStatus arrays populated with the old data because it will be overwritten before it is read again.  The species counts get incremented rather than overwritten, so we need to clear that array.
-                        int[] currentSpeciesCounts = new int[6];
-                        for (int i=0; i<6; i++)
-                        {
-                            currentSpeciesCounts[i] = m_totalSpeciesCounts[m_currentGeneration, i];
-                        }
-                        m_totalSpeciesCounts = new int[m_generations, 6];
-                        for (int i=0; i<6; i++)
-                        {
-                            m_totalSpeciesCounts[0, i] = currentSpeciesCounts[i];
-                        }
+                    }
+                    //NOTE: We can leave the m_age and m_cellStatus arrays populated with the old data because it will be overwritten before it is read again.  The species counts get incremented rather than overwritten, so we need to clear that array.
+                    int[] currentSpeciesCounts = new int[6];
+                    for (int i=0; i<6; i++)
+                    {
+                        currentSpeciesCounts[i] = m_totalSpeciesCounts[m_currentGeneration, i];
+                    }
+                    m_totalSpeciesCounts = new int[m_generations, 6];
+                    for (int i=0; i<6; i++)
+                    {
+                        m_totalSpeciesCounts[0, i] = currentSpeciesCounts[i];
                     }
                     //Store just the 'disturbance-related parameters.
                     m_ongoingDisturbanceRate = convertOngoingDisturbance[newParameters["ongoing_disturbance"]];
