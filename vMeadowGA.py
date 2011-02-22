@@ -544,6 +544,7 @@ class ParametersFormPageThree(webapp.RequestHandler):
     def redraw_form(self, submit_value):
         page = HtmlPage()
         disturbance_only = self.request.get('disturbance_only')
+        ongoing_disturbance = self.request.get('ongoing_disturbance')
         terrain = self.request.get('terrain')
         starting_matrix = list(self.request.get('starting_matrix'))
         if (len(starting_matrix) == 0):
@@ -574,7 +575,14 @@ class ParametersFormPageThree(webapp.RequestHandler):
             selected.append(clicked)
         self.response.out.write(page.header)
         self.response.out.write(self.form_header)
-        self.response.out.write(self.form_ongoing_disturbance_selector)
+        if (ongoing_disturbance == 'L'):
+            self.response.out.write(self.form_ongoing_disturbance_selector % ('','selected', '',''))
+        elif (ongoing_disturbance == 'M'):
+            self.response.out.write(self.form_ongoing_disturbance_selector % ('','', 'selected',''))
+        elif (ongoing_disturbance == 'H'):
+            self.response.out.write(self.form_ongoing_disturbance_selector % ('','', '','selected'))
+        else:
+            self.response.out.write(self.form_ongoing_disturbance_selector % ('selected','', '',''))
         self.response.out.write(self.form_starting_matrix_map_label)
         self.response.out.write(self.form_table_header % terrain)
         for j in range(50):
@@ -604,7 +612,6 @@ class ParametersFormPageThree(webapp.RequestHandler):
             ','.join(selected),
             ''.join(starting_matrix),
             disturbance_only,
-            self.request.get('ongoing_disturbance'),
             terrain))
         #Pass the values from previous form pages (if we used those previous pages)
         if (disturbance_only == '0'):
@@ -753,10 +760,10 @@ class ParametersFormPageThree(webapp.RequestHandler):
         <p>
             <b>Ongoing disturbance rate: <b>
             <select name="ongoing_disturbance">
-                <option value = "N">None</option>
-                <option value = "L">Low</option>
-                <option value = "M">Mid</option>
-                <option value = "H">High</option>
+                <option %s value = "N">None</option>
+                <option %s value = "L">Low</option>
+                <option %s value = "M">Mid</option>
+                <option %s value = "H">High</option>
             </select>
         <p>
         """
@@ -809,7 +816,6 @@ class ParametersFormPageThree(webapp.RequestHandler):
         <input type="hidden" name="selected" value="%s">
         <input type="hidden" name="starting_matrix" value="%s">
         <input type="hidden" name="disturbance_only" value="%s">
-        <input type="hidden" name="ongoing_disturbance" value="%s">
         <input type="hidden" name="terrain" value="%s">
         """
 
