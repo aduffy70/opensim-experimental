@@ -84,9 +84,6 @@ class LogOrParametersPage(webapp.RequestHandler):
         </form>
         """
 
-"""
-START SECTION: Community parameters
-"""
 
 class MeadowRecordObject(db.Model):
     """
@@ -872,119 +869,12 @@ class ParametersFormPageThree(webapp.RequestHandler):
 
     form_footer = '</form>'
 
-"""
-END SECTION: Community parameters
-"""
-
-"""
-START SECTION: Community logging.
-"""
-
-class SimulationLogObject(db.Model):
+class RedirectToLog(webapp.RequestHandler):
     """
-    Record class representing the log output from a single step of a community simulation.  Includes a timestamp in case a single step was visualized multiple times and a region tag in case the same simulation id was used on more than one region.
-    """
-    # Time record was created
-    time_stamp = db.DateTimeProperty(auto_now_add=True)
-
-    # Simulation ID of the simulation that created this record
-    sim_id = db.StringProperty()
-
-    #Region tag of the opensim region that created this record (from vMeadow.ini)
-    region_tag = db.StringProperty()
-
-    # CSV string of simulation step and counts for each species
-    data = db.StringProperty()
-
-
-class AddLogRecord(webapp.RequestHandler):
-    """
-    Stores logged output from a community simulation.  Accessed by the vMeadow opensim region module.
+    Send them to the logging app.
     """
     def get(self):
-        record = SimulationLogObject()
-        sim_id = self.request.get('sim_id')
-        region_tag = self.request.get('region_tag')
-        data = self.request.get('data')
-        if ((len(sim_id) == 10) and (len(data.split(',')) == 7)):
-            record.sim_id = sim_id
-            record.region_tag = region_tag
-            record.data = data
-            record.put()
-            self.response.out.write('SUCCESS')
-        else:
-            #Send some return value to tell the region that this failed
-            self.response.out.write('FAILED')
-
-
-class LogFormPage(webapp.RequestHandler):
-    """
-    A page to request log data by simulation id and region tag.  Accessed by the user by url or hyperlink.
-    """
-    def get(self):
-        page = HtmlPage()
-        self.response.out.write(page.header)
-        self.response.out.write(self.form)
-        self.response.out.write(page.footer)
-
-    form = """
-        <form enctype="multipart/form-data" action="/getlog" method="post">
-            <p>
-                <b>View log records for a simulation on a particular region: </b><br>
-                Simulation ID: <input type="text" name="sim_id" maxlength="10" size="11"> &nbsp;&nbsp;&nbsp;&nbsp;
-                Region tag: <input type="text" name="region_tag" maxlength="20" size="21"><br><br>
-                <input type="submit" value="Get log records">
-            </p>
-        </form>
-        """
-
-
-class GetLogRecords(webapp.RequestHandler):
-    """
-    Retrieves the log data requested on the log page.  Accessed by submitting the LogFormPage.
-    """
-    def post(self):
-        page = HtmlPage()
-        self.response.out.write(page.header)
-        sim_id = self.request.get('sim_id')
-        region_tag = self.request.get('region_tag')
-        records = db.GqlQuery("SELECT * FROM SimulationLogObject WHERE sim_id=:1 AND region_tag=:2 ORDER BY time_stamp", sim_id, region_tag)
-        if (records.count(1) > 0):
-            self.response.out.write(self.record_output_label % (sim_id, region_tag))
-            for record in records:
-                self.response.out.write(self.record_output % (record.data, str(record.time_stamp)))
-        else:
-            self.response.out.write(self.no_records_output % (sim_id, region_tag))
-        self.response.out.write(page.footer)
-
-    record_output_label = """
-        <p>
-            <b>Records for %s in %s:</b>
-        </p>
-        <b>Simulation step, Gap count, Species1 count, Species2 count, Species3 count, Species4 count, Species5 count</b><br>
-        """
-
-    record_output = '%s,%s<br>'
-
-    no_records_output = 'No records for %s in %s.'
-
-
-class DeleteLogRecords(webapp.RequestHandler):
-    """
-    Deletes all log records with a specific simulation id and region tag.  Accessed by the vMeadow opensim region module.
-    """
-    def get(self):
-        sim_id = self.request.get('sim_id')
-        region_tag = self.request.get('region_tag')
-        records = db.GqlQuery("SELECT * FROM SimulationLogObject WHERE sim_id=:1 AND region_tag=:2", sim_id, region_tag)
-        if (records.count(1) > 0):
-            for record in records:
-                record.delete()
-        self.response.out.write('SUCCESS')
-
-"""
-END SECTION: Community logging
-"""
+        self.redirect("http://vpcsimlog.aduffy70.org", permanent=True)
 
 # url to class mapping
 application = webapp.WSGIApplication([
@@ -995,10 +885,7 @@ application = webapp.WSGIApplication([
     ('/data', GetParameters),
     ('/selectmap', SelectTerrainMapPage),
     ('/plants', PlantPicturesPage),
-    ('/addlog', AddLogRecord),
-    ('/log', LogFormPage),
-    ('/getlog', GetLogRecords),
-    ('/deletelog', DeleteLogRecords)], debug=True)
+    ('/log', RedirectToLog)], debug=True)
 
 def main():
     run_wsgi_app(application)
