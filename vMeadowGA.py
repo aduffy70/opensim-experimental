@@ -175,17 +175,17 @@ class ParametersFormPageOne(webapp.RequestHandler):
     form = """
         <form enctype="multipart/form-data" action="/parametersform2" method="post">
             <p>
-                <b>Terrain map:</b> Select the terrain<br>0
+                <b>Terrain map:</b> Select the terrain<br>
                 <input type="radio" name="terrain" value="0" checked>
                 <img src="/images/Terrain0_map.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
-                <input type="radio" name="terrain" value="1">1
+                <input type="radio" name="terrain" value="1">
                 <img src="/images/Terrain1_map.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
-                <input type="radio" name="terrain" value="2">2
+                <input type="radio" name="terrain" value="2">
                 <img src="/images/Terrain2_map.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
-                <input type="radio" name="terrain" value="3">3
+                <input type="radio" name="terrain" value="3">
                 <img src="/images/Terrain3_map.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
             </p>
@@ -194,38 +194,17 @@ class ParametersFormPageOne(webapp.RequestHandler):
                 Natural: <input name="natural" checked="checked" type="checkbox">
             </p>
             <p>
-                <b>Soil salinity map:</b> Select the pattern of soil salinity on the landscape<br>
-                <input type="radio" name="salinity" value="0" checked>0
+                <b>Select the soil salinity, drainage, and fertility maps:</b> (NOT IMPLEMENTED)<br>
+                Salinity:
+                <input type="radio" name="salinity" value="0" checked>
                 <img src="/images/SoilXmap.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
-                <input type="radio" name="salinity" value="1">1
+                Drainage:
+                <input type="radio" name="drainage" value="1" checked>
                 <img src="/images/SoilYmap.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
-                <input type="radio" name="salinity" value="2">2
-                <img src="/images/SoilZmap.jpg" height="100" width="100" />
-                &nbsp;&nbsp;
-            </p>
-            <p>
-                <b>Soil drainage map:</b> Select the pattern of soil drainage on the landscape<br>
-                <input type="radio" name="drainage" value="0">0
-                <img src="/images/SoilXmap.jpg" height="100" width="100" />
-                &nbsp;&nbsp;
-                <input type="radio" name="drainage" value="1" checked>1
-                <img src="/images/SoilYmap.jpg" height="100" width="100" />
-                &nbsp;&nbsp;
-                <input type="radio" name="drainage" value="2">2
-                <img src="/images/SoilZmap.jpg" height="100" width="100" />
-                &nbsp;&nbsp;
-            </p>
-            <p>
-                <b>Soil fertility map:</b> Select the pattern of soil fertility on the landscape<br>
-                <input type="radio" name="fertility" value="0" checked>0
-                <img src="/images/SoilXmap.jpg" height="100" width="100" />
-                &nbsp;&nbsp;
-                <input type="radio" name="fertility" value="1">1
-                <img src="/images/SoilYmap.jpg" height="100" width="100" />
-                &nbsp;&nbsp;
-                <input type="radio" name="fertility" value="2" checked>2
+                Fertility:
+                <input type="radio" name="fertility" value="2" checked>
                 <img src="/images/SoilZmap.jpg" height="100" width="100" />
                 &nbsp;&nbsp;
             </p>
