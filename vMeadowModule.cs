@@ -1096,7 +1096,7 @@ namespace vMeadowModule
                                 xRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
                                 yRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
                             }
-                            //TODO: We need to have loaded any new terrain file before doing this
+                            LoadTerrain(m_terrainMap); //Horrible Hack.  We already loaded the terrain, but since it seldom makes it to the viewer completely in one try, we will do it again here. This should minimize the number of missing terrain squares or bits that still look like the old terrain.
                             Vector3 position = new Vector3(m_xPosition + (x * m_cellSpacing) + xRandomOffset, m_yPosition + (y * m_cellSpacing) + yRandomOffset, 0.0f);
                             //Only calculate ground level if the x,y position is within the region boundaries
                             if ((position.X >= 0) && (position.X <= 256) && (position.Y >= 0) && (position.Y <=256))
