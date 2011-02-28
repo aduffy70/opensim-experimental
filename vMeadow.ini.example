@@ -6,7 +6,7 @@
 
     ;Time in seconds between the end of one update and the start of the next
     ;when stepping the visualization through a simulation.
-    cycle_time = 30
+    cycle_time = 15
 
     ;Place the plants near the matrix coordinates for a more natural appearance,
     ;rather than directly on the coordinates.  This does not effect on the
@@ -15,7 +15,7 @@
     natural_appearance = true;
 
     ;Number of steps or cycles to run in the simulation.
-    simulation_steps = 10000
+    simulation_steps = 5000
 
     ;Url path to community configuration tool (The vMeadowGA Google
     ;AppEngine tool can be used).
@@ -29,7 +29,7 @@
     ;To use online storage, set the url path to the logging tool (The vMeadowGA
     ;Google AppEngine tool can be used).
     local_logs = false
-    log_path = "http://vmeadowga.aduffy70.org/"
+    log_path = "http://vpcsimlog.aduffy70.org/"
 
     ;A unique identifier for the logs from this region.
     instance_tag = "myregion"

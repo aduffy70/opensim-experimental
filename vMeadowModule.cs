@@ -70,41 +70,31 @@ namespace vMeadowModule
         //Configurable settings (in vMeadowGA webform only)
         int[,,] m_cellStatus; // plant type for each cell in each generation [gen,x,y]
         bool[,] m_permanentDisturbanceMap; //Whether each cell is marked as permanently disturbed
-        //int[] m_communityMembers = new int[6] {0, 1, 2, 5, 16, 18}; //Default plants to include in the community
-        int[] m_communityMembers = new int[6] {0, 16, 17, 18, 19, 20}; //DEBUG- smaller plants
+        int[] m_communityMembers = new int[6] {0, 11, 1, 5, 16, 17}; //Default plants to include in the community (Cypress1, Pine1, TropicalBush1, Fern, Eelgrass)
         //Replacement Matrix.  The probability of replacement of one species by a surrounding species.  Example [1,2] is the probability that species 2 will be replaced by species 1, if species 2 is entirely surrounded by species 1.
         //NOTE: Row zero is always 0's and does not effect the simulation because gaps (species 0's) do not 'replace' plants.  Gaps occur when an individual dies due to its environment/age or through disturbance.  Row zero only exists to keep the array indexes meaningful (row index 1= species 1, row index 2 = species 2, etc).  Column zero IS significant.  It represents the probability that a species with colonize a gap if the gap is entirely surrounded by that species.
-        /*//Values from Thorhallsdottir 1990 as presented by Silvertown et al 1992.
         float[,] m_replacementMatrix = new float[6,6] {
-            {0.00f, 0.00f, 0.00f, 0.00f, 0.00f, 0.00f},
-            {0.00f, 0.00f, 0.02f, 0.06f, 0.05f, 0.03f},
-            {0.00f, 0.23f, 0.00f, 0.09f, 0.32f, 0.37f},
-            {0.00f, 0.06f, 0.08f, 0.00f, 0.16f, 0.09f},
-            {0.00f, 0.44f, 0.06f, 0.06f, 0.00f, 0.11f},
-            {0.00f, 0.03f, 0.02f, 0.03f, 0.05f, 0.00f}};
-        */
-        float[,] m_replacementMatrix = new float[6,6] {
-            {0f, 0f, 0f, 0f, 0f, 0f},
-            {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
-            {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
-            {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
-            {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f},
-            {1f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f}};
-        int[] m_lifespans = new int[6] {0, 20, 20, 20, 20, 20}; //Maximum age for each species
+            {0.5f, 0f, 0f, 0f, 0f, 0f},
+            {0.5f, 0.17f, 0.17f, 0.17f, 0.17f, 0.17f},
+            {0.5f, 0.17f, 0.17f, 0.17f, 0.17f, 0.17f},
+            {0.5f, 0.17f, 0.17f, 0.17f, 0.17f, 0.17f},
+            {0.5f, 0.17f, 0.17f, 0.17f, 0.17f, 0.17f},
+            {0.5f, 0.17f, 0.17f, 0.17f, 0.17f, 0.17f}};  //Equivalent to all M's
+        int[] m_lifespans = new int[6] {0, 25, 25, 25, 25, 25}; //Maximum age for each species
         //Optimal values and shape parameters for each species
-        float[] m_altitudeOptimums = new float[6] {0f, 20f, 20f, 20f, 20f, 20f};
+        float[] m_altitudeOptimums = new float[6] {0f, 35f, 35f, 35f, 35f, 35f};
         float[] m_altitudeEffects = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
-        float[] m_salinityOptimums = new float[6] {0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+        float[] m_salinityOptimums = new float[6] {0f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f};
         float[] m_salinityEffects = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
-        float[] m_drainageOptimums = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_drainageOptimums = new float[6] {0f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f};
         float[] m_drainageEffects = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
-        float[] m_fertilityOptimums = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
+        float[] m_fertilityOptimums = new float[6] {0f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f};
         float[] m_fertilityEffects = new float[6] {0f, 0f, 0f, 0f, 0f, 0f};
         bool m_disturbanceOnly = false;
         float m_ongoingDisturbanceRate = 0.0f;
         string m_simulationId = "1234567890";
-        //TODO: These map values are being read from the webform but we aren't using them for anything
         int m_terrainMap = 0;
+        //TODO: These map values are being read from the webform but we aren't using them for anything.  Implementing this will require changes to the Soil Module and its interface.
         int m_salinityMap = 0;
         int m_drainageMap = 0;
         int m_fertilityMap = 0;
@@ -115,7 +105,7 @@ namespace vMeadowModule
         int m_yCells = 50;
         float m_cellSpacing = 5.0f; //Space in meters between cell positions
         SceneObjectGroup[,] m_prims; //list of objects managed by this module
-        string[] m_omvTrees = new string[22] {"None", "Pine1", "Pine2", "WinterPine1", "WinterPine2", "Oak", "TropicalBush1", "TropicalBush2", "Palm1", "Palm2", "Dogwood", "Cypress1", "Cypress2", "Plumeria", "WinterAspen", "Eucalyptus", "Fern", "Eelgrass", "SeaSword", "BeachGrass1", "Kelp1", "Kelp2"};
+        string[] m_omvTrees = new string[20] {"None", "Pine1", "Pine2", "WinterPine1", "WinterPine2", "Oak", "TropicalBush1", "TropicalBush2", "Palm1", "Palm2", "Dogwood", "Cypress1", "Cypress2", "Plumeria", "WinterAspen", "Eucalyptus", "Fern", "Eelgrass", "SeaSword", "BeachGrass1"};
         bool m_isRunning = false; //Keep track of whether the visualization is running
         bool m_isSimulated = false; //Whether a simulation has been run
         bool m_isBusy = false; //Keep track of whether we are in the middle of something that should not be disturbed
@@ -139,13 +129,13 @@ namespace vMeadowModule
             if (vMeadowConfig != null)
             {
                 m_enabled = vMeadowConfig.GetBoolean("enabled", false);
-                m_cycleTime = vMeadowConfig.GetInt("cycle_time", 10) * 1000;
+                m_cycleTime = vMeadowConfig.GetInt("cycle_time", 15) * 1000;
                 m_channel = vMeadowConfig.GetInt("chat_channel", 18);
                 m_naturalAppearance = vMeadowConfig.GetBoolean("natural_appearance", true);
-                m_configPath = vMeadowConfig.GetString("config_path", "http://fernseed.usu.edu/vMeadowInfo/");
-                m_generations = vMeadowConfig.GetInt("simulation_steps", 10000) + 1;
+                m_configPath = vMeadowConfig.GetString("config_path", "http://vmeadowga.aduffy70.org/");
+                m_generations = vMeadowConfig.GetInt("simulation_steps", 5000) + 1;
                 m_localLogs = vMeadowConfig.GetBoolean("local_logs", false);
-                m_logPath = vMeadowConfig.GetString("log_path", "http://vmeadowga.aduffy70.org/");
+                m_logPath = vMeadowConfig.GetString("log_path", "http://vpcsimlog.aduffy70.org/");
                 m_instanceTag = vMeadowConfig.GetString("instance_tag", "myregion");
             }
             if (m_enabled)
@@ -887,7 +877,7 @@ namespace vMeadowModule
             //Log("Total: " + m_totalActiveCells.ToString()); //DEBUG
             for (int species=1; species<6; species++)
             {
-                replacementProbabilities[species] = ((m_replacementMatrix[species, currentSpecies] * ((float)neighborSpeciesCounts[species] / 8.0f)) * 0.80f) + ((m_replacementMatrix[species, currentSpecies] * ((float)m_totalSpeciesCounts[generation, species] / m_totalActiveCells)) * 0.1995f) + 0.0005f; //80% local, 19.95% distant, 0.05% out-of-area
+                replacementProbabilities[species] = ((m_replacementMatrix[species, currentSpecies] * ((float)neighborSpeciesCounts[species] / 8.0f)) * 0.70f) + ((m_replacementMatrix[species, currentSpecies] * ((float)m_totalSpeciesCounts[generation, species] / m_totalActiveCells)) * 0.2995f) + 0.0005f; //80% local, 19.95% distant, 0.05% out-of-area
                 //Log(species.ToString() + " " + neighborSpeciesCounts[species].ToString() + " " + m_totalSpeciesCounts[generation, species].ToString() + " " + replacementProbabilities[species].ToString()); //DEBUG
             }
             return replacementProbabilities;
@@ -986,19 +976,19 @@ namespace vMeadowModule
             //Conversion tables for the "None", "Low", "Mid", "High" values on the webform
             //Log("Entered ReadConfigs()"); //DEBUG
             Dictionary<string, float> convertReplacement = new Dictionary<string, float>(){
-                {"N", 0.0f}, {"L", 0.1f}, {"M", 0.25f}, {"H", 0.5f}};
+                {"N", 0.0f}, {"L", 0.03f}, {"M", 0.17f}, {"H", 0.33f}};
             Dictionary<string, int> convertLifespans = new Dictionary<string, int>(){
-                {"S", 1}, {"M", 10}, {"L", 25}};
+                {"S", 5}, {"M", 10}, {"L", 50}};
             Dictionary<string, float> convertAltitudeOptimums = new Dictionary<string, float>(){
                 {"L", 20.0f}, {"M", 35.0f}, {"H", 50.0f}};
             Dictionary<string, float> convertAltitudeEffects = new Dictionary<string, float>(){
-                {"N", 0.0f}, {"L", 0.5f}, {"M", 1.0f}, {"H", 2.0f}};
+                {"N", 0.0f}, {"L", 0.15f}, {"M", 0.65f}, {"H", 1.15f}};
             Dictionary<string, float> convertSoilOptimums = new Dictionary<string, float>(){
                 {"L", 0.0f}, {"M", 0.5f}, {"H", 1.0f}};
             Dictionary<string, float> convertSoilEffects = new Dictionary<string, float>(){
-                {"N", 0.0f}, {"L", 0.1f}, {"M", 0.5f}, {"H", 1.0f}};
+                {"N", 0.0f}, {"L", 0.1f}, {"M", 0.4f}, {"H", 0.7f}};
             Dictionary<string, float> convertOngoingDisturbance = new Dictionary<string, float>(){
-                {"N", 0.0f}, {"L", 0.0001f}, {"M", 0.01f}, {"H", 0.1f}};
+                {"N", 0.0f}, {"L", 0.001f}, {"M", 0.01f}, {"H", 0.1f}};
             //Read configuration data from a url.  This works with the vMeadowGA google app version2 (the xml version).
             //Log("Sent WebRequest"); //DEBUG
             Alert(String.Format("Reading data from url.  This may take a minute..."));
@@ -1082,7 +1072,15 @@ namespace vMeadowModule
                         string[] probabilities = newParameters["replacement_" + i.ToString()].Split(',');
                         for(int j=0; j<6; j++)
                         {
-                            m_replacementMatrix[i,j] = convertReplacement[probabilities[j]];
+                            if (j != 0)
+                            {
+                                m_replacementMatrix[i,j] = convertReplacement[probabilities[j]];
+                            }
+                            else
+                            {
+                                //Make colonization events more likely than replacement events
+                                m_replacementMatrix[i,j] = convertReplacement[probabilities[j]] * 3.0f;
+                            }
                         }
                     }
                     //Log("Stored replacement matrix"); //DEBUG
