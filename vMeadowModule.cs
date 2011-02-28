@@ -278,6 +278,17 @@ namespace vMeadowModule
                 ClearAllPlants();
                 Alert("Cleared existing plants...");
                 ClearLogs();
+                //Clear species counts in all but generation 0
+                int[] startingSpeciesCounts = new int[6];
+                for (int i=0; i<6; i++)
+                {
+                    startingSpeciesCounts[i] = m_totalSpeciesCounts[0, i];
+                }
+                m_totalSpeciesCounts = new int[m_generations, 6];
+                for (int i=0; i<6; i++)
+                {
+                    m_totalSpeciesCounts[0, i] = startingSpeciesCounts[i];
+                }
                 RunSimulation();
                 Alert("Simulation complete.  Generating plants...");
                 VisualizeGeneration(0);
