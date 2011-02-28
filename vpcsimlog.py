@@ -160,7 +160,7 @@ class GetLogRecords(webapp.RequestHandler):
         <p>
             <b>Records for %s in %s:</b>
         </p>
-        <b>Simulation step, Gap count, Species1 count, Species2 count, Species3 count, Species4 count, Species5 count</b><br>
+        <b>Simulation step, Gap count, Species1 count, Species2 count, Species3 count, Species4 count, Species5 count, Time stamp</b><br>
         """
 
     record_output = '%s,%s<br>'
