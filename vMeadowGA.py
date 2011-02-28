@@ -512,7 +512,10 @@ class ParametersFormPageThree(webapp.RequestHandler):
             self.response.out.write(page.header)
             self.id = str(int(time.time()))
             self.store_record()
-            self.response.out.write(self.success_output % self.id)
+            if (self.request.get('disturbance_only') == "0"):
+                self.response.out.write(self.success_output_all_parameters % self.id)
+            else:
+                self.response.out.write(self.success_output_disturbance_only % self.id)
             self.response.out.write(page.footer)
         else:
             self.redraw_form(submit_value)
@@ -708,18 +711,40 @@ class ParametersFormPageThree(webapp.RequestHandler):
             record.starting_matrix += upside_down_matrix[49 - y]
         record.put()
 
-    success_output = """
+    success_output_all_parameters = """
         <p>
             <span style="font-size: larger;">
-                The community is ready to load.
+                The community parameters are ready to load.
             </span>
         </p>
         <p>
-            To generate the community:
+            To generate the community and run the simulation:
         </p>
         <p>
             <ul>
                 <li>Move your avatar into the region where you would like it to load.</li>
+                <li>Paste the following text into the chat window:</li>
+            </ul>
+        </p>
+        <p>
+            <blockquote style="font-size: larger;">
+                <b>/18 %s</b>
+            </blockquote>
+        </p>
+        """
+
+    success_output_disturbance_only = """
+        <p>
+            <span style="font-size: larger;">
+                The disturbance changes are ready to load.
+            </span>
+        </p>
+        <p>
+            To apply the changes:
+        </p>
+        <p>
+            <ul>
+                <li>Move your avatar into the correct region.</li>
                 <li>Paste the following text into the chat window:</li>
             </ul>
         </p>
