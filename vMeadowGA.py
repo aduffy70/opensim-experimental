@@ -194,7 +194,8 @@ class ParametersFormPageOne(webapp.RequestHandler):
                 Natural: <input name="natural" checked="checked" type="checkbox">
             </p>
             <p>
-                <b>Select the soil salinity, drainage, and fertility maps:</b> (NOT IMPLEMENTED)<br>
+                <b>Select the soil salinity, drainage, and fertility maps:</b> <br>(
+                Choice of soil maps is not implemented.  These default maps will be used)<br>
                 Salinity:
                 <input type="radio" name="salinity" value="0" checked>
                 <img src="/images/SoilXmap.jpg" height="100" width="100" />
@@ -205,8 +206,8 @@ class ParametersFormPageOne(webapp.RequestHandler):
                 &nbsp;&nbsp;
                 Fertility:
                 <input type="radio" name="fertility" value="2" checked>
-                <img src="/images/SoilZmap.jpg" height="100" width="100" />
-                &nbsp;&nbsp;
+                <img src="/images/SoilZmap.jpg" height="100" width="100" /><br>
+                <b>Grayscale legend:</b> Black=Low values, White=High values
             </p>
             <input type="submit" value="Continue...">
         </form>
@@ -222,7 +223,10 @@ class ParametersFormPageTwo(webapp.RequestHandler):
         self.response.out.write(page.header)
         self.response.out.write(self.form_header)
         for i in range(1,6):
-            self.response.out.write(self.form_plant_data % (i, i, i, i, i, i, i, i, i, i, i))
+            link_option = ''
+            if (i == 1):
+                link_option = self.form_plant_examples_link
+            self.response.out.write(self.form_plant_data % (i, i, link_option, i, i, i, i, i, i, i, i, i))
         self.response.out.write(self.form_replacement_matrix)
         for row in range(1,6):
             if (row == 3):
@@ -267,7 +271,7 @@ class ParametersFormPageTwo(webapp.RequestHandler):
                 <option value = "18">SeaSword</option>
                 <option value = "19">BeachGrass</option>
             </select>
-            <a href="/plants" target="_blank">View examples</a><br>&nbsp;&nbsp;
+            %s<br>&nbsp;&nbsp;
             <b>Lifespan: </b>
             <select name="lifespan_%s">
                 <option value = "S">Short</option>
@@ -327,6 +331,8 @@ class ParametersFormPageTwo(webapp.RequestHandler):
                 <option value = "H">High</option>
             </select><br>
         """
+
+    form_plant_examples_link = '<a href="/plants" target="_blank">View examples</a>'
 
     form_replacement_matrix = """
         </p>
