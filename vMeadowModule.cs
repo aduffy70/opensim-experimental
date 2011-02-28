@@ -74,12 +74,12 @@ namespace vMeadowModule
         //Replacement Matrix.  The probability of replacement of one species by a surrounding species.  Example [1,2] is the probability that species 2 will be replaced by species 1, if species 2 is entirely surrounded by species 1.
         //NOTE: Row zero is always 0's and does not effect the simulation because gaps (species 0's) do not 'replace' plants.  Gaps occur when an individual dies due to its environment/age or through disturbance.  Row zero only exists to keep the array indexes meaningful (row index 1= species 1, row index 2 = species 2, etc).  Column zero IS significant.  It represents the probability that a species with colonize a gap if the gap is entirely surrounded by that species.  When we calculate replacement values, we make the colonization values a multiple of the other values since colonization of a gap should be more likely than replacement of an existing plant.
         float[,] m_replacementMatrix = new float[6,6] {
-            {0.5f, 0f, 0f, 0f, 0f, 0f},
-            {0.5f, 0.17f, 0.17f, 0.17f, 0.17f, 0.17f},
-            {0.5f, 0.17f, 0.17f, 0.17f, 0.17f, 0.17f},
-            {0.5f, 0.17f, 0.17f, 0.17f, 0.17f, 0.17f},
-            {0.5f, 0.17f, 0.17f, 0.17f, 0.17f, 0.17f},
-            {0.5f, 0.17f, 0.17f, 0.17f, 0.17f, 0.17f}};  //Equivalent to all M's
+            {0.0f, 0f, 0f, 0f, 0f, 0f},
+            {0.4f, 0.1f, 0.1f, 0.1f, 0.1f, 0.1f},
+            {0.4f, 0.1f, 0.1f, 0.1f, 0.1f, 0.1f},
+            {0.4f, 0.1f, 0.1f, 0.1f, 0.1f, 0.1f},
+            {0.4f, 0.1f, 0.1f, 0.1f, 0.1f, 0.1f},
+            {0.4f, 0.1f, 0.1f, 0.1f, 0.1f, 0.1f}};  //Equivalent to all M's
         int[] m_lifespans = new int[6] {0, 25, 25, 25, 25, 25}; //Maximum age for each species
         //Optimal values and shape parameters for each species
         float[] m_altitudeOptimums = new float[6] {0f, 35f, 35f, 35f, 35f, 35f};
@@ -877,7 +877,7 @@ namespace vMeadowModule
             //Log("Total: " + m_totalActiveCells.ToString()); //DEBUG
             for (int species=1; species<6; species++)
             {
-                replacementProbabilities[species] = ((m_replacementMatrix[species, currentSpecies] * ((float)neighborSpeciesCounts[species] / 8.0f)) * 0.70f) + ((m_replacementMatrix[species, currentSpecies] * ((float)m_totalSpeciesCounts[generation, species] / m_totalActiveCells)) * 0.2995f) + 0.0005f; //80% local, 19.95% distant, 0.05% out-of-area
+                replacementProbabilities[species] = ((m_replacementMatrix[species, currentSpecies] * ((float)neighborSpeciesCounts[species] / 8.0f)) * 0.9f) + ((m_replacementMatrix[species, currentSpecies] * ((float)m_totalSpeciesCounts[generation, species] / m_totalActiveCells)) * 0.0995f) + 0.0005f; //90% local, 9.95% distant, 0.05% out-of-area
                 //Log(species.ToString() + " " + neighborSpeciesCounts[species].ToString() + " " + m_totalSpeciesCounts[generation, species].ToString() + " " + replacementProbabilities[species].ToString()); //DEBUG
             }
             return replacementProbabilities;
@@ -952,7 +952,7 @@ namespace vMeadowModule
                             //Assign a random plant type if the coordinates are above water
                             int newSpecies = m_random.Next(6);
                             m_cellStatus[0, x, y] = newSpecies;
-                            m_age[0, x, y] = m_random.Next(m_lifespans[newSpecies]); //Assign a random age to each plant so there isn't a massive dieoff early in the simulation
+                            m_age[0, x, y] = m_random.Next(m_lifespans[newSpecies] / 3); //Assign a random age to each plant so there isn't a massive dieoff early in the simulation, but we need to skew the distribution of ages downward or we will start with a dieoff because a random selection of ages has many more old ages than expected.
                             m_totalSpeciesCounts[0, newSpecies]++;
                         }
                         else
@@ -976,19 +976,19 @@ namespace vMeadowModule
             //Conversion tables for the "None", "Low", "Mid", "High" values on the webform
             //Log("Entered ReadConfigs()"); //DEBUG
             Dictionary<string, float> convertReplacement = new Dictionary<string, float>(){
-                {"N", 0.0f}, {"L", 0.03f}, {"M", 0.17f}, {"H", 0.33f}};
+                {"N", 0.0f}, {"L", 0.02f}, {"M", 0.1f}, {"H", 0.2f}};
             Dictionary<string, int> convertLifespans = new Dictionary<string, int>(){
                 {"S", 5}, {"M", 10}, {"L", 50}};
             Dictionary<string, float> convertAltitudeOptimums = new Dictionary<string, float>(){
                 {"L", 20.0f}, {"M", 35.0f}, {"H", 50.0f}};
             Dictionary<string, float> convertAltitudeEffects = new Dictionary<string, float>(){
-                {"N", 0.0f}, {"L", 0.15f}, {"M", 0.65f}, {"H", 1.15f}};
+                {"N", 0.0f}, {"L", 0.17f}, {"M", 0.85f}, {"H", 1.5f}};
             Dictionary<string, float> convertSoilOptimums = new Dictionary<string, float>(){
                 {"L", 0.0f}, {"M", 0.5f}, {"H", 1.0f}};
             Dictionary<string, float> convertSoilEffects = new Dictionary<string, float>(){
-                {"N", 0.0f}, {"L", 0.1f}, {"M", 0.4f}, {"H", 0.7f}};
+                {"N", 0.0f}, {"L", 0.9f}, {"M", 0.5f}, {"H", 0.9f}};
             Dictionary<string, float> convertOngoingDisturbance = new Dictionary<string, float>(){
-                {"N", 0.0f}, {"L", 0.001f}, {"M", 0.01f}, {"H", 0.1f}};
+                {"N", 0.0f}, {"L", 0.005f}, {"M", 0.05f}, {"H", 0.2f}};
             //Read configuration data from a url.  This works with the vMeadowGA google app version2 (the xml version).
             //Log("Sent WebRequest"); //DEBUG
             Alert(String.Format("Reading data from url.  This may take a minute..."));
@@ -1079,7 +1079,7 @@ namespace vMeadowModule
                             else
                             {
                                 //Make colonization events more likely than replacement events
-                                m_replacementMatrix[i,j] = convertReplacement[probabilities[j]] * 3.0f;
+                                m_replacementMatrix[i,j] = convertReplacement[probabilities[j]] * 4.0f;
                             }
                         }
                     }
@@ -1093,6 +1093,7 @@ namespace vMeadowModule
                     m_age = new int[m_generations, m_xCells, m_yCells];
                     m_totalSpeciesCounts = new int[m_generations, 6];
                     m_coordinates = new Vector3[m_xCells, m_yCells];
+                    LoadTerrain(m_terrainMap); //Horrible Hack.  We already loaded the terrain, but since it seldom makes it to the viewer completely in one try, we will do it again here. This should minimize the number of missing terrain squares or bits that still look like the old terrain.
                     for (int y=0; y<m_yCells; y++)
                     {
                         for (int x=0; x<m_xCells; x++)
@@ -1105,7 +1106,6 @@ namespace vMeadowModule
                                 xRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
                                 yRandomOffset = ((float)m_random.NextDouble() - 0.5f) * m_cellSpacing;
                             }
-                            LoadTerrain(m_terrainMap); //Horrible Hack.  We already loaded the terrain, but since it seldom makes it to the viewer completely in one try, we will do it again here. This should minimize the number of missing terrain squares or bits that still look like the old terrain.
                             Vector3 position = new Vector3(m_xPosition + (x * m_cellSpacing) + xRandomOffset, m_yPosition + (y * m_cellSpacing) + yRandomOffset, 0.0f);
                             //Only calculate ground level if the x,y position is within the region boundaries
                             if ((position.X >= 0) && (position.X <= 256) && (position.Y >= 0) && (position.Y <=256))
