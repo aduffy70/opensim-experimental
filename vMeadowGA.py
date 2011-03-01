@@ -884,7 +884,9 @@ class RedirectToLog(webapp.RequestHandler):
     Send them to the logging app.
     """
     def get(self):
-        self.redirect("http://vpcsimlog.aduffy70.org", permanent=True)
+        #TEMP: Until I can get the logging system to output nice csv files we will redirect to apache hosted files
+        #self.redirect("http://vpcsimlog.aduffy70.org", permanent=True)
+        self.redirect("http://129.123.16.10/vpcsim-data")
 
 # url to class mapping
 application = webapp.WSGIApplication([
