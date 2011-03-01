@@ -587,7 +587,7 @@ namespace vMeadowModule
         {
             if (m_localLogs)
             {
-                string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
+                string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.csv");
                 System.IO.File.Delete(logFile);
             }
             else
@@ -646,7 +646,12 @@ namespace vMeadowModule
         {
             if (m_localLogs)
             {
-                string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.log");
+                string logFile = System.IO.Path.Combine(m_logPath, m_instanceTag + "-community.csv");
+                if (!System.IO.File.Exists(logFile))
+                {
+                    //Add a header row
+                    logString = "Step,Gaps,PlantType1,PlantType2,PlantType3,PlantType4,PlantType5\n" + logString;
+                }
                 System.IO.StreamWriter dataLog = System.IO.File.AppendText(logFile);
                 dataLog.WriteLine(logString);
                 dataLog.Close();
