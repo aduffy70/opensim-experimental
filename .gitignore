@@ -1,0 +1,5 @@
+*~
+bin/
+*.csproj*
+*.dll.build
+*.pidb
