@@ -3,13 +3,26 @@
 
 [VisitLogger]
     enabled = true
-    ;The maximum number of comments we will accept in a 24 hour period to prevent abuse.
-    maximum_comments = 20;
-    ;The channel to listen for comments.  All chat on this channel will be tweeted.
-    comment_channel = 15;
-    ;When an avatar revisits within this many seconds, do not log.  This helps prevent misuse and excessive tweeting.
+
+    ;Do not log repeat visits by the same avatar with in a specified number
+    ;of seconds. This helps prevent misuse and excessive logging when avatars
+    ;crash or move between regions. Set to 0 to log ALL visits.
     block_time = 3600
-    ;Twitter username of the account to be used for logging.
-    your_twitter_username = "YourUserName"
-    ;Twitter account password.
-    your_twitter_password = "password"
+
+    ;The visit log can be stored locally or online using a webapp.
+    ;To use local storage, set the path to the local folder where log files
+    ;will be stored.  This folder must exist. Set to "" to store log files
+    ;in the bin folder.
+    local_log = true
+    log_path = ""
+    ;To use online storage, set the url path to the logging tool (the 
+    ;visitloggerapp Google Appengine tool at http://visitlog.aduffy70.org
+    ; may be used).
+    ;local_log = false
+    ;log_path = "http://visitlog.aduffy70.org"
+
+    ;To use the visitloggerapp Google AppEngine tool, the logged records
+    ;must be associated with a google account.  Specify the google account
+    ;you will use. (Not required for local logs)  
+    ;google_account = "test@example.com"
+
