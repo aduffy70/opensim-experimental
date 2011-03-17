@@ -41,23 +41,31 @@ using OpenSim.Region.Framework;
 using OpenSim.Region.Framework.Interfaces;
 using OpenSim.Region.Framework.Scenes;
 
+using Mono.Addins;
+
+[assembly: Addin("VisitLoggerModule", "0.1")]
+[assembly: AddinDependency("OpenSim", "0.5")]
 namespace VisitLoggerModule
 {
-    public class VisitLoggerModule : IRegionModule
+    [Extension(Path="/OpenSim/RegionModules",NodeName="RegionModule")]
+    public class VisitLoggerModule : INonSharedRegionModule
     {
+        //Set up console logging.
         private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        IDialogModule m_dialogmod;
-        int m_blockTime;
-        Dictionary<string, DateTime> m_recentVisits = new Dictionary<string, DateTime>();
-        string m_logPath;
-        bool m_localLog;
-        string m_googleAccount;
-        private Scene m_scene;
+
+        //Configurable settings in VisitLogger.ini
         bool m_enabled;
+        int m_blockTime; //Time to ignore repeat visits by the same avatar
+        bool m_localLog;
+        string m_logPath; //Local path or online url to where logs will be stored
+        string m_googleAccount; //Google account associated with these records (only required for online record storage
 
-        #region IRegionModule interface
+        Scene m_scene;
+        Dictionary<string, DateTime> m_recentVisits = new Dictionary<string, DateTime>(); //Tracks recent visitors and times so we know when to ignore repeat visits by the same avatar.
 
-        public void Initialise(Scene scene, IConfigSource config)
+        #region INonSharedRegionModule interface
+
+        public void Initialise(IConfigSource config)
         {
             IConfig visitLoggerConfig = config.Configs["VisitLogger"];
             if (visitLoggerConfig != null)
@@ -70,18 +78,26 @@ namespace VisitLoggerModule
             }
             if (m_enabled)
             {
-                m_scene = scene;
-                m_log.Info("[VisitLogger] Initialized...");
+                m_log.Info("[VisitLogger] Initializing...");
                 m_log.Info(String.Format("[VisitLogger] Block Time: {0}, Local Log: {1}, Log Path: {2}, Google Account: {3}", m_blockTime, m_localLog, m_logPath, m_googleAccount));
             }
         }
 
-        public void PostInitialise()
+        public void AddRegion(Scene scene)
         {
             if (m_enabled)
             {
+                m_scene = scene;
                 m_scene.EventManager.OnMakeRootAgent += new EventManager.OnMakeRootAgentDelegate(OnVisit);
             }
+        }
+
+        public void RemoveRegion(Scene scene)
+        {
+        }
+
+        public void RegionLoaded(Scene scene)
+        {
         }
 
         public void Close()
@@ -96,11 +112,11 @@ namespace VisitLoggerModule
             }
         }
 
-        public bool IsSharedModule
+        public Type ReplaceableInterface
         {
             get
             {
-                return false;
+                return null;
             }
         }
 
@@ -114,11 +130,14 @@ namespace VisitLoggerModule
             {
                 if (now.Subtract(m_recentVisits[visitorName]).TotalSeconds > m_blockTime)
                 {
+                    //Only log repeat visitors if they haven't been here in a while
                     LogVisit(presence, now);
                     m_recentVisits[visitorName] = now;
                 }
                 else
                 {
+                    //Update the visit time for this visitor.
+                    //NOTE: This means if a visitor keeps logging in just under the block time they will not get logged again. Might want to reconsider whether we really want to block repeat log entries based on the last time they entered the region or based on the last time they were recorded in the log.
                     m_recentVisits[visitorName] = now;
                 }
             }
@@ -138,7 +157,7 @@ namespace VisitLoggerModule
                 string logFile = System.IO.Path.Combine(m_logPath, "VisitLog.csv");
                 if (!System.IO.File.Exists(logFile))
                 {
-                    //Add a header row
+                    //Add a header row if the file is empty
                     logString = "Region,Name,Date-Time\n" + logString;
                 }
                 System.IO.StreamWriter dataLog = System.IO.File.AppendText(logFile);
