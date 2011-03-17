@@ -16,7 +16,6 @@
                 <include name="../Nini.dll" />
                 <include name="../OpenMetaverse*.dll" />
                 <include name="../OpenSim*.dll" />
-                <include name="../Twitterizer.Framework.dll" />
             </references>
         </csc>
     </target>

@@ -20,8 +20,6 @@
      <Reference name="OpenSim.Region.Framework.Scenes"/>
      <Reference name="OpenMetaverse"/>
      <Reference name="OpenMetaverseTypes"/>
-     <Reference name="Twitterizer.Framework"/>
-
      <Files>
        <Match pattern="*.cs" recurse="true"/>
      </Files>

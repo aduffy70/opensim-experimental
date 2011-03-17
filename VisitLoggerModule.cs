@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Net;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Timers;
@@ -38,35 +39,33 @@ using OpenSim.Framework;
 using OpenSim.Region.Framework;
 using OpenSim.Region.Framework.Interfaces;
 using OpenSim.Region.Framework.Scenes;
-using Twitterizer.Framework;
 
-namespace VisitLoggerModule {
-    public class VisitLoggerModule : IRegionModule {
-        //Module will fail at startup if these are not specified in the VisitLogger.ini file.
-		string m_twitterUserName = "Default";
-        string m_twitterPassword = "password";
-        Twitter m_twit;
-        int m_blockTime = 3600;
-        int m_maxComments = 20;
-        int m_commentChannel = 15;
+namespace VisitLoggerModule
+{
+    public class VisitLoggerModule : IRegionModule
+    {
+        private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        IDialogModule m_dialogmod;
+        int m_blockTime;
         Dictionary<string, DateTime> m_recentVisits = new Dictionary<string, DateTime>();
-        int m_commentsToday = 0;
-        Timer m_timer = new Timer();
+        string m_logPath;
+        bool m_localLog;
+        string m_googleAccount;
         private Scene m_scene;
-        bool m_enabled = false;
+        bool m_enabled;
 
         #region IRegionModule interface
 
-        public void Initialise(Scene scene, IConfigSource config) {
+        public void Initialise(Scene scene, IConfigSource config)
+        {
             IConfig visitLoggerConfig = config.Configs["VisitLogger"];
             if (visitLoggerConfig != null)
             {
                 m_enabled = visitLoggerConfig.GetBoolean("enabled", false);
-                m_twitterUserName = visitLoggerConfig.GetString("your_twitter_username", "Default");
-                m_twitterPassword = visitLoggerConfig.GetString("your_twitter_password", "password");
                 m_blockTime = visitLoggerConfig.GetInt("block_time", 3600);
-                m_maxComments = visitLoggerConfig.GetInt("maximum_comments", 20);
-                m_commentChannel = visitLoggerConfig.GetInt("comment_channel", 15);
+                m_localLog = visitLoggerConfig.GetBoolean("local_log", true);
+                m_logPath = visitLoggerConfig.GetString("log_path", "./");
+                m_googleAccount = visitLoggerConfig.GetString("google_account", "NO_ACCOUNT");
             }
             if (m_enabled)
             {
@@ -74,72 +73,81 @@ namespace VisitLoggerModule {
             }
         }
 
-        public void PostInitialise() {
+        public void PostInitialise()
+        {
             if (m_enabled)
             {
-                m_twit = new Twitter(m_twitterUserName, m_twitterPassword);
                 m_scene.EventManager.OnMakeRootAgent += new EventManager.OnMakeRootAgentDelegate(OnVisit);
-                m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
-                m_timer.Elapsed += new ElapsedEventHandler(TimerEvent);
-                m_timer.Interval = 86400000;
-                m_timer.Start();
             }
         }
 
-        public void Close(){
+        public void Close()
+        {
         }
 
-        public string Name{
-            get { return "VisitLoggerModule"; }
+        public string Name
+        {
+            get
+            {
+                return "VisitLoggerModule";
+            }
         }
 
-        public bool IsSharedModule {
-            get { return false; }
+        public bool IsSharedModule
+        {
+            get
+            {
+                return false;
+            }
         }
 
         #endregion
 
-        void OnVisit(ScenePresence presence) {
+        void OnVisit(ScenePresence presence)
+        {
             string visitorName = presence.Firstname + "_" + presence.Lastname;
-            DateTime dt = DateTime.Now;
-            if (m_recentVisits.ContainsKey(visitorName)) {
-                if (DateTime.Now.Subtract(m_recentVisits[visitorName]).TotalSeconds > m_blockTime) {
-                    m_twit.Status.Update("Repeat visitor: " + presence.Firstname + " " + presence.Lastname + " - " + String.Format("{0:f}", dt));
-                    m_recentVisits[visitorName] = DateTime.Now;
+            DateTime now = DateTime.Now;
+            if (m_recentVisits.ContainsKey(visitorName))
+            {
+                if (now.Subtract(m_recentVisits[visitorName]).TotalSeconds > m_blockTime)
+                {
+                    LogVisit(presence, now);
+                    m_recentVisits[visitorName] = now;
                 }
-                else {
-                    m_recentVisits[visitorName] = DateTime.Now;
+                else
+                {
+                    m_recentVisits[visitorName] = now;
                 }
             }
-            else {
-                m_twit.Status.Update("New Visitor: " + presence.Firstname + " " + presence.Lastname + " - " + String.Format("{0:f}", dt));
-                m_recentVisits.Add(visitorName, DateTime.Now);
+            else
+            {
+                LogVisit(presence, now);
+                m_recentVisits.Add(visitorName, now);
             }
         }
 
-        void OnChat(Object sender, OSChatMessage chat) {
-            if (chat.Channel != m_commentChannel)
-                return;
-            else if (m_commentsToday <= m_maxComments) {
-                string senderName = m_scene.GetUserName(chat.SenderUUID);
-                string firstInitial = senderName.Substring(0,1);
-                string lastInitial = senderName.Split(' ')[1].Substring(0,1);
-                m_twit.Status.Update(firstInitial + lastInitial + ":" + chat.Message);
-                IDialogModule dialogmod = m_scene.RequestModuleInterface<IDialogModule>();
-                if (dialogmod != null) {
-                    dialogmod.SendGeneralAlert("Thanks for the feedback!");
+        void LogVisit(ScenePresence presence, DateTime now)
+        {
+            if (m_localLog)
+            {
+                string logString = String.Format("{0},{1} {2},{3}", m_scene.RegionInfo.RegionName, presence.Firstname, presence.Lastname, now);
+                m_log.Info(logString);
+                string logFile = System.IO.Path.Combine(m_logPath, "VisitLog.csv");
+                if (!System.IO.File.Exists(logFile))
+                {
+                    //Add a header row
+                    logString = "Region,Name,Date-Time\n" + logString;
                 }
-                m_commentsToday++;
+                System.IO.StreamWriter dataLog = System.IO.File.AppendText(logFile);
+                dataLog.WriteLine(logString);
+                dataLog.Close();
             }
-            else  {
-                IDialogModule dialogmod = m_scene.RequestModuleInterface<IDialogModule>();
-                if (dialogmod != null)
-                    dialogmod.SendGeneralAlert("Too many comments today.  Message not sent.");
+            else
+            {
+                string logString = String.Format("logvisit?account={0}&region={1}&name={2} {3}&datetime={4}", m_googleAccount, m_scene.RegionInfo.RegionName, presence.Firstname, presence.Lastname, now);
+                WebRequest LogVisitRequest = WebRequest.Create(System.IO.Path.Combine(m_logPath, logString));
+                m_log.Info(System.IO.Path.Combine(m_logPath, logString));
             }
-        }
-
-        void TimerEvent(object source, ElapsedEventArgs e) {
-            m_commentsToday = 0;
         }
     }
 }
