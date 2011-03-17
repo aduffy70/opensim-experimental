@@ -1,0 +1,3 @@
+*.csproj*
+*.dll*
+bin/
