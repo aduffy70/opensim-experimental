@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.IO;
 using System.Net;
 using System.Collections.Generic;
 using System.Reflection;
@@ -64,12 +65,14 @@ namespace VisitLoggerModule
                 m_enabled = visitLoggerConfig.GetBoolean("enabled", false);
                 m_blockTime = visitLoggerConfig.GetInt("block_time", 3600);
                 m_localLog = visitLoggerConfig.GetBoolean("local_log", true);
-                m_logPath = visitLoggerConfig.GetString("log_path", "./");
+                m_logPath = visitLoggerConfig.GetString("log_path", "");
                 m_googleAccount = visitLoggerConfig.GetString("google_account", "NO_ACCOUNT");
             }
             if (m_enabled)
             {
                 m_scene = scene;
+                m_log.Info("[VisitLogger] Initialized...");
+                m_log.Info(String.Format("[VisitLogger] Block Time: {0}, Local Log: {1}, Log Path: {2}, Google Account: {3}", m_blockTime, m_localLog, m_logPath, m_googleAccount));
             }
         }
 
@@ -131,7 +134,7 @@ namespace VisitLoggerModule
             if (m_localLog)
             {
                 string logString = String.Format("{0},{1} {2},{3}", m_scene.RegionInfo.RegionName, presence.Firstname, presence.Lastname, now);
-                m_log.Info(logString);
+                //m_log.Info("[VisitLogger] " + logString); //DEBUG
                 string logFile = System.IO.Path.Combine(m_logPath, "VisitLog.csv");
                 if (!System.IO.File.Exists(logFile))
                 {
@@ -145,8 +148,9 @@ namespace VisitLoggerModule
             else
             {
                 string logString = String.Format("logvisit?account={0}&region={1}&name={2} {3}&datetime={4}", m_googleAccount, m_scene.RegionInfo.RegionName, presence.Firstname, presence.Lastname, now);
-                WebRequest LogVisitRequest = WebRequest.Create(System.IO.Path.Combine(m_logPath, logString));
-                m_log.Info(System.IO.Path.Combine(m_logPath, logString));
+                WebRequest logVisitRequest = WebRequest.Create(System.IO.Path.Combine(m_logPath, logString));
+                StreamReader urlData = new StreamReader(logVisitRequest.GetResponse().GetResponseStream());
+                //m_log.Info("[VisitLogger] " + System.IO.Path.Combine(m_logPath, logString)); //DEBUG
             }
         }
     }
