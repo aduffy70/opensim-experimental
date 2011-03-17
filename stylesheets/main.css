@@ -1,0 +1,54 @@
+/* Main CSS */
+
+body
+{
+    background-color:#eeeeee;
+}
+
+div
+{
+    display:block;
+    width:100%;
+    max-width:600px;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+table
+{
+    width:100%;
+}
+
+
+/* Mobile-specific CSS*/
+@media screen and (max-device-width: 480px)
+{
+    body
+    {
+        -webkit-text-size-adjust:none;
+        font-family:Helvetica, Arial, Verdana, sans-serif;
+        padding:5px;
+        max-width:320px;
+        /*max-height:480px;*/
+        background-color:#eeeeee;
+    }
+
+    div
+    {
+        margin:0;
+        padding:0;
+    }
+
+    #wrap
+    {
+        overflow:auto;
+        width:320px;
+        /*height:480px;*/
+    }
+
+
+    #visitlist
+    {
+        width:300px;
+    }
+}

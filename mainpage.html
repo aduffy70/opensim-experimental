@@ -1,0 +1,35 @@
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0;">
+        <title>Visit Log</title>
+        <link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+    </head>
+    <body>
+        <div id="wrap">
+            <form action="/clearlog" method="post" name="mainform">
+                <div>
+                    <input type="submit" value="Delete Log Records" />
+                </div>
+            </form>
+            <div id="visitlist">
+                <table border="1">
+                    <tbody border="1">
+                        <tr>
+                            <th>Region</th>
+                            <th>Name</th>
+                            <th>Date-Time</th>
+                        <tr>
+                        {% for visit_record in visit_records %}
+                            <tr>
+                                <td>{{visit_record.region}}</td>
+                                <td>{{visit_record.name}}</td>
+                                <td>{{visit_record.local_datetime}}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <a href="/helpfiles/tos.html" align="right" target="_blank">Terms of Service</a>
+        </div>
+    </body>
+</html>
