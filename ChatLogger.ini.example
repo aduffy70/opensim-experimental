@@ -11,9 +11,4 @@
     ;channel to listen for module commands
     command_channel = 18
 
-    ;traffic on this channel will be logged.  The standard chat channel (0) is probably
-    ;most interesting, but by changing this setting the module could be used to log
-    ;debug messages or traffic on other channels.
-    log_channel = 0
-
 
