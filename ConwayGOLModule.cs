@@ -65,16 +65,16 @@ namespace ConwayGOLModule
         int m_xCells;
         int m_yCells;
 
-        List<SceneObjectGroup> m_prims = new List<SceneObjectGroup>(); //list of objects managed by this module
+        List<SceneObjectGroup> m_prims; //list of objects managed by this module
         int[] m_cellStatus; // live(1)-dead(0) status for each cell in the matrix
-        Color4 m_deadColor = new Color4(0f, 0f, 0f, 0.25f); //color for dead cells
+        Color4 m_deadColor = new Color4(0f, 0f, 0f, 0.15f); //color for dead cells
         Color4 m_liveColor = new Color4(1.0f, 1f, 1f, 1.0f); //color for live cells
         bool m_running = false; //Keep track of whether the game is running
         Timer m_timer = new Timer(); //Timer to replace the region heartbeat
         Scene m_scene;
         List<int> m_activeCells = new List<int>(); //Indices of cells which could possibly change on the next cycle
         string m_patternUrlPath;
-
+        bool m_isHidden = true; //Keep track of whether the torus exists
 
         #region INonSharedRegionModule interface
 
@@ -111,8 +111,6 @@ namespace ConwayGOLModule
                 m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
                 m_timer.Elapsed += new ElapsedEventHandler(OnTimer);
                 m_timer.Interval = m_cycleTime;
-                m_cellStatus = new int[m_xCells * m_yCells];
-                SetupMatrix(m_scene);
             }
         }
 
@@ -160,15 +158,20 @@ namespace ConwayGOLModule
                 for (int x=0; x<m_xCells; x++)
                 {
                     //Calculate the cell's position
-                    float xPos = m_xCenter + ((m_aRadius + (m_bRadius * (float)Math.Cos(vRadians))) * (float)Math.Cos(uRadians));
-                    float yPos = m_yCenter + ((m_aRadius + (m_bRadius * (float)Math.Cos(vRadians))) * (float)Math.Sin(uRadians));
+                    float xPos = m_xCenter + ((m_aRadius + (m_bRadius *
+                                              (float)Math.Cos(vRadians))) *
+                                              (float)Math.Cos(uRadians));
+                    float yPos = m_yCenter + ((m_aRadius + (m_bRadius *
+                                              (float)Math.Cos(vRadians))) *
+                                              (float)Math.Sin(uRadians));
                     float zPos = m_zCenter + (m_bRadius * (float)Math.Sin(vRadians));
                     Vector3 pos = new Vector3(xPos, yPos, zPos);
                     //Set the size, shape, texture, and color of the cell
                     PrimitiveBaseShape prim = PrimitiveBaseShape.CreateSphere();
-                    prim.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a236fe36f")); //blank texture
+                    //blank texture
+                    prim.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a236fe36f"));
                     SceneObjectGroup sog = new SceneObjectGroup(UUID.Zero, pos, prim);
-                    float size = 0.75f + (Math.Abs(((m_xCells-1) / 2f) - (float)x) / ((m_xCells-1) / 3f));
+                    float size = 0.5f + (Math.Abs(((m_xCells-1) / 2f) - (float)x) / ((m_xCells-1) / 3f));
                     sog.RootPart.Scale = new Vector3(size, size, size);
                     Primitive.TextureEntry tex = sog.RootPart.Shape.Textures;
                     m_cellStatus[counter] = 0;
@@ -197,79 +200,131 @@ namespace ConwayGOLModule
                 //Message is not for this module
                 return;
             }
-            else if (chat.Message == "reset")
+            else if (m_isHidden == true)
             {
-                if (m_running)
+                if (chat.Message == "show")
                 {
-                    StopGameOfLife();
-                }
-                if (m_dialogmod != null)
-                {
-                    m_dialogmod.SendGeneralAlert("ConwayGOL Module: Reset...");
-                }
-                ResetAllCells();
-            }
-            else if (chat.Message == "start")
-            {
-                if (!m_running)
-                {
+                    //Place the torus in the scene
                     if (m_dialogmod != null)
                     {
-                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Start...");
+                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Show...");
                     }
-                    StartGameOfLife();
+                    m_prims = new List<SceneObjectGroup>(); 
+                    m_cellStatus = new int[m_xCells * m_yCells];
+                    SetupMatrix(m_scene);
+                    m_isHidden = false;
                 }
                 else
                 {
+                    //Can't do anything else while the torus is hidden
                     if (m_dialogmod != null)
                     {
-                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Already running...");
+                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Error - 'show' the torus first");
                     }
-                    m_log.Info("[ConwayGOL] Already running...");
                 }
-            }
-            else if (chat.Message == "stop")
-            {
-                if (m_running)
-                {
-                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Stop...");
-                    }
-                    StopGameOfLife();
-                }
-                else
-                {
-                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Already stopped...");
-                    }
-                    m_log.Info("[ConwayGOL] Not running...");
-                }
-            }
-            else if (chat.Message == "example")
-            {
-                if (m_running)
-                {
-                    StopGameOfLife();
-                }
-                ResetAllCells();
-                LoadExamplePattern();
-                if (m_dialogmod != null)
-                {
-                    m_dialogmod.SendGeneralAlert("ConwayGOL Module: Loaded 'example'...");
-                }
+
             }
             else
             {
-                //Read starting pattern from a url
-                string fileName = System.IO.Path.Combine(m_patternUrlPath, chat.Message);
-                if (m_running)
+                //Torus is visible so we have options...
+                if (chat.Message == "hide")
                 {
-                    StopGameOfLife();
+                    if (m_running)
+                    {
+                        StopGameOfLife();
+                    }
+                    if (m_dialogmod != null)
+                    {
+                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Hide...");
+                    }
+                    //Remove the torus
+                    foreach (SceneObjectGroup sog in m_prims)
+                    {
+                        m_scene.DeleteSceneObject(sog, false);
+                    }
+                    m_isHidden = true;
                 }
-                ResetAllCells();
-                LoadFromUrl(fileName);
+                else if (chat.Message == "show")
+                {
+                    //Can't show when it is already showing. We need to catch this here so it won't try to load 'http://show                    if (m_dialogmod != null)
+                    {
+                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Error - torus is already shown");
+                    }
+                }
+                else if (chat.Message == "reset")
+                {
+                    if (m_running)
+                    {
+                        StopGameOfLife();
+                    }
+                    if (m_dialogmod != null)
+                    {
+                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Reset...");
+                    }
+                    ResetAllCells();
+                }
+                else if (chat.Message == "start")
+                {
+                    if (!m_running)
+                    {
+                        if (m_dialogmod != null)
+                        {
+                            m_dialogmod.SendGeneralAlert("ConwayGOL Module: Start...");
+                        }
+                        StartGameOfLife();
+                    }
+                    else
+                    {
+                        if (m_dialogmod != null)
+                        {
+                            m_dialogmod.SendGeneralAlert("ConwayGOL Module: Already running...");
+                        }
+                        m_log.Info("[ConwayGOL] Already running...");
+                    }
+                }
+                else if (chat.Message == "stop")
+                {
+                    if (m_running)
+                    {
+                        if (m_dialogmod != null)
+                        {
+                            m_dialogmod.SendGeneralAlert("ConwayGOL Module: Stop...");
+                        }
+                        StopGameOfLife();
+                    }
+                    else
+                    {
+                        if (m_dialogmod != null)
+                        {
+                            m_dialogmod.SendGeneralAlert("ConwayGOL Module: Already stopped...");
+                        }
+                        m_log.Info("[ConwayGOL] Not running...");
+                    }
+                }
+                else if (chat.Message == "example")
+                {
+                    if (m_running)
+                    {
+                        StopGameOfLife();
+                    }
+                    ResetAllCells();
+                    LoadExamplePattern();
+                    if (m_dialogmod != null)
+                    {
+                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Loaded 'example'...");
+                    }
+                }
+                else
+                {
+                    //Read starting pattern from a url
+                    string fileName = System.IO.Path.Combine(m_patternUrlPath, chat.Message);
+                    if (m_running)
+                    {
+                        StopGameOfLife();
+                    }
+                    ResetAllCells();
+                    LoadFromUrl(fileName);
+                }
             }
         }
 
