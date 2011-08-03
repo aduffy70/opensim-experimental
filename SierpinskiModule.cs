@@ -105,6 +105,9 @@ namespace SierpinskiModule {
         	PrimitiveBaseShape prim = PrimitiveBaseShape.CreateBox();
         	prim.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a236fe36f")); //give it a blank texture
             SceneObjectGroup sog = new SceneObjectGroup(UUID.Zero, m_pos, prim);
+            Primitive.TextureEntry tex = sog.RootPart.Shape.Textures;
+            tex.DefaultTexture.RGBA = new Color4(0.0f, 0.50f, 0.0f, 1.0f); //Green
+            sog.RootPart.UpdateTexture(tex);
             m_size = new Vector3(m_xSize, m_ySize, m_zSize);
         	sog.RootPart.Scale = m_size;
         	m_prims.Add(sog); //add it to our list of managed objects
