@@ -205,10 +205,7 @@ namespace ConwayGOLModule
                 if (chat.Message == "show")
                 {
                     //Place the torus in the scene
-                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Show...");
-                    }
+                    Dialog("Show...");
                     m_prims = new List<SceneObjectGroup>(); 
                     m_cellStatus = new int[m_xCells * m_yCells];
                     SetupMatrix(m_scene);
@@ -217,12 +214,8 @@ namespace ConwayGOLModule
                 else
                 {
                     //Can't do anything else while the torus is hidden
-                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Error - 'show' the torus first");
-                    }
+                    Dialog("Error - 'show' the torus first");
                 }
-
             }
             else
             {
@@ -233,10 +226,7 @@ namespace ConwayGOLModule
                     {
                         StopGameOfLife();
                     }
-                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Hide...");
-                    }
+                    Dialog("Hide...");
                     //Remove the torus
                     foreach (SceneObjectGroup sog in m_prims)
                     {
@@ -246,10 +236,8 @@ namespace ConwayGOLModule
                 }
                 else if (chat.Message == "show")
                 {
-                    //Can't show when it is already showing. We need to catch this here so it won't try to load 'http://show                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Error - torus is already shown");
-                    }
+                    //Can't show when it is already showing. We need to catch this so it won't try to load 'http://show
+                    Dialog("Error - torus is already shown");
                 }
                 else if (chat.Message == "reset")
                 {
@@ -257,28 +245,19 @@ namespace ConwayGOLModule
                     {
                         StopGameOfLife();
                     }
-                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Reset...");
-                    }
+                    Dialog("Reset...");
                     ResetAllCells();
                 }
                 else if (chat.Message == "start")
                 {
                     if (!m_running)
                     {
-                        if (m_dialogmod != null)
-                        {
-                            m_dialogmod.SendGeneralAlert("ConwayGOL Module: Start...");
-                        }
+                        Dialog("Start...");
                         StartGameOfLife();
                     }
                     else
                     {
-                        if (m_dialogmod != null)
-                        {
-                            m_dialogmod.SendGeneralAlert("ConwayGOL Module: Already running...");
-                        }
+                        Dialog("Already running...");
                         m_log.Info("[ConwayGOL] Already running...");
                     }
                 }
@@ -286,18 +265,12 @@ namespace ConwayGOLModule
                 {
                     if (m_running)
                     {
-                        if (m_dialogmod != null)
-                        {
-                            m_dialogmod.SendGeneralAlert("ConwayGOL Module: Stop...");
-                        }
+                        Dialog("Stop...");
                         StopGameOfLife();
                     }
                     else
                     {
-                        if (m_dialogmod != null)
-                        {
-                            m_dialogmod.SendGeneralAlert("ConwayGOL Module: Already stopped...");
-                        }
+                        Dialog("Already stopped...");
                         m_log.Info("[ConwayGOL] Not running...");
                     }
                 }
@@ -309,10 +282,7 @@ namespace ConwayGOLModule
                     }
                     ResetAllCells();
                     LoadExamplePattern();
-                    if (m_dialogmod != null)
-                    {
-                        m_dialogmod.SendGeneralAlert("ConwayGOL Module: Loaded 'example'...");
-                    }
+                    Dialog("Loaded 'example'...");
                 }
                 else
                 {
@@ -387,18 +357,12 @@ namespace ConwayGOLModule
                     string[] cellCoordinates = line.Split(',');
                     SetLive(Int32.Parse(cellCoordinates[0]), Int32.Parse(cellCoordinates[1]));
                 }
-                if (m_dialogmod != null)
-                {
-                    m_dialogmod.SendGeneralAlert("ConwayGOL Module: Loaded \'" + fileName + "\'...");
-                }
+                Dialog("Loaded \'" + fileName + "\'...");
             }
             catch
             {
                 m_log.Info("[ConwayGOL] Error loading parameters from file \"" + fileName + "\"...");
-                if (m_dialogmod != null)
-                {
-                    m_dialogmod.SendGeneralAlert("ConwayGOL Module: Unable to load \'" + fileName + "\'...");
-                }
+                Dialog("Unable to load \'" + fileName + "\'...");
             }
         }
 
@@ -584,6 +548,14 @@ namespace ConwayGOLModule
             SetLive(17, 0);
             SetLive(18, 0);
             SetLive(19, 0);
+        }
+
+        void Dialog(string message)
+        {
+            if (m_dialogmod != null)
+            {
+                m_dialogmod.SendGeneralAlert("ConwayGOL Module: " + message);
+            }
         }
     }
 }
