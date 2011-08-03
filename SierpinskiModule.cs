@@ -133,57 +133,61 @@ namespace SierpinskiModule {
         	Vector3 newsize = new Vector3(scale.X / 2, scale.Y / 2, scale.Z / 2);
         	Vector3 offset = new Vector3(scale.X / 4, scale.Y / 4, scale.Z / 4);
         	Vector3 pos = sog.AbsolutePosition;
-        	PrimitiveBaseShape prim = PrimitiveBaseShape.CreateBox();
-        	prim.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a236fe36f"));
-        	// Add new prim#1
+            // Add new prim#1
+        	PrimitiveBaseShape prim1 = PrimitiveBaseShape.CreateBox();
+        	prim1.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a236fe36f"));
             Vector3 newpos = new Vector3(pos.X, pos.Y, pos.Z + offset.Z);
-        	SceneObjectGroup newsog = new SceneObjectGroup(UUID.Zero, newpos, prim);
-        	newsog.RootPart.Scale = newsize;
-            m_newprims.Add(newsog); //add it to our list of managed objects
-        	m_scene.AddNewSceneObject(newsog, false);  //add it to the scene (not backed up to the db)
-            Primitive.TextureEntry tex = newsog.RootPart.Shape.Textures;
+        	SceneObjectGroup newsog1 = new SceneObjectGroup(UUID.Zero, newpos, prim1);
+        	newsog1.RootPart.Scale = newsize;
+            m_newprims.Add(newsog1); //add it to our list of managed objects
+        	m_scene.AddNewSceneObject(newsog1, false);  //add it to the scene (not backed up to the db)
+            Primitive.TextureEntry tex = newsog1.RootPart.Shape.Textures;
             tex.DefaultTexture.RGBA = RandomColor();
-            newsog.RootPart.UpdateTexture(tex);
+            newsog1.RootPart.UpdateTexture(tex);
         	// Add new prim#2
-            prim.Textures.DefaultTexture.RGBA = RandomColor();
+            PrimitiveBaseShape prim2 = PrimitiveBaseShape.CreateBox();
+            prim2.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a236fe36f"));
         	newpos = new Vector3(pos.X - offset.X, pos.Y - offset.Y, pos.Z - offset.Z);
-        	newsog = new SceneObjectGroup(UUID.Zero, newpos, prim);
-        	newsog.RootPart.Scale = newsize;
-        	m_newprims.Add(newsog); //add it to our list of managed objects
-        	m_scene.AddNewSceneObject(newsog, false);  //add it to the scene (not backed up to the db)
-            tex = newsog.RootPart.Shape.Textures;
+        	SceneObjectGroup newsog2 = new SceneObjectGroup(UUID.Zero, newpos, prim2);
+        	newsog2.RootPart.Scale = newsize;
+        	m_newprims.Add(newsog2); //add it to our list of managed objects
+        	m_scene.AddNewSceneObject(newsog2, false);  //add it to the scene (not backed up to the db)
+            tex = newsog2.RootPart.Shape.Textures;
             tex.DefaultTexture.RGBA = RandomColor();
-            newsog.RootPart.UpdateTexture(tex);
+            newsog2.RootPart.UpdateTexture(tex);
         	// Add new prim#3
-            prim.Textures.DefaultTexture.RGBA = RandomColor();
+            PrimitiveBaseShape prim3 = PrimitiveBaseShape.CreateBox();
+            prim3.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a236fe36f"));
         	newpos = new Vector3(pos.X - offset.X, pos.Y + offset.Y, pos.Z - offset.Z);
-        	newsog = new SceneObjectGroup(UUID.Zero, newpos, prim);
-        	newsog.RootPart.Scale = newsize;
-        	m_newprims.Add(newsog); //add it to our list of managed objects
-        	m_scene.AddNewSceneObject(newsog, false);  //add it to the scene (not backed up to the db)
-            tex = newsog.RootPart.Shape.Textures;
+        	SceneObjectGroup newsog3 = new SceneObjectGroup(UUID.Zero, newpos, prim3);
+        	newsog3.RootPart.Scale = newsize;
+        	m_newprims.Add(newsog3); //add it to our list of managed objects
+        	m_scene.AddNewSceneObject(newsog3, false);  //add it to the scene (not backed up to the db)
+            tex = newsog3.RootPart.Shape.Textures;
             tex.DefaultTexture.RGBA = RandomColor();
-            newsog.RootPart.UpdateTexture(tex);
+            newsog3.RootPart.UpdateTexture(tex);
 			// Add new prim#4
-            prim.Textures.DefaultTexture.RGBA = RandomColor();
-        	newpos = new Vector3(pos.X + offset.X, pos.Y - offset.Y, pos.Z - offset.Z);
-        	newsog = new SceneObjectGroup(UUID.Zero, newpos, prim);
-        	newsog.RootPart.Scale = newsize;
-            m_newprims.Add(newsog); //add it to our list of managed objects
-        	m_scene.AddNewSceneObject(newsog, false);  //add it to the scene (not backed up to the db)
-            tex = newsog.RootPart.Shape.Textures;
+            PrimitiveBaseShape prim4 = PrimitiveBaseShape.CreateBox();
+            prim4.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a236fe36f"));
+         	newpos = new Vector3(pos.X + offset.X, pos.Y - offset.Y, pos.Z - offset.Z);
+        	SceneObjectGroup newsog4 = new SceneObjectGroup(UUID.Zero, newpos, prim4);
+        	newsog4.RootPart.Scale = newsize;
+            m_newprims.Add(newsog4); //add it to our list of managed objects
+        	m_scene.AddNewSceneObject(newsog4, false);  //add it to the scene (not backed up to the db)
+            tex = newsog4.RootPart.Shape.Textures;
             tex.DefaultTexture.RGBA = RandomColor();
-            newsog.RootPart.UpdateTexture(tex);
+            newsog4.RootPart.UpdateTexture(tex);
         	// Add new prim#5
-            prim.Textures.DefaultTexture.RGBA = RandomColor();
+            PrimitiveBaseShape prim5 = PrimitiveBaseShape.CreateBox();
+            prim5.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a236fe36f"));
         	newpos = new Vector3(pos.X + offset.X, pos.Y + offset.Y, pos.Z - offset.Z);
-        	newsog = new SceneObjectGroup(UUID.Zero, newpos, prim);
-        	newsog.RootPart.Scale = newsize;
-        	m_newprims.Add(newsog); //add it to our list of managed objects
-        	m_scene.AddNewSceneObject(newsog, false);  //add it to the scene (not backed up to the db)
-            tex = newsog.RootPart.Shape.Textures;
+        	SceneObjectGroup newsog5 = new SceneObjectGroup(UUID.Zero, newpos, prim5);
+        	newsog5.RootPart.Scale = newsize;
+        	m_newprims.Add(newsog5); //add it to our list of managed objects
+        	m_scene.AddNewSceneObject(newsog5, false);  //add it to the scene (not backed up to the db)
+            tex = newsog5.RootPart.Shape.Textures;
             tex.DefaultTexture.RGBA = RandomColor();
-            newsog.RootPart.UpdateTexture(tex);
+            newsog5.RootPart.UpdateTexture(tex);
         	m_todelete.Add(sog); //add the original prim to the list of prims to be removed
         }
 
