@@ -48,9 +48,12 @@ namespace SierpinskiModule {
         bool m_enabled = false;
         int m_channel = 11;
         private Scene m_scene;
-
+        bool m_isHidden = true; //tracks whether pyramid is hidden or shown
         Vector3 m_pos = new Vector3(128f, 128f, 40f); //inworld coordinates for the center of the pyramid
-		Vector3 m_size = new Vector3(30f, 30f, 40f); //dimensions of the pyramid in meters
+		float m_xSize;
+        float m_ySize;
+        float m_zSize;
+        Vector3 m_size = new Vector3(30f, 30f, 40f); //dimensions of the pyramid in meters
 
         #region IRegionModule interface
 
@@ -64,10 +67,9 @@ namespace SierpinskiModule {
                 float yPos = sierpinskiTreeConfig.GetFloat("tree_y_position", 128);
                 float zPos = sierpinskiTreeConfig.GetFloat("tree_z_position", 50);
                 m_pos = new Vector3(xPos, yPos, zPos);
-                float xSize = sierpinskiTreeConfig.GetFloat("tree_x_size", 30);
-                float ySize = sierpinskiTreeConfig.GetFloat("tree_y_size", 30);
-                float zSize = sierpinskiTreeConfig.GetFloat("tree_z_size", 40);
-                m_size = new Vector3(xSize, ySize, zSize);
+                m_xSize = sierpinskiTreeConfig.GetFloat("tree_x_size", 30);
+                m_ySize = sierpinskiTreeConfig.GetFloat("tree_y_size", 30);
+                m_zSize = sierpinskiTreeConfig.GetFloat("tree_z_size", 40);
             }
             if (m_enabled)
             {
@@ -81,7 +83,7 @@ namespace SierpinskiModule {
             {
                 m_scene.EventManager.OnChatFromWorld += new EventManager.ChatFromWorldEvent(OnChat);
                 m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
-			    InitializePyramid(m_scene);
+			    //InitializePyramid(m_scene);
             }
         }
 
@@ -99,33 +101,63 @@ namespace SierpinskiModule {
         #endregion
 
         void InitializePyramid(Scene scene) {
-        	//Place one large pyramid prim of size size at position pos (you DO allow megaprims of at least size size in your region, right?
+        	//Place one large pyramid prim of size size at position pos
         	PrimitiveBaseShape prim = PrimitiveBaseShape.CreateBox();
         	prim.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a236fe36f")); //give it a blank texture
             SceneObjectGroup sog = new SceneObjectGroup(UUID.Zero, m_pos, prim);
+            m_size = new Vector3(m_xSize, m_ySize, m_zSize);
         	sog.RootPart.Scale = m_size;
         	m_prims.Add(sog); //add it to our list of managed objects
         	m_scene.AddNewSceneObject(sog, false);  //add it to the scene (not backed up to the db)
         }
 
-        void OnChat(Object sender, OSChatMessage chat) {
-        	if (chat.Channel != m_channel) {
+        void OnChat(Object sender, OSChatMessage chat)
+        {
+        	if (chat.Channel != m_channel)
+            {
                 return;
             }
-			else if (chat.Message == "step") {
-        		m_log.Info("[SierpinskiModule] Updating pyramid...");
-        		foreach(SceneObjectGroup sog in m_prims) {
-        			DoSierpinski(sog, m_size);
-        		}
-        		m_size = new Vector3(m_size.X / 2, m_size.Y / 2, m_size.Z /2);
-                m_prims.Clear();
-                m_log.Info("[SierpinskiModule] Pyramid contains " + m_newprims.Count + " prims");
-                m_prims = new List<SceneObjectGroup>(m_newprims);
-                foreach(SceneObjectGroup sog in m_todelete) {
-                    m_scene.DeleteSceneObject(sog, false);
+            else if (chat.Message == "show")
+            {
+                if (m_isHidden == true)
+                {
+                    InitializePyramid(m_scene);
+                    m_isHidden = false;
                 }
-                m_todelete.Clear();
-                m_newprims.Clear();
+            }
+            else if (chat.Message == "hide")
+            {
+                if (m_isHidden == false)
+                {
+                    foreach (SceneObjectGroup sog in m_prims)
+                    {
+                        m_scene.DeleteSceneObject(sog, false);
+                    }
+                    m_prims.Clear();
+                    m_todelete.Clear();
+                    m_isHidden = true;
+                }
+            }
+			else if (chat.Message == "step")
+            {
+                if (m_isHidden == false)
+                {
+        		    m_log.Info("[SierpinskiModule] Updating pyramid...");
+        		    foreach(SceneObjectGroup sog in m_prims)
+                    {
+        			    DoSierpinski(sog, m_size);
+        		    }
+        		    m_size = new Vector3(m_size.X / 2, m_size.Y / 2, m_size.Z /2);
+                    m_prims.Clear();
+                    m_log.Info("[SierpinskiModule] Pyramid contains " + m_newprims.Count + " prims");
+                    m_prims = new List<SceneObjectGroup>(m_newprims);
+                    foreach(SceneObjectGroup sog in m_todelete)
+                    {
+                        m_scene.DeleteSceneObject(sog, false);
+                    }
+                    m_todelete.Clear();
+                    m_newprims.Clear();
+                }
         	}
         }
 
