@@ -38,10 +38,13 @@ using OpenSim.Region.Framework;
 using OpenSim.Region.Framework.Interfaces;
 using OpenSim.Region.Framework.Scenes;
 
-namespace SierpinskiModule {
-    public class SierpinskiModule : IRegionModule {
+namespace SierpinskiModule
+{
+    public class SierpinskiModule : IRegionModule
+    {
         private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-		List<SceneObjectGroup> m_prims = new List<SceneObjectGroup>(); //our list of managed objects
+		IDialogModule m_dialogmod;
+        List<SceneObjectGroup> m_prims = new List<SceneObjectGroup>(); //our list of managed objects
 		List<SceneObjectGroup> m_newprims = new List<SceneObjectGroup>(); //new prims to be added to the scene
         List<SceneObjectGroup> m_todelete = new List<SceneObjectGroup>(); //prims to be removed from the scene
         Random m_random = new Random();
@@ -57,7 +60,8 @@ namespace SierpinskiModule {
 
         #region IRegionModule interface
 
-        public void Initialise(Scene scene, IConfigSource config) {
+        public void Initialise(Scene scene, IConfigSource config)
+        {
             IConfig sierpinskiTreeConfig = config.Configs["SierpinskiTree"];
             if (sierpinskiTreeConfig != null)
             {
@@ -74,33 +78,44 @@ namespace SierpinskiModule {
             if (m_enabled)
             {
                 m_log.Info("[SierpinskiTreeModule] Initializing...");
+                m_dialogmod = scene.RequestModuleInterface<IDialogModule>();
                 m_scene = scene;
             }
         }
 
-        public void PostInitialise() {
+        public void PostInitialise()
+        {
             if (m_enabled)
             {
                 m_scene.EventManager.OnChatFromWorld += new EventManager.ChatFromWorldEvent(OnChat);
                 m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
-			    //InitializePyramid(m_scene);
             }
         }
 
-        public void Close(){
+        public void Close()
+        {
         }
 
-        public string Name{
-            get { return "SierpinskiTreeModule"; }
+        public string Name
+        {
+            get
+            {
+                return "SierpinskiTreeModule";
+            }
         }
 
-        public bool IsSharedModule {
-            get { return false; }
+        public bool IsSharedModule
+        {
+            get
+            {
+                return false;
+            }
         }
 
         #endregion
 
-        void InitializePyramid(Scene scene) {
+        void InitializePyramid(Scene scene)
+        {
         	//Place one large pyramid prim of size size at position pos
         	PrimitiveBaseShape prim = PrimitiveBaseShape.CreateBox();
         	prim.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a236fe36f")); //give it a blank texture
@@ -124,14 +139,20 @@ namespace SierpinskiModule {
             {
                 if (m_isHidden == true)
                 {
+                    Dialog("Show...");
                     InitializePyramid(m_scene);
                     m_isHidden = false;
+                }
+                else
+                {
+                    Dialog("Already shown");
                 }
             }
             else if (chat.Message == "hide")
             {
                 if (m_isHidden == false)
                 {
+                    Dialog("Hide...");
                     foreach (SceneObjectGroup sog in m_prims)
                     {
                         m_scene.DeleteSceneObject(sog, false);
@@ -140,31 +161,45 @@ namespace SierpinskiModule {
                     m_todelete.Clear();
                     m_isHidden = true;
                 }
+                else
+                {
+                    Dialog("Already hidden");
+                }
             }
 			else if (chat.Message == "step")
             {
                 if (m_isHidden == false)
                 {
-        		    m_log.Info("[SierpinskiModule] Updating pyramid...");
+        		    Dialog("Updating pyramid...");
         		    foreach(SceneObjectGroup sog in m_prims)
                     {
         			    DoSierpinski(sog, m_size);
         		    }
         		    m_size = new Vector3(m_size.X / 2, m_size.Y / 2, m_size.Z /2);
                     m_prims.Clear();
-                    m_log.Info("[SierpinskiModule] Pyramid contains " + m_newprims.Count + " prims");
+                    Dialog(m_newprims.Count + " prims");
                     m_prims = new List<SceneObjectGroup>(m_newprims);
-                    foreach(SceneObjectGroup sog in m_todelete)
+                    foreach (SceneObjectGroup sog in m_todelete)
                     {
                         m_scene.DeleteSceneObject(sog, false);
                     }
                     m_todelete.Clear();
                     m_newprims.Clear();
                 }
+                else
+                {
+                    Dialog("Must 'show' first...");
+                }
         	}
+            else
+            {
+                Dialog("Invalid command");
+            }
         }
 
-        void DoSierpinski(SceneObjectGroup sog, Vector3 scale) { //replace the original prim with 5 new prims
+        void DoSierpinski(SceneObjectGroup sog, Vector3 scale)
+        {
+            //replace the original prim with 5 new prims
         	Vector3 newsize = new Vector3(scale.X / 2, scale.Y / 2, scale.Z / 2);
         	Vector3 offset = new Vector3(scale.X / 4, scale.Y / 4, scale.Z / 4);
         	Vector3 pos = sog.AbsolutePosition;
@@ -226,22 +261,36 @@ namespace SierpinskiModule {
         	m_todelete.Add(sog); //add the original prim to the list of prims to be removed
         }
 
-        Color4 RandomColor() { //Randomly pick a color - but pick green more often than other colors
+        Color4 RandomColor()
+        {
+            //Randomly pick a color - but pick green more often than other colors
             Color4 randomcolor;
             int randomNumber = m_random.Next(0,10);
-            if (randomNumber < 7) {
+            if (randomNumber < 7)
+            {
                 randomcolor = new Color4(0.0f, 0.50f, 0.0f, 1.0f); //Green
             }
-            else if (randomNumber == 7) {
+            else if (randomNumber == 7)
+            {
                 randomcolor = new Color4(1.0f, 0.0f, 0.0f, 1.0f); //Red
             }
-            else if (randomNumber == 8) {
+            else if (randomNumber == 8)
+            {
                 randomcolor = new Color4(0.0f, 0.0f, 1.0f, 1.0f); //Blue
             }
-            else {
+            else
+            {
                 randomcolor = new Color4(1.0f, 1.0f, 0.0f, 1.0f); //Yellow
             }
             return randomcolor;
+        }
+
+        void Dialog(string message)
+        {
+            if (m_dialogmod != null)
+            {
+                m_dialogmod.SendGeneralAlert("Sierpinski Module: " + message);
+            }
         }
     }
 }
