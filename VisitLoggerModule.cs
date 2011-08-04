@@ -50,8 +50,9 @@ namespace VisitLoggerModule
     [Extension(Path="/OpenSim/RegionModules",NodeName="RegionModule")]
     public class VisitLoggerModule : INonSharedRegionModule
     {
-        //Set up console logging.
+        //Set up console logging and dialog messages
         private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        IDialogModule m_dialogmod;
 
         //Configurable settings in VisitLogger.ini
         bool m_enabled;
@@ -59,9 +60,11 @@ namespace VisitLoggerModule
         bool m_localLog;
         string m_logPath; //Local path or online url to where logs will be stored
         string m_googleAccount; //Google account associated with these records (only required for online record storage
+        bool m_announcements;
 
         Scene m_scene;
-        Dictionary<string, DateTime> m_recentVisits = new Dictionary<string, DateTime>(); //Tracks recent visitors and times so we know when to ignore repeat visits by the same avatar.
+        //Tracks recent visitors and times so we know when to ignore repeat visits by the same avatar.
+        Dictionary<string, DateTime> m_recentVisits = new Dictionary<string, DateTime>();
 
         #region INonSharedRegionModule interface
 
@@ -75,11 +78,13 @@ namespace VisitLoggerModule
                 m_localLog = visitLoggerConfig.GetBoolean("local_log", true);
                 m_logPath = visitLoggerConfig.GetString("log_path", "");
                 m_googleAccount = visitLoggerConfig.GetString("google_account", "NO_ACCOUNT");
+                m_announcements = visitLoggerConfig.GetBoolean("announcements", true);
             }
             if (m_enabled)
             {
                 m_log.Info("[VisitLogger] Initializing...");
-                m_log.Info(String.Format("[VisitLogger] Block Time: {0}, Local Log: {1}, Log Path: {2}, Google Account: {3}", m_blockTime, m_localLog, m_logPath, m_googleAccount));
+                m_log.Info(String.Format("[VisitLogger] Block Time: {0}, Local Log: {1}, Log Path: {2}, Google Account: {3}",
+                                         m_blockTime, m_localLog, m_logPath, m_googleAccount));
             }
         }
 
@@ -88,6 +93,7 @@ namespace VisitLoggerModule
             if (m_enabled)
             {
                 m_scene = scene;
+                m_dialogmod = scene.RequestModuleInterface<IDialogModule>();
                 m_scene.EventManager.OnMakeRootAgent += new EventManager.OnMakeRootAgentDelegate(OnVisit);
             }
         }
@@ -126,6 +132,10 @@ namespace VisitLoggerModule
         {
             string visitorName = presence.Firstname + "_" + presence.Lastname;
             DateTime now = DateTime.Now;
+            if (m_announcements)
+            {
+                AnnounceVisit(presence);
+            }
             if (m_recentVisits.ContainsKey(visitorName))
             {
                 if (now.Subtract(m_recentVisits[visitorName]).TotalSeconds > m_blockTime)
@@ -137,7 +147,10 @@ namespace VisitLoggerModule
                 else
                 {
                     //Update the visit time for this visitor.
-                    //NOTE: This means if a visitor keeps logging in just under the block time they will not get logged again. Might want to reconsider whether we really want to block repeat log entries based on the last time they entered the region or based on the last time they were recorded in the log.
+                    //NOTE: This means if a visitor keeps logging in just under the block time they
+                    //will not get logged again. Might want to reconsider whether we really want to
+                    //block repeat log entries based on the last time they entered the region or based
+                    //on the last time they were recorded in the log.
                     m_recentVisits[visitorName] = now;
                 }
             }
@@ -152,7 +165,8 @@ namespace VisitLoggerModule
         {
             if (m_localLog)
             {
-                string logString = String.Format("{0},{1} {2},{3}", m_scene.RegionInfo.RegionName, presence.Firstname, presence.Lastname, now);
+                string logString = String.Format("{0},{1} {2},{3}", m_scene.RegionInfo.RegionName,
+                                                 presence.Firstname, presence.Lastname, now);
                 //m_log.Info("[VisitLogger] " + logString); //DEBUG
                 string logFile = System.IO.Path.Combine(m_logPath, "VisitLog.csv");
                 if (!System.IO.File.Exists(logFile))
@@ -166,10 +180,22 @@ namespace VisitLoggerModule
             }
             else
             {
-                string logString = String.Format("logvisit?account={0}&region={1}&name={2} {3}&datetime={4}", m_googleAccount, m_scene.RegionInfo.RegionName, presence.Firstname, presence.Lastname, now);
+                string logString = String.Format("logvisit?account={0}&region={1}&name={2} {3}&datetime={4}",
+                                                 m_googleAccount, m_scene.RegionInfo.RegionName,
+                                                 presence.Firstname, presence.Lastname, now);
                 WebRequest logVisitRequest = WebRequest.Create(System.IO.Path.Combine(m_logPath, logString));
                 StreamReader urlData = new StreamReader(logVisitRequest.GetResponse().GetResponseStream());
                 //m_log.Info("[VisitLogger] " + System.IO.Path.Combine(m_logPath, logString)); //DEBUG
+            }
+        }
+
+        void AnnounceVisit(ScenePresence presence)
+        {
+            if (m_dialogmod != null)
+            {
+                m_dialogmod.SendGeneralAlert("Visit-Logger Module: " +
+                                             presence.Firstname + " " +
+                                             presence.Lastname + " entered the region");
             }
         }
     }

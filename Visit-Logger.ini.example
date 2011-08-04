@@ -4,6 +4,9 @@
 [VisitLogger]
     enabled = true
 
+    ;Specify whether you want the module to announce visitors in-world
+    announcements = true
+
     ;Do not log repeat visits by the same avatar with in a specified number
     ;of seconds. This helps prevent misuse and excessive logging when avatars
     ;crash or move between regions. Set to 0 to log ALL visits.
@@ -18,11 +21,17 @@
     ;To use online storage, set the url path to the logging tool (the 
     ;visitloggerapp Google Appengine tool at http://visitlog.aduffy70.org
     ; may be used).
-    ;local_log = false
-    ;log_path = "http://visitlog.aduffy70.org"
+    ;local_log = false 
+    ;log_path = "http://visitlog.aduffy70.org" 
 
     ;To use the visitloggerapp Google AppEngine tool, the logged records
     ;must be associated with a google account.  Specify the google account
     ;you will use. (Not required for local logs)  
-    ;google_account = "test@example.com"
+    google_account = "test@example.com" 
 
+    ;Please note: This module does NOT need your google account password.  
+    ;When you use the AppEngine tool to view your log records at 
+    ;http://visitlog.aduffy70.org you will be redirected to google to log in
+    ;through their authentication system.  
+    ;By using google's authentication, only you will be able to view
+    ;the log records for your region.
