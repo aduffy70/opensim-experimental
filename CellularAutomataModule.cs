@@ -180,6 +180,10 @@ namespace CellularAutomataModule
             {
                 if (chat.Message == "hide")
                 {
+                    if (m_isRunning)
+                    {
+                        StopAutomata();
+                    }
                     Dialog("Hide...");
                     foreach (SceneObjectGroup sog in m_prims)
                     {
