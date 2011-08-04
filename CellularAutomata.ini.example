@@ -1,5 +1,8 @@
 [CellularAutomata]
     enabled = true
+    
+    ;The channel for chat commands
+    channel = 4
 
     ;The number of seconds between cellular automata updates
     cycle_time = 10

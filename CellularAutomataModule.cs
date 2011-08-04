@@ -62,6 +62,8 @@ namespace CellularAutomataModule
         int m_cycleTime = 10000;
         bool m_isRunning = false;
         bool m_isHidden = true;
+        int m_channel = 4;
+
         #region IRegionModule interface
 
         public void Initialise(Scene scene, IConfigSource config)
@@ -79,6 +81,7 @@ namespace CellularAutomataModule
                 m_cycleTime = cellularAutomataConfig.GetInt("cycle_time", 10) * 1000;
                 m_cellSize = cellularAutomataConfig.GetFloat("cell_size", 0.9f);
                 m_cellSpacing = cellularAutomataConfig.GetFloat("cell_spacing", 0.1f);
+                m_channel = cellularAutomataConfig.GetInt("channel", 4);
             }
             if (m_enabled)
             {
@@ -157,7 +160,7 @@ namespace CellularAutomataModule
 
         void OnChat(Object sender, OSChatMessage chat)
         {
-            if (chat.Channel != 4)
+            if (chat.Channel != m_channel)
             {
 				return;
             }
