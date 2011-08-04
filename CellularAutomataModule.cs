@@ -215,21 +215,14 @@ namespace CellularAutomataModule
                         Dialog("Already stopped");
                     }
                 }
-                else if (chat.Message.Length >=5)
+                else if (chat.Message == "reset")
                 {
-                    if (chat.Message.Substring(0,5) == "reset")
+                    if (m_isRunning)
                     {
-                        if (chat.Message.Length > 6)
-                        {
-                            m_offset = float.Parse(chat.Message.Substring(6));
-                        }
-                        if (m_isRunning)
-                        {
-                            StopAutomata();
-                        }
-                        Dialog("Randomize...");
-                        RandomizeMatrix();
+                        StopAutomata();
                     }
+                    Dialog("Randomize...");
+                    RandomizeMatrix();
                 }
                 else
                 {
