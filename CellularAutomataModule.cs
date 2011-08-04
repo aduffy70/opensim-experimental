@@ -39,98 +39,119 @@ using OpenSim.Region.Framework;
 using OpenSim.Region.Framework.Interfaces;
 using OpenSim.Region.Framework.Scenes;
 
-namespace CellularAutomataModule {
-    public class CellularAutomataModule : IRegionModule {
+namespace CellularAutomataModule
+    {
+    public class CellularAutomataModule : IRegionModule
+    {
         private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-		List<SceneObjectGroup> prims = new List<SceneObjectGroup>();
-		int xstartpos = 130; //inworld x coordinate for the 0,0 position
-		int ystartpos = 60;  //inworld y coordinate for the 0,0 position
-		int zstartpos = 21;  //inworld z height for the grid
-		int xcells = 15;
-		int ycells = 15;
-		float maxcover = 1.0f;
-		float offset = 0.25f;
-		float[] cloudmatrix = new float[16 * 16];
-		float[] newvalues = new float[16 * 16];
+		List<SceneObjectGroup> m_prims = new List<SceneObjectGroup>();
+		int m_xStartPos = 45; //inworld x coordinate for the 0,0 position
+		int m_yStartPos = 120;  //inworld y coordinate for the 0,0 position
+		int m_zStartPos = 21;  //inworld z height for the grid
+		int m_xCells = 16;
+		int m_yCells = 16;
+		float m_offset = 0.25f;
+		float[] m_matrix = new float[16 * 16];
+		//float[] m_newMatrix = new float[16 * 16];
         private Scene m_scene;
-        Timer mytimer = new Timer(); //Timer to replace the region heartbeat
+        Timer m_timer = new Timer(); //Timer to replace the region heartbeat
+        Random m_random = new Random();
 
         #region IRegionModule interface
 
-        public void Initialise(Scene scene, IConfigSource config) {
+        public void Initialise(Scene scene, IConfigSource config)
+        {
             m_scene = scene;
         }
 
-        public void PostInitialise() {
+        public void PostInitialise()
+        {
             m_scene.EventManager.OnChatFromWorld += new EventManager.ChatFromWorldEvent(OnChat);
             m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
-			DoCloudModule(m_scene);
+            InitializeMatrix(m_scene);
         }
 
-        public void Close(){
+        public void Close()
+        {
         }
 
-        public string Name{
-            get { return "CellularAutomataModule"; }
+        public string Name
+        {
+            get
+            {
+                return "CellularAutomataModule";
+            }
         }
 
-        public bool IsSharedModule {
-            get { return false; }
+        public bool IsSharedModule
+        {
+            get
+            {
+                return false;
+            }
         }
 
         #endregion
 
-        void DoCloudModule(Scene scene) {
+        void InitializeMatrix(Scene scene)
+        {
             // We're going to place a grid of objects in world
-			Random RandomClass = new Random();
-			for (int x=0; x<=xcells; x++) {
-				for (int y=0; y<=ycells; y++) {
-					Vector3 pos = new Vector3(xstartpos + x, ystartpos + y, zstartpos);
+			for (int x=0; x<m_xCells; x++)
+            {
+				for (int y=0; y<m_yCells; y++)
+                {
+					Vector3 pos = new Vector3(m_xStartPos + x, m_yStartPos + y, m_zStartPos);
 					PrimitiveBaseShape prim = PrimitiveBaseShape.CreateBox();
 					prim.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a221fe21f"));
 					SceneObjectGroup sog = new SceneObjectGroup(UUID.Zero, pos, prim);
 					sog.RootPart.Scale = new Vector3(0.9f, 0.9f, 0.1f);
 					Primitive.TextureEntry tex = sog.RootPart.Shape.Textures;
-					float Randomvalue = (float)RandomClass.NextDouble();
-					Color4 texcolor;
-					texcolor = new Color4(Randomvalue, Randomvalue, Randomvalue, 1.0f);
-					cloudmatrix[y * 16 + x] = Randomvalue;
+					float randomValue = (float)m_random.NextDouble();
+					Color4 texcolor = new Color4(randomValue, randomValue, randomValue, 1.0f);
+					m_matrix[y * 16 + x] = randomValue;
 					tex.DefaultTexture.RGBA = texcolor;
 					sog.RootPart.UpdateTexture(tex);
-					prims.Add(sog);
+					m_prims.Add(sog);
 				}
 			}
 			//Add these objects to the list of managed objects
 			//Place the objects visibly on the scene
-			foreach (SceneObjectGroup sogr in prims)
+			foreach (SceneObjectGroup sogr in m_prims)
+            {
 				scene.AddNewSceneObject(sogr, false);
+            }
             //Start the timer
-            mytimer.Elapsed += new ElapsedEventHandler(TimerEvent);
-            mytimer.Interval = 20000;
-            mytimer.Start();
+            m_timer.Elapsed += new ElapsedEventHandler(OnTimer);
+            m_timer.Interval = 20000;
+            m_timer.Start();
 		}
 
-        void OnChat(Object sender, OSChatMessage chat) {
+        void OnChat(Object sender, OSChatMessage chat)
+        {
             if ((chat.Channel != 4) || (chat.Message.Length < 5))
+            {
 				return;
-			else {
-				if (chat.Message.Substring(0,5) == "reset") {
+            }
+			else
+            {
+				if (chat.Message.Substring(0,5) == "reset")
+                {
 					if (chat.Message.Length > 6)
-						offset = float.Parse(chat.Message.Substring(6));
-					Random RandomClass = new Random();
-                    Color4 texcolor;
-					int counter = 0;
-					for (int x=0; x<=xcells; x++) {
-						for (int y=0; y<=ycells; y++){
-							float Randomvalue = (float)RandomClass.NextDouble();
-							texcolor = new Color4(Randomvalue, Randomvalue, Randomvalue, 1.0f);
-							cloudmatrix[y * 16 + x] = Randomvalue;
-							cloudmatrix[y * 16 + x] *= maxcover;
-							Primitive.TextureEntry tex = prims[counter].RootPart.Shape.Textures;
+                    {
+						m_offset = float.Parse(chat.Message.Substring(6));
+					}
+					for (int x=0; x<m_xCells; x++)
+                    {
+						for (int y=0; y<m_yCells; y++)
+                        {
+                            int index = y * 16 + x;
+							float randomValue = (float)m_random.NextDouble();
+							Color4 texcolor = new Color4(randomValue, randomValue, randomValue, 1.0f);
+							m_matrix[index] = randomValue;
+							Primitive.TextureEntry tex = m_prims[index].RootPart.Shape.Textures;
 							tex.DefaultTexture.RGBA = texcolor;
-                            prims[counter].RootPart.UpdateTexture(tex);
-                            prims[counter].ScheduleGroupForTerseUpdate();
-                            counter++;
+                            m_prims[index].RootPart.UpdateTexture(tex);
+                            m_prims[index].ScheduleGroupForTerseUpdate();
                         }
                     }
                 }
@@ -138,52 +159,75 @@ namespace CellularAutomataModule {
         }
 
 
-		void TimerEvent(object source, ElapsedEventArgs e) {
-	        Color4 texcolor;
-            int rowabove = new int();
-            int rowbelow = new int();
-            int colleft = new int();
-            int colright = new int();
-            int counter = 0;
-            for (int x=0; x<=xcells; x++) {
-				if (x == 0) {
+		void OnTimer(object source, ElapsedEventArgs e)
+        {
+            UpdateMatrix();
+        }
+
+        void UpdateMatrix()
+        {
+            float[] newMatrix = new float[16 * 16];
+            int rowabove;
+            int rowbelow;
+            int colleft;
+            int colright;
+            int xMaxIndex = m_xCells - 1;
+            int yMaxIndex = m_yCells - 1;
+            for (int x=0; x<m_xCells; x++)
+            {
+				if (x == 0)
+                {
 					colright = x + 1;
-					colleft = xcells;
+					colleft = xMaxIndex;
 				}
-				else if (x == xcells) {
+				else if (x == xMaxIndex)
+                {
 					colright = 0;
 					colleft = x - 1;
 				}
-				else {
+				else
+                {
 					colright = x + 1;
 					colleft = x - 1;
 				}
-				for (int y=0; y<=ycells; y++) {
-                    if (y == 0) {
+				for (int y=0; y<m_yCells; y++)
+                {
+                    if (y == 0)
+                    {
 						rowabove = y + 1;
-						rowbelow = ycells;
+						rowbelow = yMaxIndex;
 					}
-					else if (y == ycells) {
+					else if (y == yMaxIndex)
+                    {
 						rowabove = 0;
 						rowbelow = y - 1;
 					}
-					else {
+					else
+                    {
 						rowabove = y + 1;
 						rowbelow = y - 1;
 					}
-                    float neighboraverage = (((cloudmatrix[rowbelow * 16 + colleft] + cloudmatrix[y * 16 + colleft] + cloudmatrix[rowabove * 16 + colleft] + cloudmatrix[rowbelow * 16 + x] + cloudmatrix[rowabove * 16 + x] + cloudmatrix[rowbelow * 16 + colright] + cloudmatrix[y * 16 + colright] + cloudmatrix[rowabove * 16 + colright] + cloudmatrix[y * 16 + x]) / 9) / maxcover) + offset;
-					newvalues[y * 16 + x] = neighboraverage % 1.0f;
-					newvalues[y * 16 + x] *= maxcover;
-					Primitive.TextureEntry tex = prims[counter].RootPart.Shape.Textures;
-					texcolor = new Color4(newvalues[y * 16 + x], newvalues[y * 16 + x], newvalues[y * 16 + x], 1.0f);
+                    int index = y * 16 + x;
+                    float neighboraverage = ((m_matrix[rowbelow * 16 + colleft] +
+                                              m_matrix[y * 16 + colleft] +
+                                              m_matrix[rowabove * 16 + colleft] +
+                                              m_matrix[rowbelow * 16 + x] +
+                                              m_matrix[rowabove * 16 + x] +
+                                              m_matrix[rowbelow * 16 + colright] +
+                                              m_matrix[y * 16 + colright] +
+                                              m_matrix[rowabove * 16 + colright] +
+                                              m_matrix[index]
+                                             ) / 9);
+					float newCellValue = (neighboraverage + m_offset) % 1.0f;
+                    newMatrix[index] = newCellValue;
+					Primitive.TextureEntry tex = m_prims[index].RootPart.Shape.Textures;
+					Color4 texcolor = new Color4(newCellValue, newCellValue, newCellValue, 1.0f);
 					tex.DefaultTexture.RGBA = texcolor;
-                    prims[counter].RootPart.UpdateTexture(tex);
-                    prims[counter].ScheduleGroupForTerseUpdate();
-					counter++;
+                    m_prims[index].RootPart.UpdateTexture(tex);
+                    m_prims[index].ScheduleGroupForTerseUpdate();
 				}
 			}
-	        Array.Copy(newvalues, cloudmatrix, 16 * 16);
+	        Array.Copy(newMatrix, m_matrix, 16 * 16);
         }
     }
 }
-
