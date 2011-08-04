@@ -51,7 +51,9 @@ namespace CellularAutomataModule
 		float m_zPos = 25f;  //inworld z height for the grid
 		int m_xCells = 16;
 		int m_yCells = 16;
-		float m_offset = 0.25f;
+        float m_cellSize = 0.9f; //X and Y size of the cells (they are always z=0.1)
+        float m_cellSpacing = 0.1f; //Gap between cells
+		float m_offset = 0.25f; //The automata offset to keep the cells from all converging on the mean
 		float[] m_matrix;
         private Scene m_scene;
         Timer m_timer = new Timer(); //Timer to replace the region heartbeat
@@ -73,6 +75,8 @@ namespace CellularAutomataModule
                 m_yCells = cellularAutomataConfig.GetInt("y_cells", 16);
                 m_offset = cellularAutomataConfig.GetFloat("offset", 0.25f);
                 m_cycleTime = cellularAutomataConfig.GetInt("cycle_time", 10) * 1000;
+                m_cellSize = cellularAutomataConfig.GetFloat("cell_size", 0.9f);
+                m_cellSpacing = cellularAutomataConfig.GetFloat("cell_spacing", 0.1f);
             }
             if (m_enabled)
             {
@@ -125,11 +129,11 @@ namespace CellularAutomataModule
             {
 				for (int x=0; x<m_xCells; x++)
                 {
-					Vector3 pos = new Vector3(m_xPos + x, m_yPos + y, m_zPos);
+					Vector3 pos = new Vector3(m_xPos + (x * (m_cellSize + m_cellSpacing)), m_yPos + (y * (m_cellSize + m_cellSpacing)), m_zPos);
 					PrimitiveBaseShape prim = PrimitiveBaseShape.CreateBox();
 					prim.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a221fe21f"));
 					SceneObjectGroup sog = new SceneObjectGroup(UUID.Zero, pos, prim);
-					sog.RootPart.Scale = new Vector3(0.9f, 0.9f, 0.1f);
+					sog.RootPart.Scale = new Vector3(m_cellSize, m_cellSize, 0.1f);
 					Primitive.TextureEntry tex = sog.RootPart.Shape.Textures;
 					float randomValue = (float)m_random.NextDouble();
 					Color4 texcolor = new Color4(randomValue, randomValue, randomValue, 1.0f);

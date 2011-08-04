@@ -13,6 +13,12 @@
     x_cells = 16
     y_cells = 16
 
+    ;The size of the cells (this is the xy dimension... they are always z=0.1)
+    cell_size = 0.25
+
+    ;The gap between adjacent cells
+    cell_spacing = 0.0
+
     ;The cellular automata offset (the number added to the value of each cell
     ;in each cycle to keep them from converging on one average value
     offset = 0.25
