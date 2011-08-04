@@ -44,6 +44,7 @@ namespace CellularAutomataModule
     public class CellularAutomataModule : IRegionModule
     {
         private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        IDialogModule m_dialogmod;
 		bool m_enabled = false;
         List<SceneObjectGroup> m_prims = new List<SceneObjectGroup>();
 		float m_xPos = 128f; //inworld x coordinate for the 0,0 position
@@ -59,7 +60,8 @@ namespace CellularAutomataModule
         Timer m_timer = new Timer(); //Timer to replace the region heartbeat
         Random m_random = new Random();
         int m_cycleTime = 10000;
-
+        bool m_isRunning = false;
+        bool m_isHidden = true;
         #region IRegionModule interface
 
         public void Initialise(Scene scene, IConfigSource config)
@@ -80,6 +82,7 @@ namespace CellularAutomataModule
             }
             if (m_enabled)
             {
+                m_log.Info("[CellularAutomataModule] Initializing...");
                 m_matrix = new float[m_xCells * m_yCells];
                 m_scene = scene;
             }
@@ -89,14 +92,12 @@ namespace CellularAutomataModule
         {
             if (m_enabled)
             {
+                m_dialogmod = m_scene.RequestModuleInterface<IDialogModule>();
                 m_scene.EventManager.OnChatFromWorld += new EventManager.ChatFromWorldEvent(OnChat);
                 m_scene.EventManager.OnChatFromClient += new EventManager.ChatFromClientEvent(OnChat);
-                InitializeMatrix(m_scene);
                 //Start the timer
                 m_timer.Elapsed += new ElapsedEventHandler(OnTimer);
                 m_timer.Interval = m_cycleTime;
-                m_timer.Start();
-
             }
         }
 
@@ -129,7 +130,9 @@ namespace CellularAutomataModule
             {
 				for (int x=0; x<m_xCells; x++)
                 {
-					Vector3 pos = new Vector3(m_xPos + (x * (m_cellSize + m_cellSpacing)), m_yPos + (y * (m_cellSize + m_cellSpacing)), m_zPos);
+					Vector3 pos = new Vector3(m_xPos + (x * (m_cellSize + m_cellSpacing)),
+                                                        m_yPos + (y * (m_cellSize + m_cellSpacing)),
+                                                        m_zPos);
 					PrimitiveBaseShape prim = PrimitiveBaseShape.CreateBox();
 					prim.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a221fe21f"));
 					SceneObjectGroup sog = new SceneObjectGroup(UUID.Zero, pos, prim);
@@ -149,25 +152,97 @@ namespace CellularAutomataModule
             {
 				scene.AddNewSceneObject(sogr, false);
             }
+            m_isHidden = false;
 		}
 
         void OnChat(Object sender, OSChatMessage chat)
         {
-            if ((chat.Channel != 4) || (chat.Message.Length < 5))
+            if (chat.Channel != 4)
             {
 				return;
             }
-			else
+            else if (chat.Message == "show")
             {
-				if (chat.Message.Substring(0,5) == "reset")
+                if (m_isHidden)
                 {
-					if (chat.Message.Length > 6)
-                    {
-						m_offset = float.Parse(chat.Message.Substring(6));
-					}
-                    RandomizeMatrix();
+                    Dialog("Show...");
+                    InitializeMatrix(m_scene);
+                }
+                else
+                {
+                    Dialog("Already showing");
                 }
             }
+            else if (m_isHidden == false)
+            {
+                if (chat.Message == "hide")
+                {
+                    Dialog("Hide...");
+                    foreach (SceneObjectGroup sog in m_prims)
+                    {
+                        m_scene.DeleteSceneObject(sog, false);
+                    }
+                    m_prims.Clear();
+                    m_matrix = new float[m_xCells * m_yCells];
+
+                    m_isHidden = true;
+                }
+                else if (chat.Message == "start")
+                {
+                    if (!m_isRunning)
+                    {
+                        Dialog("Start...");
+                        m_isRunning = true;
+                        m_timer.Start();
+                    }
+                    else
+                    {
+                        Dialog("Already running");
+                    }
+                }
+                else if (chat.Message == "stop")
+                {
+                    if (m_isRunning)
+                    {
+                        Dialog("Stop...");
+                        StopAutomata();
+                    }
+                    else
+                    {
+                        Dialog("Already stopped");
+                    }
+                }
+                else if (chat.Message.Length >=5)
+                {
+                    if (chat.Message.Substring(0,5) == "reset")
+                    {
+                        if (chat.Message.Length > 6)
+                        {
+                            m_offset = float.Parse(chat.Message.Substring(6));
+                        }
+                        if (m_isRunning)
+                        {
+                            StopAutomata();
+                        }
+                        Dialog("Randomize...");
+                        RandomizeMatrix();
+                    }
+                }
+                else
+                {
+                    Dialog("Invalid command");
+                }
+            }
+            else
+            {
+                Dialog("Must 'show' first");
+            }
+        }
+
+        void StopAutomata()
+        {
+            m_timer.Stop();
+            m_isRunning = false;
         }
 
         void RandomizeMatrix()
@@ -257,6 +332,16 @@ namespace CellularAutomataModule
 				}
 			}
 	        Array.Copy(newMatrix, m_matrix, m_xCells * m_yCells);
+        }
+
+        void Dialog(string message)
+        {
+            if (m_dialogmod != null)
+            {
+                m_dialogmod.SendGeneralAlert("CellularAutomata Module: " + message);
+            }
+            else
+                m_log.Info("Oops");
         }
     }
 }
