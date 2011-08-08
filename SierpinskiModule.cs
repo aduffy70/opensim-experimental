@@ -46,7 +46,6 @@ namespace SierpinskiModule
 		IDialogModule m_dialogmod;
         List<SceneObjectGroup> m_prims = new List<SceneObjectGroup>(); //our list of managed objects
 		List<SceneObjectGroup> m_newprims = new List<SceneObjectGroup>(); //new prims to be added to the scene
-        List<SceneObjectGroup> m_todelete = new List<SceneObjectGroup>(); //prims to be removed from the scene
         Random m_random = new Random();
         bool m_enabled = false;
         int m_channel = 11;
@@ -158,7 +157,6 @@ namespace SierpinskiModule
                         m_scene.DeleteSceneObject(sog, false);
                     }
                     m_prims.Clear();
-                    m_todelete.Clear();
                     m_isHidden = true;
                 }
                 else
@@ -179,11 +177,6 @@ namespace SierpinskiModule
                     m_prims.Clear();
                     Dialog(m_newprims.Count + " prims");
                     m_prims = new List<SceneObjectGroup>(m_newprims);
-                    foreach (SceneObjectGroup sog in m_todelete)
-                    {
-                        m_scene.DeleteSceneObject(sog, false);
-                    }
-                    m_todelete.Clear();
                     m_newprims.Clear();
                 }
                 else
@@ -203,18 +196,14 @@ namespace SierpinskiModule
         	Vector3 newsize = new Vector3(scale.X / 2, scale.Y / 2, scale.Z / 2);
         	Vector3 offset = new Vector3(scale.X / 4, scale.Y / 4, scale.Z / 4);
         	Vector3 pos = sog.AbsolutePosition;
-            // Add new prim#1
-        	PrimitiveBaseShape prim1 = PrimitiveBaseShape.CreateBox();
-        	prim1.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a236fe36f"));
+        	//Move and resize the existing prim to become the new prim#1
+            //This is much faster than creating a new one and deleting the old
             Vector3 newpos = new Vector3(pos.X, pos.Y, pos.Z + offset.Z);
-        	SceneObjectGroup newsog1 = new SceneObjectGroup(UUID.Zero, newpos, prim1);
-        	newsog1.RootPart.Scale = newsize;
-            m_newprims.Add(newsog1); //add it to our list of managed objects
-        	m_scene.AddNewSceneObject(newsog1, false);  //add it to the scene (not backed up to the db)
-            Primitive.TextureEntry tex = newsog1.RootPart.Shape.Textures;
-            tex.DefaultTexture.RGBA = RandomColor();
-            newsog1.RootPart.UpdateTexture(tex);
-        	// Add new prim#2
+            sog.AbsolutePosition = newpos;
+            sog.RootPart.Scale = newsize;
+            sog.ScheduleGroupForFullUpdate();
+            m_newprims.Add(sog);
+            // Add new prim#2
             PrimitiveBaseShape prim2 = PrimitiveBaseShape.CreateBox();
             prim2.Textures = new Primitive.TextureEntry(new UUID("5748decc-f629-461c-9a36-a35a236fe36f"));
         	newpos = new Vector3(pos.X - offset.X, pos.Y - offset.Y, pos.Z - offset.Z);
@@ -222,7 +211,7 @@ namespace SierpinskiModule
         	newsog2.RootPart.Scale = newsize;
         	m_newprims.Add(newsog2); //add it to our list of managed objects
         	m_scene.AddNewSceneObject(newsog2, false);  //add it to the scene (not backed up to the db)
-            tex = newsog2.RootPart.Shape.Textures;
+            Primitive.TextureEntry tex = newsog2.RootPart.Shape.Textures;
             tex.DefaultTexture.RGBA = RandomColor();
             newsog2.RootPart.UpdateTexture(tex);
         	// Add new prim#3
@@ -258,7 +247,6 @@ namespace SierpinskiModule
             tex = newsog5.RootPart.Shape.Textures;
             tex.DefaultTexture.RGBA = RandomColor();
             newsog5.RootPart.UpdateTexture(tex);
-        	m_todelete.Add(sog); //add the original prim to the list of prims to be removed
         }
 
         Color4 RandomColor()
