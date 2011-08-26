@@ -9,6 +9,10 @@ This module uses several libraries that I have not included.  The expectation is
 
 USAGE NOTES
 This module logs all text chat to a file.  The channel to be logged, the channel for module commands, and the location and name of the log file can be configured.
+In-world chat commands:
+  To start logging: /18 on
+  To stop logging: /18 off
+  To clear the logs:  /18 stop
 
 TODO
 In no particular order...
