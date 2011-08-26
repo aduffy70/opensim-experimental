@@ -12,7 +12,7 @@ This module logs all text chat to a file.  The channel to be logged, the channel
 In-world chat commands:
   To start logging: /18 on
   To stop logging: /18 off
-  To clear the logs:  /18 stop
+  To clear the logs:  /18 reset
 
 TODO
 In no particular order...
