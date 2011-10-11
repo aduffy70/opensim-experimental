@@ -49,6 +49,9 @@ namespace SierpinskiModule
         Random m_random = new Random();
         bool m_enabled = false;
         int m_channel = 11;
+        int m_maxSteps = 6;
+        int m_stepCount = 0;
+        bool m_isBusy = false; //Don't accept commands while previous commands are processing
         private Scene m_scene;
         bool m_isHidden = true; //tracks whether pyramid is hidden or shown
         Vector3 m_pos = new Vector3(128f, 128f, 40f); //inworld coordinates for the center of the pyramid
@@ -73,6 +76,7 @@ namespace SierpinskiModule
                 m_xSize = sierpinskiTreeConfig.GetFloat("tree_x_size", 30);
                 m_ySize = sierpinskiTreeConfig.GetFloat("tree_y_size", 30);
                 m_zSize = sierpinskiTreeConfig.GetFloat("tree_z_size", 40);
+                m_maxSteps = sierpinskiTreeConfig.GetInt("max_steps", 6); //default of 6 will allow a 15k prim pyramid
             }
             if (m_enabled)
             {
@@ -134,8 +138,13 @@ namespace SierpinskiModule
             {
                 return;
             }
+            else if (m_isBusy)
+            {
+                Dialog("Busy. Wait a few moments and try again...");
+            }
             else if (chat.Message == "show")
             {
+                m_isBusy = true;
                 if (m_isHidden == true)
                 {
                     Dialog("Show...");
@@ -146,9 +155,11 @@ namespace SierpinskiModule
                 {
                     Dialog("Already shown");
                 }
+                m_isBusy = false;
             }
             else if (chat.Message == "hide")
             {
+                m_isBusy = true;
                 if (m_isHidden == false)
                 {
                     Dialog("Hide...");
@@ -163,26 +174,44 @@ namespace SierpinskiModule
                 {
                     Dialog("Already hidden");
                 }
+                m_isBusy = false;
             }
 			else if (chat.Message == "step")
             {
+                m_isBusy = true;
                 if (m_isHidden == false)
                 {
-        		    Dialog("Updating pyramid...");
-        		    foreach(SceneObjectGroup sog in m_prims)
+                    if (m_stepCount < m_maxSteps)
                     {
-        			    DoSierpinski(sog, m_size);
-        		    }
-        		    m_size = new Vector3(m_size.X / 2, m_size.Y / 2, m_size.Z /2);
-                    m_prims.Clear();
-                    Dialog(m_newprims.Count + " prims");
-                    m_prims = new List<SceneObjectGroup>(m_newprims);
-                    m_newprims.Clear();
+        		        Dialog("Updating pyramid...");
+        		        foreach(SceneObjectGroup sog in m_prims)
+                        {
+        			        DoSierpinski(sog, m_size);
+        		        }
+        		        m_size = new Vector3(m_size.X / 2, m_size.Y / 2, m_size.Z /2);
+                        m_prims.Clear();
+                        Dialog(m_newprims.Count + " prims");
+                        m_prims = new List<SceneObjectGroup>(m_newprims);
+                        m_newprims.Clear();
+                        m_stepCount++;
+                    }
+                    else
+                    {
+                        Dialog("Too many prims. Resetting pyramid.  Please wait...");
+                        foreach (SceneObjectGroup sog in m_prims)
+                        {
+                            m_scene.DeleteSceneObject(sog, false);
+                        }
+                        m_prims.Clear();
+                        InitializePyramid(m_scene);
+                        m_stepCount = 0;
+                    }
                 }
                 else
                 {
                     Dialog("Must 'show' first...");
                 }
+                m_isBusy = false;
         	}
             else
             {

@@ -4,9 +4,23 @@
     tree_x_position = 128
     tree_y_position = 128
     tree_z_position = 50
+
     ;x, y, and z dimensions (in meters) of the tree
     tree_x_size = 30
     tree_y_size = 30
     tree_z_size = 40
+
     ;channel for chat commands
     chat_channel = 11
+
+    ;maximum number of steps to advance the pyramid. 
+    ;1=5 prims,
+    ;2=25 prims,
+    ;3=125 prims,
+    ;4=625 prims,
+    ;5=3125 prims,
+    ;6=15625 prims,
+    ;7=78125 prims,
+    ;8=390625 prims, etc...
+    ;If you attempt to advance the pyramid beyond max_steps, it will start over with a single prim.
+    max_steps = 6
