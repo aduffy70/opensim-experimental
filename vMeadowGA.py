@@ -57,6 +57,7 @@ class LogOrParametersPage(webapp.RequestHandler):
         self.response.out.write(page.header)
         self.response.out.write(self.instructions)
         self.response.out.write(self.form)
+        self.response.out.write(self.workshop_link)
         self.response.out.write(page.footer)
 
     instructions = """
@@ -84,6 +85,11 @@ class LogOrParametersPage(webapp.RequestHandler):
         </form>
         """
 
+    workshop_link = """
+        <p>
+            <a href="/images/VPCsimWorkshop.pdf" target="_blank">PDF document for CyTSE/NSTA RDC workshop</a>
+        </p>
+        """
 
 class MeadowRecordObject(db.Model):
     """
