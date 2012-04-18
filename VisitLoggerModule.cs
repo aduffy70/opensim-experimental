@@ -94,7 +94,7 @@ namespace VisitLoggerModule
             {
                 m_scene = scene;
                 m_dialogmod = scene.RequestModuleInterface<IDialogModule>();
-                m_scene.EventManager.OnMakeRootAgent += new EventManager.OnMakeRootAgentDelegate(OnVisit);
+                m_scene.EventManager.OnMakeRootAgent += OnVisit;
             }
         }
 
