@@ -1,0 +1,19 @@
+NAME
+Visit-Logger
+
+DESCRIPTION
+An OpenSimulator (http://www.opensimulator.org) region module to log visitors.
+
+BUILD NOTES
+This module uses several libraries that I have not included.  The expectation is that the Visit-Logger/ folder will be placed in the addon-modules/ folder of your OpenSimulator installation.  This will provide access to all required libraries
+
+USAGE NOTES
+This module logs visitors to your choice of a local file or an online logging tool (such as the visitloggerga tool at visitlog.aduffy70.org).
+To use local logging, you specify a local folder in  the VisitLogger.ini file.  The log will be stored in the specified folder as VisitLog.csv
+To use the online tool, this module needs a google account ID (a gmail address, for example) to associate with the records.  It does NOT need any login info such as your password. To view the log records, direct your browser to the logging tool url (visitlog.aduffy70.org).  You will be redirected to Google's Authorization page to login and will then be able to see the records associated with your google account (this prevents anyone else from accessing your log records).
+
+TODO
+In no particular order...
+Document installation, configuration, and use.
+Test module on opensim instances with multiple regions per instance and make necessary changes (All my test regions are a single region per opensim instance).
+
