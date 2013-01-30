@@ -1,0 +1,21 @@
+[ConwayGOL]
+    enabled = true
+    ;Chat channel to use for commands
+    chat_channel = 9
+    ;Time in seconds between updates
+    cycle_time = 5
+    ;# of columns in the matrix
+    x_cells = 36
+    ;# of rows in the matrix
+    y_cells = 36
+    ;Coordinates for the center of the torus
+    x_position = 128
+    y_position = 128
+    z_position = 40
+    ;Overall radius of the torus
+    a_radius = 20
+    ;Radius of the torus tube
+    b_radius = 15
+    ;Base url path to the location where starting patterns are stored.
+    ;Without this path, only the hardcoded example pattern is available.
+    pattern_url_path = "http://fernseed.usu.edu/cgol-patterns/"
