@@ -1,0 +1,21 @@
+NAME
+Chat-Logger
+
+DESCRIPTION
+An OpenSimulator (http://www.opensimulator.org) region module to log all text chat in a region.  When chat is being logged, all avatars are notified as they enter the region.  All avatars in the region are notified when logging is turned on or off, and when the log file is cleared.  Instant Messages (IM's) are NOT recorded.
+
+BUILD NOTES
+This module uses several libraries that I have not included.  The expectation is that the Chat-Logger/ folder will be placed in the addon-modules/ folder of your OpenSimulator installation.  This will provide access to all required libraries.
+
+USAGE NOTES
+This module logs all text chat to a file.  The channel to be logged, the channel for module commands, and the location and name of the log file can be configured.
+In-world chat commands:
+  To start logging: /18 on
+  To stop logging: /18 off
+  To clear the logs:  /18 reset
+
+TODO
+In no particular order...
+Document installation, configuration, and use.
+
+
