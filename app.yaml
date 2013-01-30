@@ -1,0 +1,17 @@
+application: visitloggerga
+version: 1
+runtime: python
+api_version: 1
+
+handlers:
+- url: /stylesheets
+  static_dir: stylesheets
+
+- url: /helpfiles
+  static_dir: helpfiles
+
+- url: .*
+  script: main.py
+
+builtins:
+- datastore_admin: on

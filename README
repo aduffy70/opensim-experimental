@@ -1,0 +1,12 @@
+NAME
+visitloggerga (Visit Log Tool)
+
+DESCRIPTION
+An Google AppEngine app to maintain a log of visitors to OpenSim Regions.
+This tool works with the Visit-Logger Region Module.
+
+BUILD NOTES
+
+USAGE NOTES
+
+TODO
