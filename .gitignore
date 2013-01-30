@@ -3,3 +3,4 @@ bin/
 *.csproj*
 *.dll.build
 *.pidb
+index.yaml

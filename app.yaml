@@ -1,0 +1,12 @@
+application: vmeadowga
+version: 4
+runtime: python
+api_version: 1
+
+handlers:
+- url: /images
+  static_dir: images
+
+- url: /.*
+  script: vMeadowGA.py
+
