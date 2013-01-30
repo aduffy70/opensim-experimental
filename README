@@ -1,0 +1,18 @@
+NAME
+CellularAutomata
+
+DESCRIPTION
+An OpenSimulator (http://www.opensimulator.org) region module to demonstrate continuous cellular automata.
+
+BUILD NOTES
+This module uses several libraries that I have not included.  The expectation is that the CellularAutomata/ folder will be placed in the addon-modules/ folder of your OpenSimulator installation.  This will provide access to all required libraries.
+
+USAGE NOTES
+
+
+TODO
+In no particular order...
+Document installation, configuration, and use.
+Test module on opensim instances with multiple regions per instance and make necessary changes (All my test regions are a single region per opensim instance).
+Add configuration file or commands to allow users changes.
+
