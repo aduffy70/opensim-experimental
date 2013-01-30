@@ -1,0 +1,25 @@
+NAME
+Coverview
+
+DESCRIPTION
+An OpenSimulator (http://www.opensimulator.org) module to generate a bank of slides that can be viewed in sequence or any desired order.
+
+BUILD NOTES
+This module uses several libraries that I have not included.  The expectation is that the Coverview/ folder will be placed in the addon-modules/ folder of your OpenSimulator installation.  This will provide access to all required libraries.
+Alternatively, the module can be compiled for a binary installation of OpenSimulator by placing the Coverview/ folder in the binary folder and compiling with nant.
+
+
+USAGE NOTES
+By default, the module listens for chat commands on channel 7.  Chat + or - to advance or backup one slide.  Chat any slide number to jump to that slide.
+Note- the slides are numbered starting at 0, so if there are 100 slides, they are 0-99, not 1-100.
+
+TODO
+In no particular order...
+Add code to automatically apply a folder of textures to the slides.
+Add configuration options to allow the slides to be placed in other locations on the region or rotated to face different directions (Currently they are positioned along the south edge of the region.
+Make the size and number of slides configurable.
+Make the slide arrangement configurable - let them move up and down or in a circle like a slide projector carousel.
+Document installation, configuration, and use.
+Pull necessary 3rd party libraries into the project (in a way that is appropriate for their individual licenses).
+Test module on opensim instances with multiple regions per instance and make necessary changes (All my test regions are a single region per opensim instance.
+Make the slides show the first slide rather than the last slide at startup.

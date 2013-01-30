@@ -1,0 +1,27 @@
+   <Project name="CoverviewModule" frameworkVersion="v3_5" path="addon-modules/Coverview" type="Library">
+     <Configuration name="Debug">
+       <Options>
+         <OutputPath>../../bin/</OutputPath>
+       </Options>
+     </Configuration>
+     <Configuration name="Release">
+       <Options>
+         <OutputPath>../../bin/</OutputPath>
+       </Options>
+     </Configuration>
+
+     <ReferencePath>../../bin/</ReferencePath>
+     <Reference name="System"/>
+     <Reference name="log4net"/>
+     <Reference name="Nini"/>
+     <Reference name="OpenSim.Framework"/>
+     <Reference name="OpenSim.Region.Framework"/>
+     <Reference name="OpenSim.Region.Framework.Interfaces"/>
+     <Reference name="OpenSim.Region.Framework.Scenes"/>
+     <Reference name="OpenMetaverse"/>
+     <Reference name="OpenMetaverseTypes"/>
+
+     <Files>
+       <Match pattern="*.cs" recurse="true"/>
+     </Files>
+   </Project>
